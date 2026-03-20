@@ -1,7 +1,6 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import Link from "next/link";
 import { ProductWithRelations } from "@/interface/product";
 import { Category } from "@/interface/category";
 import { ProductState } from "@/generated/prisma";

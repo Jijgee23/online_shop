@@ -46,33 +46,23 @@ export async function POST(req: Request) {
 }
 
 
-export async function PATCH(request: NextRequest,
-  { params }: { params: Promise<{ id: string }> }) {
-
-
-  const { id, name, slug, parentId, state } = await request.json();
-
-  console.log(id);
-
+export async function PATCH(request: NextRequest) { // params-ийг устгасан
   try {
-    if (!name || !slug) {
-      return NextResponse.json({ message: "Мэдээлэл дутуу байна" }, { status: 400 });
+    const body = await request.json();
+    const { id, name, slug, parentId, state } = body;
+
+    if (!id) {
+      return NextResponse.json({ message: "ID шаардлагатай" }, { status: 400 });
     }
 
-
-
-    const category = await prisma.category.findUnique({ where: { id: id} });
+    const category = await prisma.category.findUnique({ where: { id: Number(id) } });
+    
     if (!category) {
-      return NextResponse.json(
-        { error: 'Ангилал олдсонгүй!' },
-        { status: 404 }
-      )
+      return NextResponse.json({ error: 'Ангилал олдсонгүй!' }, { status: 404 });
     }
 
     const updatedCategory = await prisma.category.update({
-      where: {
-        id: category.id,
-      },
+      where: { id: category.id },
       data: {
         name: name ?? category.name,
         slug: slug ?? category.slug,
@@ -81,15 +71,9 @@ export async function PATCH(request: NextRequest,
       }
     });
 
-    return NextResponse.json({
-      message: "Амжилттай шинэчлэгдлээ",
-      data: updatedCategory
-    });
+    return NextResponse.json({ message: "Амжилттай шинэчлэгдлээ", data: updatedCategory });
 
   } catch (e) {
-    return NextResponse.json(
-      { error: 'Алдаа гарлаа' },
-      { status: 404 }
-    )
+    return NextResponse.json({ error: 'Алдаа гарлаа' }, { status: 500 });
   }
 }

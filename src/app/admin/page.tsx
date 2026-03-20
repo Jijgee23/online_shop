@@ -1,8 +1,6 @@
 "use client"
 
-import { useState } from "react";
 import { useAdmin, PageKey } from "../context/admin_context";
-import { useAuth } from "../context/auth_context";
 import ProfileSection from "../components/ProfileSection";
 
 export default function AdminDashboard() {

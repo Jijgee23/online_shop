@@ -108,7 +108,7 @@ export default function AdminCategoryPage() {
         if (!editingCategory || !formData.name.trim()) return;
 
         try {
-            const res = await fetch(`/api/admin/category`, {
+            const res = await fetch(`/api/admin/category/${editingCategory.id}`, {
                 method: "PATCH",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify(formData),
@@ -135,7 +135,7 @@ export default function AdminCategoryPage() {
 
         try {
             const res = await fetch(`/api/admin/category/${id}`, {
-                method: "PATCH",
+                method: "DELETE",
             });
 
             if (res.ok) {

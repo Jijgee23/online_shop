@@ -25,7 +25,6 @@ export const AdminProvider = ({ children }: { children: ReactNode }) => {
     const [isMobileSidebarOpen, setIsMobileSidebarOpen] = useState(false);
     useEffect(() => {
         console.log("admin context effecting")
-
     }, []);
 
     const pages: Record<PageKey, JSX.Element> = {

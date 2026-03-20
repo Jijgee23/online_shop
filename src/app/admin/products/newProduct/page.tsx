@@ -1,7 +1,6 @@
 "use client";
 
 import { useAdmin } from "@/app/context/admin_context";
-import Products from "@/pages/products/page";
 import { Category } from "@prisma/client";
 import { useEffect, useState } from "react";
 

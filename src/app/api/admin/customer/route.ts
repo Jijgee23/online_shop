@@ -27,7 +27,8 @@ export async function GET(request: Request) {
                 createdAt: true,
                 orders: {
                     select: {
-                        total: true
+                        totalCount: true,
+                        totalPrice: true
                     }
                 }
             }
@@ -41,7 +42,7 @@ export async function GET(request: Request) {
             status: user.status,
             role: user.role,
             totalOrders: user.orders.length,
-            totalSpent: user.orders.reduce((sum, order) => sum + (order.total || 0), 0)
+            totalSpent: user.orders.reduce((sum, order) => sum + (order.totalCount || 0), 0)
         }));
 
         return NextResponse.json({

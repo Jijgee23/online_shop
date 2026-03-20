@@ -2,12 +2,12 @@ import { prisma } from "@/lib/prisma";
 import { NextResponse, NextRequest } from "next/server";
 export async function GET(
   request: NextRequest,
-  { params }: { params: Promise<{ id: string }> } // Promise болгож өөрчилсөн
+  context: { params: Promise<{ id: string }> } // Promise болгож өөрчилсөн
 ) {
   try {
     // 1. Params-ийг заавал await хийж авна
-    const { id } = await params; 
-    
+    const { id } = await context.params;
+
     console.log("Татаж буй хэрэглэгчийн ID:", id);
 
     const userId = Number(id);
@@ -32,7 +32,7 @@ export async function GET(
 
     // Нийт статистик тооцоолох
     // Хэрэв таны Order модел дээр үнийн дүн нь 'totalAmount' биш 'total' бол үүнийг тааруулна уу
-    const totalSpent = customer.orders.reduce((sum, order) => sum + (Number(order.total) || 0), 0);
+    const totalSpent = customer.orders.reduce((sum, order) => sum + (Number(order.totalPrice) || 0), 0);
     const totalOrders = customer.orders.length;
 
     return NextResponse.json({
@@ -50,10 +50,11 @@ export async function GET(
 // 2. Хэрэглэгчийн төлөв эсвэл мэдээллийг шинэчлэх (PATCH)
 export async function PATCH(
   request: Request,
-  { params }: { params: { id: string } }
+  context: { params: Promise<{ id: string }> }
 ) {
   try {
-    const userId = Number(params.id);
+    const { id } = await context.params;
+    const userId = Number(id);
     const body = await request.json();
     const { status, name, phone } = body;
 
@@ -76,11 +77,12 @@ export async function PATCH(
 // 3. Хэрэглэгчийг устгах (DELETE)
 export async function DELETE(
   request: Request,
-  { params }: { params: { id: string } }
+  context: { params: Promise<{ id: string }> }
 ) {
   try {
-    const userId = Number(params.id);
-    
+    const { id } = await context.params;
+    const userId = Number(id);
+
     await prisma.user.delete({
       where: { id: userId },
     });
