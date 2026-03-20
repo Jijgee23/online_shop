@@ -1,0 +1,9 @@
+-- CreateEnum
+CREATE TYPE "State" AS ENUM ('ACTIVE', 'INACTIVE');
+
+-- AlterTable
+ALTER TABLE "CartItem" ADD COLUMN     "totalCount" INTEGER NOT NULL DEFAULT 0,
+ADD COLUMN     "totalPrice" DOUBLE PRECISION NOT NULL DEFAULT 0;
+
+-- AlterTable
+ALTER TABLE "Product" ALTER COLUMN "state" SET DEFAULT 'ACTIVE';

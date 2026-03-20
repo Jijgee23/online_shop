@@ -1,0 +1,220 @@
+generator client {
+  provider = "prisma-client-js"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+model User {
+  id          Int           @id @default(autoincrement())
+  name        String
+  email       String        @unique
+  password    String
+  role        UserRole      @default(CUSTOMER)
+  createdAt   DateTime      @default(now())
+  deletedAt   DateTime?
+  updatedAt   DateTime?     @updatedAt
+  status      UserStatus    @default(ACTIVE)
+  address     Address?
+  cart        Cart?
+  orders      Order[]
+  reviews     Review[]
+  sessions    Session[]
+  userSession UserSession[]
+}
+
+model Category {
+  id        Int           @id @default(autoincrement())
+  name      String
+  createdAt DateTime      @default(now())
+  deletedAt DateTime?
+  parentId  Int?
+  slug      String        @unique
+  updatedAt DateTime?     @updatedAt
+  state     CategoryState
+  parent    Category?     @relation("SubCategories", fields: [parentId], references: [id])
+  children  Category[]    @relation("SubCategories")
+  products  Product[]
+}
+
+model Product {
+  id            Int            @id @default(autoincrement())
+  name          String
+  description   String?
+  price         Float
+  stock         Int
+  categoryId    Int
+  createdAt     DateTime       @default(now())
+  deletedAt     DateTime?
+  discountPrice Float?
+  isPublished   Boolean        @default(false)
+  sku           String?        @unique
+  slug          String         @unique
+  updatedAt     DateTime?      @updatedAt
+  state         ProductState   @default(ACTIVE)
+  cartItems     CartItem[]
+  orderItems    OrderItem[]
+  category      Category       @relation(fields: [categoryId], references: [id])
+  images        ProductImage[]
+  reviews       Review[]
+}
+
+model ProductImage {
+  id        Int       @id @default(autoincrement())
+  url       String
+  productId Int
+  deletedAt DateTime?
+  updatedAt DateTime? @updatedAt
+  product   Product   @relation(fields: [productId], references: [id])
+}
+
+model Cart {
+  id         Int        @id @default(autoincrement())
+  userId     Int        @unique
+  deletedAt  DateTime?
+  updatedAt  DateTime?  @updatedAt
+  user       User       @relation(fields: [userId], references: [id])
+  items      CartItem[]
+  totalCount Int        @default(0)
+  totalPrice Float      @default(0)
+}
+
+model CartItem {
+  id         Int       @id @default(autoincrement())
+  cartId     Int
+  productId  Int
+  quantity   Int
+  deletedAt  DateTime?
+  updatedAt  DateTime? @updatedAt
+  createdAt  DateTime  @default(now())
+  totalCount Int       @default(0)
+  totalPrice Float     @default(0)
+  cart       Cart      @relation(fields: [cartId], references: [id])
+  product    Product   @relation(fields: [productId], references: [id])
+}
+
+model Order {
+  id         Int         @id @default(autoincrement())
+  userId     Int
+  status     OrderStatus @default(PENDING)
+  totalPrice Float       @default(0)
+  totalCount Int         @default(0)
+  createdAt  DateTime    @default(now())
+  addressId  Int?
+  deletedAt  DateTime?
+  updatedAt  DateTime?   @updatedAt
+  address    Address?    @relation(fields: [addressId], references: [id])
+  user       User        @relation(fields: [userId], references: [id])
+  items      OrderItem[]
+  payment    Payment?
+}
+
+model OrderItem {
+  id        Int       @id @default(autoincrement())
+  orderId   Int
+  productId Int
+  price     Float
+  quantity  Int
+  deletedAt DateTime?
+  updatedAt DateTime? @updatedAt
+  order     Order     @relation(fields: [orderId], references: [id])
+  product   Product   @relation(fields: [productId], references: [id])
+}
+
+model Payment {
+  id        Int       @id @default(autoincrement())
+  orderId   Int       @unique
+  method    String
+  amount    Float
+  status    String
+  deletedAt DateTime?
+  updatedAt DateTime? @updatedAt
+  order     Order     @relation(fields: [orderId], references: [id])
+}
+
+model Review {
+  id        Int       @id @default(autoincrement())
+  rating    Int
+  comment   String?
+  userId    Int
+  productId Int
+  createdAt DateTime  @default(now())
+  deletedAt DateTime?
+  updatedAt DateTime? @updatedAt
+  product   Product   @relation(fields: [productId], references: [id])
+  user      User      @relation(fields: [userId], references: [id])
+}
+
+model Address {
+  id       Int     @id @default(autoincrement())
+  city     String
+  district String
+  khoroo   String
+  detail   String
+  phone    String
+  userId   Int     @unique
+  user     User    @relation(fields: [userId], references: [id])
+  orders   Order[]
+}
+
+model Session {
+  id           String   @id @default(cuid())
+  sessionToken String   @unique
+  userId       Int
+  expires      DateTime
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("sessions")
+}
+
+model UserSession {
+  id           String   @id @default(cuid())
+  userId       Int
+  sessionId    String
+  userAgent    String?
+  ipAddress    String?
+  lastActivity DateTime @default(now())
+  expires      DateTime
+  createdAt    DateTime @default(now())
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, sessionId])
+  @@map("user_sessions")
+}
+
+enum UserRole {
+  CUSTOMER
+  ADMIN
+  MANAGER
+}
+
+enum OrderStatus {
+  PENDING
+  PAID
+  SHIPPED
+  DELIVERED
+  CANCELLED
+}
+
+enum UserStatus {
+  ACTIVE
+  NEW
+  INACTIVE
+}
+
+enum CategoryState {
+  ACTIVE
+  INACTIVE
+}
+
+enum ProductState {
+  ACTIVE
+  INACTIVE
+}
+
+enum State {
+  ACTIVE
+  INACTIVE
+}
