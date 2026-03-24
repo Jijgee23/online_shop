@@ -1,19 +1,16 @@
 import { NextResponse } from "next/server"
 import { prisma } from "@/lib/prisma"
-import { UserRole } from "@/generated/prisma";
+import { OtpType, UserRole } from "@/generated/prisma";
 import bcrypt from "bcrypt";
+import { validateOtp } from "../utils/utils";
 
-enum Role {
-  CUSTOMER,
-  ADMIN
-}
 
 export async function POST(req: Request) {
 
-  const { name, email, password, } = await req.json()
+  const { name, email, password, otpCode } = await req.json()
 
   try {
-    if (!name || !email || !password) {
+    if (!name || !email || !password || !otpCode) {
       return NextResponse.json(
         { error: 'Бүртгэлийн мэдээлэл дутуу байна!' },
         { status: 400 }
@@ -30,6 +27,14 @@ export async function POST(req: Request) {
         { status: 404 }
       )
     }
+    const otpValidation = await validateOtp(email, otpCode, OtpType.SIGNUP);
+
+    if (!otpValidation.success) {
+      return NextResponse.json(
+        { error: otpValidation.message },
+        { status: 400 }
+      );
+    }
 
     const hashedPassword = await bcrypt.hash(password, 10);
 
@@ -41,7 +46,8 @@ export async function POST(req: Request) {
         role: UserRole.CUSTOMER,
         cart: {
         }
-      }
+      },
+      include: { cart: true }
     });
 
     if (newUser) {

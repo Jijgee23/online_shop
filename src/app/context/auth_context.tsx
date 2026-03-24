@@ -2,7 +2,8 @@
 
 import { UserRole } from '@/generated/prisma';
 import { createContext, useContext, useState, useEffect, ReactNode } from 'react';
-import { useRouter  } from 'next/navigation';
+import { useRouter } from 'next/navigation';
+import toast from 'react-hot-toast';
 
 interface User {
   id: string;
@@ -19,7 +20,7 @@ interface AuthContextType {
   login: (email: string, password: string) => Promise<void>;
   logout: () => Promise<void>;
   register: (email: string, password: string, name: string) => Promise<void>;
-  error: string | ''
+  checkUser: () => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -27,9 +28,9 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState("")
+  // const [error, setError] = useState("")
   const router = useRouter()
-  const isAdmin = user?.role == UserRole.ADMIN
+  const isAdmin = user !== null && user.role === UserRole.ADMIN
   const checkUser = async () => {
     try {
       const res = await fetch("/api/auth/me");
@@ -58,14 +59,12 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       });
       const data = await response.json()
       if (!response.ok) {
-        setError(data.error || "Имэйл эсвэл нууц үг буруу байна")
-        throw new Error('Login failed');
+        toast.error(data.error || "Имэйл эсвэл нууц үг буруу байна")
+        return
       }
       setUser(data.user)
     } catch (err) {
-      console.log(err)
-      alert(err)
-      setError("Сервертэй холбогдоход алдаа гарлаа.")
+      toast.error("Сервертэй холбогдоход алдаа гарлаа.")
     } finally {
       setLoading(false);
     }
@@ -75,7 +74,6 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     setLoading(true);
     try {
       await fetch('/api/auth/logout', { method: 'POST' });
-
       setUser(null);
       router.push('/')
     } finally {
@@ -111,7 +109,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     login,
     logout,
     register,
-    error
+    checkUser
   };
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

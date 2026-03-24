@@ -17,6 +17,8 @@ export async function GET(request: Request) {
     const user = await prisma.user.findUnique({
       where: { id: decoded.userId }, include: { cart: true }
     })
+
+    // console.log("me", user)
     return NextResponse.json({
       user: user
     });

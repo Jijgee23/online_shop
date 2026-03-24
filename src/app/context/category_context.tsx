@@ -1,31 +1,44 @@
 'use client';
 import { Category } from '@/interface/category';
 import { createContext, useContext, useState, useEffect, ReactNode, JSX } from 'react';
+import { useAuth } from './auth_context';
+import { AwardIcon } from 'lucide-react';
 
 interface CategoryContextType {
     categories: Category[],
+    fetchCategories: () => void,
+    loading: boolean,
     setCategories: (cats: Category[]) => void,
 }
 
 const CategoryContext = createContext<CategoryContextType | undefined>(undefined);
 
 export const CategoryProvider = ({ children }: { children: ReactNode }) => {
-
+    const { isAdmin, user, checkUser } = useAuth()
+    const [loading, setLoading] = useState(false)
     const [categories, setCategories] = useState<Category[]>([])
-    const fetchCategoies = async () => {
-        const res = await fetch("api/category")
+    const fetchCategories = async () => {
+        setLoading(true)
+        const url = isAdmin ? '/api/admin/category' : "api/category"
+        const res = await fetch(url)
         if (res.ok) {
-            setCategories(await res.json())
+            const data = await res.json()
+            setCategories(data)
+            setLoading(false)
             return
         }
         setCategories([])
+        setLoading(false)
     }
     useEffect(() => {
-        fetchCategoies()
+        checkUser()
+        if (user) fetchCategories()
     }, [])
 
     const value: CategoryContextType = {
         categories,
+        fetchCategories,
+        loading,
         setCategories
     }
 

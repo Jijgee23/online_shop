@@ -2,6 +2,9 @@
 
 import { Cart } from "@/interface/cart";
 import { createContext, ReactNode, useContext, useState, useEffect } from "react";
+import { useAuth } from "./auth_context";
+import { UserRole } from "@/generated/prisma";
+import toast from "react-hot-toast";
 
 interface CartAction {
     cartId: number | null,
@@ -24,16 +27,16 @@ const CartContext = createContext<CartContextType | undefined>(undefined);
 export const CartProvider = ({ children }: { children: ReactNode }) => {
     const [cart, setCart] = useState<Cart | null>(null);
     const [loading, setLoading] = useState(true);
-
+    const { user } = useAuth()
     // 1. Сагсны мэдээллийг API-аас татах (Күүки ашиглан Server-side шалгана)
     const fetchCart = async () => {
+        const isAdmin = user?.role == UserRole.ADMIN
+        if (isAdmin) return
         try {
             const res = await fetch("/api/cart");
             console.log("get cart status", res.status) // Энэ API нь accessToken-г уншаад сагсыг буцаана
             if (res.ok) {
-                // console.log("res is ok")
                 const data = await res.json();
-                // console.log("fetching cart data", data)
                 setCart(data.data);
             }
         } catch (err) {
@@ -54,13 +57,14 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
             body: JSON.stringify(data),
         });
         if (res.ok) {
-            alert("Амжилттай сагсдагдлаа")
+            toast.success("Амжилттай сагсдагдлаа")
             await fetchCart();
+            return;
         }
 
         const body = await res.json()
 
-        alert(body.error)
+        toast.error(body.error)
     };
 
     // 3. Сагснаас устгах
@@ -69,6 +73,7 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
             method: 'DELETE',
         });
         if (res.ok) {
+            toast.success('Бараа сагнаас хасагдлаа')
             fetchCart();
         }
     };
@@ -83,12 +88,15 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
             body: JSON.stringify({ cartId, itemId, newQty }),
         });
 
-        if (res.ok) { await fetchCart(); }
+        if (res.ok) {
+            toast.success('Амжилттай')
+            await fetchCart();
+        }
 
         const data = await res.json()
 
-        if (!res.ok) alert(data.error)
-
+        if (!res.ok)
+            toast.error(data.error ?? 'Амжилтгүй')
         setLoading(false);
     };
 
@@ -100,6 +108,7 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
         });
 
         if (res.ok) {
+            toast.success('Сагс цэвэрлэгдлээ')
             await fetchCart()
         }
     }

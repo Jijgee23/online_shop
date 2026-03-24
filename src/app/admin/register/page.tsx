@@ -26,7 +26,7 @@ export default function AdminRegister() {
             });
 
             if (res.ok) {
-                router.push("/admin"); // Амжилттай бол хянах самбар руу
+                router.push("/auth/login"); // Амжилттай бол хянах самбар руу
             } else {
                 const errData = await res.json();
                 setError(errData.message || "Бүртгэл амжилтгүй боллоо");

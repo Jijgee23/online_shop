@@ -1,3 +1,4 @@
+import { Payment, User } from "@/generated/prisma";
 import { Product } from "./product";
 
 // 1. Захиалгын төлөвүүд (Enum)
@@ -26,6 +27,7 @@ export interface OrderItem {
 // 3. Үндсэн захиалгын бүтэц (Order)
 export interface Order {
     id: number;
+    orderNumber: String;
     userId: number;
     status: OrderStatus;
     totalPrice: number;
@@ -34,12 +36,12 @@ export interface Order {
     createdAt: Date | string;
     updatedAt?: Date | string | null;
     deletedAt?: Date | string | null;
-
+    note: String | null;
     // Relations: include ашигласан үед орж ирнэ
     items?: OrderItem[];
-    address?: any; // Шаардлагатай бол Address интерфэйс нэмж болно
-    user?: any;
-    payment?: any;
+    address?: Address; // Шаардлагатай бол Address интерфэйс нэмж болно
+    user?: User | null;
+    payment?: Payment;
 }
 
 // 4. Оролтын төрлүүд (Input Types)
@@ -59,4 +61,18 @@ export interface OrderResponse {
     orders?: Order[];
     order?: Order;
     message?: string;
+}
+
+
+export interface Address {
+    id: number;
+    city: string;
+    district: string;
+    khoroo: string;
+    detail: string;
+    phone: string;
+    userId: number;
+    // Relation-ууд (Хэрэгтэй үед нь нэмэлтээр ашиглана)
+    user?: User | null;
+    orders?: Order[];
 }

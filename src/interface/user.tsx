@@ -1,4 +1,5 @@
 import { UserStatus } from "@/generated/prisma";
+import { Order } from "./order";
 
 export interface Customer {
   id: number;
@@ -9,4 +10,5 @@ export interface Customer {
   totalSpent: number;
   status: UserStatus;
   role: string;
+  orders: Order[]
 }

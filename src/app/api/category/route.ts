@@ -14,9 +14,9 @@ export async function GET() {
     });
 
 
-    if (categories) {
+    // if (categories) {
 
-    }
+    // }
     return NextResponse.json(categories);
 }
 

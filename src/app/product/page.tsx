@@ -5,6 +5,7 @@ import { useCategory } from "@/app/context/category_context";
 import { ProductWithRelations } from "@/interface/product";
 import { useSearchParams } from "next/navigation";
 import ProductCard from "../components/ProductCard";
+import Header from "../components/Header";
 
 // 1. Үндсэн логик болон UI-г тусад нь функц болгох
 function ProductListContent() {
@@ -35,6 +36,7 @@ function ProductListContent() {
 
   return (
     <div className="min-h-screen bg-slate-50 dark:bg-slate-950 transition-colors duration-300">
+      <Header/>
       {/* Hero Section */}
       <section className="relative bg-slate-900 dark:bg-slate-950 pt-24 pb-16 overflow-hidden border-b border-slate-800">
         <div className="absolute inset-0 opacity-20 bg-[radial-gradient(circle_at_center,_var(--tw-gradient-stops))] from-teal-500 via-transparent to-transparent"></div>
@@ -131,7 +133,6 @@ function ProductListContent() {
   );
 }
 
-// 2. Экспорт хийхдээ Suspense-ээр орооно
 export default function Products() {
   return (
     <Suspense fallback={

@@ -2,10 +2,10 @@
 
 import { useState, useEffect } from "react";
 import { Category } from "@/interface/category"; // Таны өмнө үүсгэсэн interface
-
+import { useCategory } from "@/app/context/category_context";
+import { generateSlug } from "@/utils/utils";
 export default function AdminCategoryPage() {
-    const [categories, setCategories] = useState<Category[]>([]);
-    const [loading, setLoading] = useState(true);
+    const { categories, fetchCategories, loading } = useCategory()
     const [searchTerm, setSearchTerm] = useState("");
     const [showAddForm, setShowAddForm] = useState(false);
     const [editingCategory, setEditingCategory] = useState<Category | null>(null);
@@ -17,55 +17,12 @@ export default function AdminCategoryPage() {
         parentId: null as number | null,
     });
 
-    // 1. Дата татах (Read)
-    const fetchCategories = async () => {
-        console.log("fetching cats")
-        try {
-            setLoading(true);
-            const res = await fetch("/api/admin/category");
-            const data = await res.json();
-
-            // Хэрэв дата массив биш бол хоосон массив оноож алдаанаас сэргийлнэ
-            if (Array.isArray(data)) {
-                setCategories(data);
-            } else if (data && Array.isArray(data.categories)) {
-                setCategories(data.categories); // Хэрэв { categories: [] } гэж ирдэг бол
-            } else {
-                setCategories([]);
-            }
-        } catch (error) {
-            console.error("Fetch error:", error);
-            setCategories([]); // Алдаа гарвал хоосон массив болгоно
-        } finally {
-            setLoading(false);
-        }
-    };
-
     useEffect(() => {
         fetchCategories();
     }, []);
 
     // Slug автоматаар үүсгэх (Нэмэлт)
-    const generateSlug = (name: string) => {
-        if (showAddForm && editingCategory) return name;
 
-        const cyrillicToLatin: { [key: string]: string } = {
-            'а': 'a', 'б': 'b', 'в': 'v', 'г': 'g', 'д': 'd', 'е': 'e', 'ё': 'yo', 'ж': 'j', 'з': 'z',
-            'и': 'i', 'й': 'i', 'к': 'k', 'л': 'l', 'м': 'm', 'н': 'n', 'о': 'o', 'ө': 'o', 'п': 'p',
-            'р': 'r', 'с': 's', 'т': 't', 'у': 'u', 'ү': 'u', 'ф': 'f', 'х': 'kh', 'ц': 'ts', 'ч': 'ch',
-            'ш': 'sh', 'щ': 'sh', 'ъ': '', 'ы': 'y', 'ь': '', 'э': 'e', 'ю': 'yu', 'я': 'ya'
-        };
-
-        const latinText = name.toLowerCase().split('').map(char => {
-            return cyrillicToLatin[char] !== undefined ? cyrillicToLatin[char] : char;
-        }).join('');
-
-        return latinText
-            .replace(/\s+/g, "-")          // Хоосон зайг зураасаар солих
-            .replace(/[^\w-]+/g, "")       // Үсэг, тоо, зурааснаас бусдыг устгах
-            .replace(/-+/g, "-")           // Дараалсан олон зураасыг нэг болгох
-            .trim();                       // Эхэн болон төгсгөлийн зайг цэвэрлэх
-    };
 
     const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
         const { name, value } = e.target;
@@ -138,10 +95,6 @@ export default function AdminCategoryPage() {
                 method: "DELETE",
             });
 
-            if (res.ok) {
-                setCategories(prev => prev.filter(cat => cat.id !== id));
-                useEffect
-            }
         } catch (error) {
             console.error("Delete error:", error);
         }

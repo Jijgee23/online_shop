@@ -19,8 +19,10 @@ model User {
   status      UserStatus    @default(ACTIVE)
   address     Address?
   cart        Cart?
+  fcmTokens   FCMtoken[]
   orders      Order[]
   reviews     Review[]
+  wishlist    Wishlist[]
   sessions    Session[]
   userSession UserSession[]
 }
@@ -59,6 +61,7 @@ model Product {
   category      Category       @relation(fields: [categoryId], references: [id])
   images        ProductImage[]
   reviews       Review[]
+  wishedBy      Wishlist[]
 }
 
 model ProductImage {
@@ -75,10 +78,10 @@ model Cart {
   userId     Int        @unique
   deletedAt  DateTime?
   updatedAt  DateTime?  @updatedAt
-  user       User       @relation(fields: [userId], references: [id])
-  items      CartItem[]
   totalCount Int        @default(0)
   totalPrice Float      @default(0)
+  user       User       @relation(fields: [userId], references: [id])
+  items      CartItem[]
 }
 
 model CartItem {
@@ -96,19 +99,22 @@ model CartItem {
 }
 
 model Order {
-  id         Int         @id @default(autoincrement())
-  userId     Int
-  status     OrderStatus @default(PENDING)
-  totalPrice Float       @default(0)
-  totalCount Int         @default(0)
-  createdAt  DateTime    @default(now())
-  addressId  Int?
-  deletedAt  DateTime?
-  updatedAt  DateTime?   @updatedAt
-  address    Address?    @relation(fields: [addressId], references: [id])
-  user       User        @relation(fields: [userId], references: [id])
-  items      OrderItem[]
-  payment    Payment?
+  id          Int         @id @default(autoincrement())
+  seq         Int         @unique @default(autoincrement())
+  orderNumber String      @unique
+  userId      Int
+  status      OrderStatus @default(PENDING)
+  totalPrice  Float       @default(0)
+  totalCount  Int         @default(0)
+  createdAt   DateTime    @default(now())
+  addressId   Int?
+  deletedAt   DateTime?
+  updatedAt   DateTime?   @updatedAt
+  note        String?
+  address     Address?    @relation(fields: [addressId], references: [id])
+  user        User        @relation(fields: [userId], references: [id])
+  items       OrderItem[]
+  payment     Payment?
 }
 
 model OrderItem {
@@ -124,14 +130,15 @@ model OrderItem {
 }
 
 model Payment {
-  id        Int       @id @default(autoincrement())
-  orderId   Int       @unique
+  id        Int         @id @default(autoincrement())
+  orderId   Int         @unique
   method    String
   amount    Float
   status    String
   deletedAt DateTime?
-  updatedAt DateTime? @updatedAt
-  order     Order     @relation(fields: [orderId], references: [id])
+  updatedAt DateTime?   @updatedAt
+  type      PaymentType @default(QPAY)
+  order     Order       @relation(fields: [orderId], references: [id])
 }
 
 model Review {
@@ -184,6 +191,47 @@ model UserSession {
   @@map("user_sessions")
 }
 
+model FCMtoken {
+  id        String    @unique
+  token     String
+  userId    Int
+  createdAt DateTime  @default(now())
+  updatetAt DateTime?
+  deletedAt DateTime?
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model Otp {
+  id        Int      @id @default(autoincrement())
+  email     String
+  code      String
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+  type      OtpType
+
+  @@unique([email, type])
+}
+
+model Wishlist {
+  id        String   @id @default(cuid())
+  userId    Int
+  productId Int
+  createdAt DateTime @default(now())
+  product   Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, productId])
+  @@index([userId])
+  @@index([productId])
+}
+
+enum PaymentType {
+  ON_DELIVERY
+  QPAY
+  CARD
+  BANK_APP
+}
+
 enum UserRole {
   CUSTOMER
   ADMIN
@@ -217,4 +265,11 @@ enum ProductState {
 enum State {
   ACTIVE
   INACTIVE
+}
+
+enum OtpType {
+  SIGNUP
+  FORGOT_PASSWORD
+  LOGIN
+  CHANGE_EMAIL
 }

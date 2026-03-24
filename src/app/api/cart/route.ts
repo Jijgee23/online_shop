@@ -6,7 +6,7 @@ import jwt from "jsonwebtoken";
 import { recalculateCart } from "./controller";
 import { Cart } from "@prisma/client";
 
-export async function GET(req: NextRequest) {
+export async function GET() {
 
     try {
         const cookieStore = await cookies();
@@ -17,6 +17,7 @@ export async function GET(req: NextRequest) {
         }
 
         const decoded = jwt.verify(token, ACCESS_TOKEN_SECRET) as any;
+        const userID = Number(decoded.userId)
 
         const c = await prisma.cart.findUnique({
             where: { userId: decoded.userId },
@@ -25,23 +26,49 @@ export async function GET(req: NextRequest) {
 
         if (c) {
 
-            const updatedCart = await recalculateCart(decoded.userId) as Cart;
+            const updatedCart = await recalculateCart(userID) as Cart;
 
             const result = await prisma.cart.findUnique({
                 where: { id: updatedCart.id, userId: updatedCart.userId },
                 include: {
                     items: {
                         include: { product: { include: { images: true } } },
-                        orderBy: { createdAt: 'asc'}
+                        orderBy: { createdAt: 'asc' }
                     },
                 }
             })
 
-            return NextResponse.json(
+            if (result) {
+                return NextResponse.json(
 
-                { data: result },
+                    { data: result },
+                    { status: 200 });
+            }
+
+            return NextResponse.json(
+                { message: 'Сагсны мэдээлэ олдсонгүй' },
+                { status: 404 });
+        }
+        const newCart = await prisma.cart.create({
+            data: { userId: userID },
+            include: {
+                items: {
+                    include: { product: { include: { images: true } } },
+                    orderBy: { createdAt: 'asc' }
+                },
+            }
+        })
+
+        if (newCart) {
+
+            return NextResponse.json(
+                { data: newCart },
                 { status: 200 });
         }
+
+        return NextResponse.json(
+            { message: 'Сагсны мэдээлэ олдсонгүй' },
+            { status: 404 });
 
     } catch (error) {
         return NextResponse.json(
@@ -65,6 +92,10 @@ export async function POST(req: NextRequest) {
                 { status: 200 });
         }
 
+        return NextResponse.json(
+            { message: 'Сагсны мэдээлэ олдсонгүй' },
+            { status: 404 });
+
     } catch (error) {
         return NextResponse.json(
             { error: error },
@@ -85,7 +116,7 @@ export async function PATCH(req: NextRequest) {
 
         if (!cart) return NextResponse.json({ error: "Сагс олдсонгүй" }, { status: 400 })
 
-        const product = await prisma.product.findUnique({ where: { id: cartId } })
+        const product = await prisma.product.findUnique({ where: { id: productId } })
 
         if (!product) return NextResponse.json({ error: "Бараа олдсонгүй" }, { status: 400 })
 

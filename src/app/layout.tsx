@@ -6,6 +6,10 @@ import { AdminProvider } from "./context/admin_context";
 import { CategoryProvider } from "./context/category_context";
 import { CartProvider } from "./context/cart_context";
 import { OrderProvider } from "./context/order_context";
+import { ProductProvider } from "./context/product_context";
+import { ConfirmProvider } from "./context/confirm_context";
+import { AddressProvider } from "./context/address_context";
+import { Toaster } from "react-hot-toast";
 
 const inter = Inter({
   subsets: ['latin'],
@@ -26,8 +30,36 @@ export default function RootLayout({
     <html lang="en">
       <body
         className={`${inter.className} antialiased`}
-      >
-        <AuthProvider> <AdminProvider>  <CategoryProvider>  <CartProvider>  <OrderProvider > {children}</OrderProvider> </CartProvider> </CategoryProvider>  </AdminProvider> </AuthProvider>
+      >  <ConfirmProvider>
+          <AuthProvider>
+            <AddressProvider>
+              <AdminProvider>
+                <CategoryProvider>
+                  <CartProvider>
+                    <OrderProvider >
+                      <ProductProvider>
+
+                        {children}
+                        <Toaster
+                          position="top-center"
+                          toastOptions={{
+                            duration: 3000,
+                            style: {
+                              background: '#18181b', // zinc-900
+                              color: '#fff',
+                              borderRadius: '1rem',
+                              border: '1px solid #27272a', // zinc-800
+                            },
+                          }}
+                        />
+                      </ProductProvider>
+                    </OrderProvider>
+                  </CartProvider>
+                </CategoryProvider>
+              </AdminProvider>
+            </AddressProvider>
+          </AuthProvider>
+        </ConfirmProvider>
       </body>
     </html>
   );

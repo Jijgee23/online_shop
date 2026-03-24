@@ -26,7 +26,7 @@ export default function CartItemTile(item: CartItem) {
                     {item.product.name}
                 </h3>
                 <p className="text-teal-600 dark:text-teal-400 font-bold">
-                    ₮{item.product.price?.toLocaleString() || '0'}
+                    ₮{item.product.price?.toLocaleString() || '0'} * {item.quantity} = ₮{(item.product.price * item.quantity).toLocaleString()}
                 </p>
             </div>
 

@@ -18,7 +18,7 @@ export default function ProductCard(product: Product) {
         });
     };
     const handleTap = () => {
-        router.push(`/product/detail/${id}`)
+        router.push(`/product/${id}`)
     };
     return (
         <div
@@ -44,7 +44,7 @@ export default function ProductCard(product: Product) {
                 </p>
                 <div className="flex items-center justify-between">
                     <span className="text-xl font-bold text-indigo-600 dark:text-indigo-400">
-                        {product.price.toFixed(2)}₮
+                        {product.price.toLocaleString()}₮
                     </span>
                     <button onClick={handleAdd} // Энд функцээ холбоно
                         disabled={loading}

@@ -4,6 +4,7 @@ import { error } from "console";
 import { NextRequest, NextResponse } from "next/server";
 import { writeFile, mkdir } from "fs/promises"; // Файл бичих сан
 import path from "path";
+import { generateSlug } from "@/utils/utils";
 
 function createSlug(text: string) {
     return text
@@ -21,7 +22,7 @@ export async function POST(req: NextRequest) {
         const price = Number(formData.get("price"));
         const stock = Number(formData.get("stock"));
         const categoryId = Number(formData.get("categoryId"));
-        const sku = formData.get("sku") as string | null;
+        const sku = generateSlug(name)
         const isPublished = formData.get("isPublished") === "true"; // Boolean болгох
         const discountPrice = formData.get("discountPrice") ? Number(formData.get("discountPrice")) : null;
         const imageFiles = formData.getAll("images") as File[];
@@ -40,7 +41,7 @@ export async function POST(req: NextRequest) {
             return NextResponse.json({ error: "Ангилал олдсонгүй" }, { status: 404 });
         }
 
-        const slug = createSlug(name);
+        const slug = generateSlug(name);
         const existingSlug = await prisma.product.findUnique({
             where: { slug }
         });
@@ -129,8 +130,8 @@ export async function GET(req: NextRequest) {
         const products = await prisma.product.findMany({
             where: {
                 deletedAt: null,
-                isPublished: true,
-                state: ProductState.ACTIVE
+                // isPublished: true,
+                // state: ProductState.ACTIVE
             },
             take: 20,
             orderBy: {

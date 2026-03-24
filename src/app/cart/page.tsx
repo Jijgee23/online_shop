@@ -5,13 +5,13 @@ import { useCart } from "../context/cart_context";
 import { useAuth } from "../context/auth_context";
 import CartItemTile from "./components/cartItem";
 import { useOrder } from "../context/order_context";
+import Header from "../components/Header";
+import { useAddress } from "../context/address_context";
 
 export default function CartPage() {
     const { cart, loading } = useCart();
-    const { user } = useAuth();
     const { create } = useOrder()
-    const loggedIn = user !== null;
-
+   
     if (loading && !cart) {
         return (
             <div className="min-h-screen flex items-center justify-center dark:bg-slate-950">
@@ -25,49 +25,8 @@ export default function CartPage() {
     return (
         <div className="min-h-screen bg-slate-50 dark:bg-slate-950 font-sans pb-20">
 
-            {/* --- Glassmorphism AppBar --- */}
-            <header className="fixed top-0 w-full z-50 bg-white/70 dark:bg-slate-950/70 backdrop-blur-md border-b border-slate-200 dark:border-slate-800 transition-all duration-300">
-                <div className="max-w-7xl mx-auto px-6 py-4 flex justify-between items-center">
-                    <Link href="/">
-                        <h1 className="text-2xl font-extrabold bg-gradient-to-r from-teal-500 to-blue-500 bg-clip-text text-transparent cursor-pointer">
-                            Онлайн Дэлгүүр
-                        </h1>
-                    </Link>
+            <Header />
 
-                    <nav className="flex space-x-8 items-center font-medium">
-                        <Link href="/product" className="hidden md:block text-slate-700 dark:text-slate-300 hover:text-teal-500 transition-colors">
-                            Бүтээгдэхүүн
-                        </Link>
-
-                        {loggedIn ? (
-                            <div className="text-slate-700 dark:text-slate-300 font-semibold hidden md:block border-r border-slate-200 dark:border-slate-800 pr-6">
-                                {user.name}
-                            </div>
-                        ) : (
-                            <Link href="/auth/login" className="text-slate-700 dark:text-slate-300 hover:text-teal-500">
-                                Нэвтрэх
-                            </Link>
-                        )}
-
-                        {/* Cart Icon inside Header */}
-                        <div className="relative p-2 bg-slate-100 dark:bg-slate-800 rounded-full">
-                            <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 text-teal-600 dark:text-teal-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z" />
-                            </svg>
-                            {cart && cart.totalCount > 0 && (
-                                <span className="absolute -top-1 -right-1 flex h-5 w-5">
-                                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75"></span>
-                                    <span className="relative inline-flex items-center justify-center rounded-full h-5 w-5 bg-red-600 text-white text-[10px] font-bold">
-                                        {cart.totalCount}
-                                    </span>
-                                </span>
-                            )}
-                        </div>
-                    </nav>
-                </div>
-            </header>
-
-            {/* --- Main Content Area --- */}
             <div className="max-w-7xl mx-auto px-6 pt-32">
                 <CartHeader
                     isEmpty={isEmpty}

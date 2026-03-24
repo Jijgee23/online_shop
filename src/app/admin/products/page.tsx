@@ -6,19 +6,20 @@ import { Category } from "@/interface/category";
 import { ProductState } from "@/generated/prisma";
 import ProductTile from "./components/product_tile";
 import { useAdmin } from "@/app/context/admin_context";
+import { useCategory } from "@/app/context/category_context";
+import { useProducts } from "@/app/context/product_context";
 
 
 export default function AdminProductsPage() {
-  const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
+  const { categories, fetchCategories } = useCategory()
   const { setActivePage } = useAdmin()
-  const [cats, setCats] = useState<Category[]>([])
   const [selectedCatId, setSelectedCatId] = useState<number>(0);
   const allCategories = [
     { id: 0, name: "Бүгд" },
-    ...cats
+    ...categories
   ];
-  const [products, setProducts] = useState<ProductWithRelations[]>([])
+  const { products, fetchProducts } = useProducts()
   const filteredProducts = products.filter(product => {
     const matchesSearch = product.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
       product.category.name.toLowerCase().includes(searchTerm.toLowerCase());
@@ -33,46 +34,22 @@ export default function AdminProductsPage() {
   }, []);
 
 
-  const fetchCategories = async () => {
-    try {
-      setLoading(true);
-      const res = await fetch("/api/admin/category");
-      const data = await res.json();
-      if (Array.isArray(data)) {
-        setCats(data);
-      } else if (data && Array.isArray(data.categories)) {
-        setCats(data.categories); // Хэрэв { categories: [] } гэж ирдэг бол
-      } else {
-        setCats([]);
-      }
-    } catch (error) {
-      console.error("Fetch error:", error);
-      setCats([]); // Алдаа гарвал хоосон массив болгоно
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const fetchProducts = async () => {
-    console.log("fetching cats")
-    try {
-      setLoading(true);
-      const res = await fetch("/api/admin/product");
-      const data = await res.json();
-      if (data && Array.isArray(data)) {
-        setProducts(data);
-      } else if (data && Array.isArray(data.data)) {
-        setProducts(data.data);
-      } else {
-        setProducts([]);
-      }
-    } catch (error) {
-      console.error("Fetch error:", error);
-      setProducts([]);
-    } finally {
-      setLoading(false);
-    }
-  };
+  // const fetchProducts = async () => {
+  //   try {
+  //     const res = await fetch("/api/admin/product");
+  //     const data = await res.json();
+  //     if (data && Array.isArray(data)) {
+  //       setProducts(data);
+  //     } else if (data && Array.isArray(data.data)) {
+  //       setProducts(data.data);
+  //     } else {
+  //       setProducts([]);
+  //     }
+  //   } catch (error) {
+  //     console.error("Fetch error:", error);
+  //     setProducts([]);
+  //   }
+  // };
 
   return (
     <>
@@ -110,15 +87,15 @@ export default function AdminProductsPage() {
           </select>
 
           {/* <Link href="/admin/products/newProduct"> */}
-            <button
-            
-           onClick={() => setActivePage("Шинэ бүтээгдэхүүнүүд")}
+          <button
+
+            onClick={() => setActivePage("Шинэ бүтээгдэхүүнүүд")}
             className="bg-teal-500 hover:bg-teal-600 text-white px-6 py-3 rounded-2xl font-bold transition-colors flex items-center gap-2">
-              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 4v16m8-8H4" />
-              </svg>
-              Нэмэх
-            </button>
+            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 4v16m8-8H4" />
+            </svg>
+            Нэмэх
+          </button>
           {/* </Link> */}
         </div>
       </header>
@@ -127,19 +104,19 @@ export default function AdminProductsPage() {
       <div className="grid grid-cols-1 sm:grid-cols-4 gap-6 mb-10">
         <div className="bg-zinc-900/40 border border-zinc-800 p-6 rounded-3xl">
           <p className="text-zinc-500 text-xs font-bold uppercase mb-1">Нийт бүтээгдэхүүн</p>
-          <p className="text-3xl font-bold text-white">{products.length}</p>
+          <p className="text-3xl font-bold text-white">{filteredProducts.length}</p>
         </div>
         <div className="bg-zinc-900/40 border border-zinc-800 p-6 rounded-3xl">
           <p className="text-zinc-500 text-xs font-bold uppercase mb-1">Идэвхтэй</p>
-          <p className="text-3xl font-bold text-green-500">{products.filter(p => p.state == ProductState.ACTIVE).length}</p>
+          <p className="text-3xl font-bold text-green-500">{filteredProducts.filter(p => p.state == ProductState.ACTIVE).length}</p>
         </div>
         <div className="bg-zinc-900/40 border border-zinc-800 p-6 rounded-3xl">
           <p className="text-zinc-500 text-xs font-bold uppercase mb-1">Дууссан</p>
-          <p className="text-3xl font-bold text-red-500">{products.filter(p => p.stock === 0).length}</p>
+          <p className="text-3xl font-bold text-red-500">{filteredProducts.filter(p => p.stock === 0).length}</p>
         </div>
         <div className="bg-zinc-900/40 border border-zinc-800 p-6 rounded-3xl">
           <p className="text-zinc-500 text-xs font-bold uppercase mb-1">Нийт үнэ цэнэ</p>
-          <p className="text-3xl font-bold text-teal-400">₮{products.reduce((sum, product) => sum + (product.price * product.stock), 0).toLocaleString()}</p>
+          <p className="text-3xl font-bold text-teal-400">₮{filteredProducts.reduce((sum, product) => sum + (product.price * product.stock), 0).toLocaleString()}</p>
         </div>
       </div>
 

@@ -5,9 +5,10 @@ import jwt from 'jsonwebtoken';
 import { ACCESS_TOKEN_SECRET } from "../auth/jwt/jwt_controller";
 export async function POST(req: NextRequest) {
 
-    const { cartId } = await req.json()
+    const { cartId, address, note } = await req.json()
 
     try {
+
 
         const cart = await prisma.cart.findUnique({ where: { id: cartId }, include: { items: { include: { product: true } } } })
 
@@ -38,14 +39,54 @@ export async function POST(req: NextRequest) {
 
         const result = await prisma.$transaction(async (tx) => {
 
-            // 1. order create
+            const user = await tx.user.findUnique({ where: { id: cart.userId }, include: { address: true } },)
+            let addressId = 0;
+            const createdAddress = user?.address
+
+            if (createdAddress) {
+
+                addressId = createdAddress.id
+
+            } else {
+                const addressData = {
+                    ...address,
+                    userId: cart.userId
+                };
+
+                const newAddress = await prisma.address.create({
+                    data: addressData
+                })
+
+                addressId = newAddress.id
+            }
+
+            console.log(addressId)
+
+
+            const data = {
+                userId: cart.userId,
+                totalPrice: cart.totalPrice,
+                totalCount: cart.totalCount,
+                note: note ?? '',
+                addressId: addressId,
+                orderNumber: `PENDING-${Date.now()}`,
+
+            }
             const order = await tx.order.create({
-                data: {
-                    userId: cart.userId,
-                    totalPrice: cart.totalPrice,
-                    totalCount: cart.totalCount,
-                }
+                data: data,
             });
+            const seqValue = (order as any).seq;
+            if (!seqValue) {
+                throw new Error("Sequence value олдохгүй байна. Schema дээр @default(autoincrement()) байгаа эсэхийг шалгана уу.");
+            }
+
+
+            const formattedId = `AAA${String(seqValue).padStart(6, '0')}`;
+            await tx.order.update({
+                where: { id: order.id },
+                data: { orderNumber: formattedId },
+            });
+
 
             // 2. order items create
             await tx.orderItem.createMany({
@@ -95,6 +136,7 @@ export async function POST(req: NextRequest) {
     } catch (e) {
 
 
+        console.log("creat order error" + e)
         return NextResponse.json(
             { message: 'Захиалга үүсэхэд алдаа гарлаа' },
             { status: 500 })
@@ -117,7 +159,7 @@ export async function GET(req: NextRequest) {
         const userId = Number(decoded.userId)
         const orders = await prisma.order.findMany({
             where: { userId: userId },
-            include: { items: { include: { product: { include: { images: true } } } } },
+            include: { items: { include: { product: { include: { images: true } } }, }, address: true },
             orderBy: { createdAt: 'desc' },
         })
 
