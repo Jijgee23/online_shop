@@ -1,5 +1,5 @@
-import CustomerTile from "../customer_tile";
-import CustomerTableHeader from "./header";
+import CustomerTile from "../CustomerTile";
+import CustomerTableHeader from "./CustomerTableHeader";
 import { Customer } from '@/interface/user';
 
 interface Props {

@@ -2,11 +2,11 @@
 
 import { useAdmin } from "@/app/context/admin_context";
 import { useEffect, useState } from "react";
-import { ProductBulk } from "../components/product_bulk";
 import { useCategory } from "@/app/context/category_context";
 import ImageCropper from "@/app/components/ImageCropper";
 import { useImageCrop } from "@/utils/useImageCrop";
 import toast from "react-hot-toast";
+import { ProductBulk } from "../components/Product_bulk";
 
 type Color   = { hex: string; name: string };
 type Size    = { sizeName: string; value: string };

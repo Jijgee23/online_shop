@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useState } from "react";
 import { Customer } from "@/interface/user";
-import CustomerTable from "./components/table/table";
+import CustomerTable from "./components/table/CustomerTable";
 import Pagination from "@/ui/Pagination";
 import { usePersistedPage } from "@/app/hooks/usePersistedPage";
 
