@@ -4,7 +4,7 @@ import { cookies } from "next/headers";
 import { ACCESS_TOKEN_SECRET } from "../auth/jwt/jwt_controller";
 import jwt from "jsonwebtoken";
 import { recalculateCart } from "./controller";
-import { Cart } from "@prisma/client";
+import { Cart } from "@/generated/prisma";
 
 export async function GET() {
 
