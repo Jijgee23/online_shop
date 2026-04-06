@@ -1,15 +1,13 @@
 "use client";
 
 import { useState, useEffect, useRef } from "react";
-import dynamic from "next/dynamic";
 import { Category } from "@/interface/category";
 import { useCategory } from "@/app/context/category_context";
 import { generateSlug } from "@/utils/utils";
 import toast from "react-hot-toast";
 import CategoryTree from "@/app/components/CategoryTree";
 import Image from "next/image";
-
-const CropModal = dynamic(() => import("./CropModal"), { ssr: false });
+import CropModal from "./components/CropModal";
 
 // ─── Main page ────────────────────────────────────────────────────────────────
 
