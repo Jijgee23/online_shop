@@ -2,6 +2,38 @@ import { CategoryState } from "@/generated/prisma";
 import { prisma } from "@/lib/prisma";
 import { NextRequest, NextResponse } from "next/server";
 
+export async function PATCH(
+    request: NextRequest,
+    context: { params: Promise<{ id: string }> }
+) {
+    const { id } = await context.params;
+    const categoryId = Number(id);
+
+    try {
+        const body = await request.json();
+        const { featured } = body;
+
+        if (typeof featured !== "boolean") {
+            return NextResponse.json({ message: "featured утга буруу байна" }, { status: 400 });
+        }
+
+        const category = await prisma.category.findUnique({ where: { id: categoryId } });
+        if (!category) {
+            return NextResponse.json({ error: "Ангилал олдсонгүй!" }, { status: 404 });
+        }
+
+        const updated = await prisma.category.update({
+            where: { id: categoryId },
+            data: { featured },
+        });
+
+        return NextResponse.json({ message: "Амжилттай шинэчлэгдлээ", data: updated });
+    } catch (e) {
+        console.error(e);
+        return NextResponse.json({ error: "Алдаа гарлаа" }, { status: 500 });
+    }
+}
+
 export async function DELETE(
     request: NextRequest,
     context: { params: Promise<{ id: string }> }

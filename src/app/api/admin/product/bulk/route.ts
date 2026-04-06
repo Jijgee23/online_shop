@@ -1,4 +1,4 @@
-import { Product, ProductState } from "@/generated/prisma";
+import { ProductState } from "@/generated/prisma";
 import { prisma } from "@/lib/prisma";
 import { NextRequest, NextResponse } from "next/server";
 
@@ -24,7 +24,7 @@ export async function POST(req: NextRequest) {
 
         // Олноор нь үүсгэх
         const result = await prisma.product.createMany({
-            data: formattedProducts as Product[],
+            data: formattedProducts,
             skipDuplicates: true, // Ижил slug-тай бараа байвал алгасах
         });
 

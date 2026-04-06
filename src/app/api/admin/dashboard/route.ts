@@ -32,13 +32,13 @@ export async function GET() {
           _sum: { totalPrice: true },
           where: {
             createdAt: { gte: date, lt: nextDate },
-            status: "DELIVERED"
+            status: { in: ["PAID", "SHIPPED", "DELIVERED"] },
           }
         });
 
         return {
           date: date.toLocaleDateString('mn-MN', { weekday: 'short' }),
-          revenue: dayRevenue._sum.totalPrice || 0
+          revenue: Number(dayRevenue._sum.totalPrice) || 0,
         };
       })
     );
@@ -74,7 +74,7 @@ export async function GET() {
 
     return NextResponse.json({
       summary: {
-        totalRevenue: revenueData._sum.totalPrice || 0,
+        totalRevenue: Number(revenueData._sum.totalPrice) || 0,
         totalOrders,
         totalUsers,
         totalProducts,

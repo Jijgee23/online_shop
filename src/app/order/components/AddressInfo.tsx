@@ -28,7 +28,7 @@ export default function AddressInfo(order: Order) {
                     <div className="flex-1 space-y-1">
                         <p className="text-xs font-bold text-slate-400 uppercase tracking-wider">Хүргэх хаяг</p>
                         <h4 className="font-bold text-lg text-slate-900 dark:text-white leading-tight">
-                            {address?.city}, {address?.district} дүүрэг
+                            {address?.city}, {address?.district?.name} дүүрэг
                         </h4>
                         <p className="text-slate-600 dark:text-slate-400">
                             {address?.khoroo}-р хороо, {address?.detail}

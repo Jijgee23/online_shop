@@ -3,8 +3,8 @@ import jwt from 'jsonwebtoken'
 
 
 
-export const ACCESS_TOKEN_SECRET = process.env.JWT_ACCESS_SECRET || "access_secret_123";
-export const REFRESH_TOKEN_SECRET = process.env.JWT_REFRESH_SECRET || "refresh_secret_456";
+export const ACCESS_TOKEN_SECRET = process.env.ACCESS_TOKEN_SECRET!;
+export const REFRESH_TOKEN_SECRET = process.env.REFRESH_TOKEN_SECRET!;
 
 
 export const generateAccessToken = (user: User) => {
@@ -37,7 +37,7 @@ export const verifyAccessToken = (token: string) => {
             exp: number;
         };
     } catch (error) {
-          console.error('verifyAccessToken failed:', error);
+        console.error('verifyAccessToken failed:', error);
         return null;
     }
 };

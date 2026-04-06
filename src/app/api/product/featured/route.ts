@@ -1,40 +1,25 @@
 import { ProductState } from "@/generated/prisma"
 import { prisma } from "@/lib/prisma"
-import { NextRequest, NextResponse } from "next/server"
+import { NextResponse } from "next/server"
 
-export async function GET(req: NextRequest) {
-
-    const cateogory = req.nextUrl.pathname;
-    const cid = req.nextUrl.searchParams;
-
-    console.log(cateogory, cid)
+export async function GET() {
     try {
-        const products = await prisma.product.findMany({
-            where: {
-                deletedAt: null,
-                isPublished: true,
-                state: ProductState.ACTIVE
-            },
-            take: 4,
-            orderBy: {
-                createdAt: 'desc',
-                // price: 'asc'
-            },
-            include: {
-                category: true,
-                images: true
-            }
-        })
+        const settings = await prisma.storeSettings.findUnique({ where: { id: 1 } });
 
-        return NextResponse.json({
-            data: products ?? [],
-            status: 200,
-        })
+        const where: any = { deletedAt: null, state: ProductState.ACTIVE, featured: true };
+        if (settings?.onlyPublished ?? true) where.isPublished = true;
+        if (settings?.onlyInStock)           where.stock = { gt: 0 };
+
+        const products = await prisma.product.findMany({
+            where,
+            orderBy: { createdAt: "desc" },
+            include: { category: true, images: true },
+        });
+
+        return NextResponse.json({ data: products, status: 200 });
 
     } catch (err) {
-
         console.log(err)
-
         return NextResponse.json({ error: "Алдаа гарлаа" }, { status: 500 })
     }
 }

@@ -1,15 +1,19 @@
 'use client';
 
 import { UserRole } from '@/generated/prisma';
-import { createContext, useContext, useState, useEffect, ReactNode } from 'react';
+import { createContext, useContext, useState, useEffect, ReactNode, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import toast from 'react-hot-toast';
+import { requestForToken } from '@/lib/firebase/firebase';
+import { AuthService } from '@/app/context/services/auth_service';
 
 interface User {
   id: string;
   email: string;
   name: string;
-  role: UserRole,
+  role: UserRole;
+  googleId?: string | null;
+  password?: string | null;
 }
 
 interface AuthContextType {
@@ -19,7 +23,7 @@ interface AuthContextType {
   isAuthenticated: boolean;
   login: (email: string, password: string) => Promise<void>;
   logout: () => Promise<void>;
-  register: (email: string, password: string, name: string) => Promise<void>;
+  register: (params: { name: string; email: string; phone: string; password: string; otpCode: string }) => Promise<void>;
   checkUser: () => Promise<void>;
 }
 
@@ -28,47 +32,33 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(false);
-  // const [error, setError] = useState("")
+
   const router = useRouter()
   const isAdmin = user !== null && user.role === UserRole.ADMIN
-  const checkUser = async () => {
-    try {
-      const res = await fetch("/api/auth/me");
-      if (res.ok) {
-        const data = await res.json();
-        setUser(data.user);
-      } else {
-        setUser(null);
-      }
-    } catch (err) {
-      setUser(null);
-    }
-  };
+  const checkUser = useCallback(async () => {
+    setLoading(true);
+    const data = await AuthService.checkUser().catch(() => null);
+    setUser(data?.user || null);
+    setLoading(false);
+  }, [user]);
 
   useEffect(() => {
     checkUser();
   }, []);
 
-  const login = async (email: string, password: string) => {
+  const login = useCallback(async (email: string, password: string) => {
     setLoading(true);
     try {
-      const response = await fetch('/api/auth/login', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email, password }),
-      });
-      const data = await response.json()
-      if (!response.ok) {
-        toast.error(data.error || "Имэйл эсвэл нууц үг буруу байна")
-        return
-      }
-      setUser(data.user)
-    } catch (err) {
-      toast.error("Сервертэй холбогдоход алдаа гарлаа.")
+      const data = await AuthService.login({ email, password });
+      setUser(data.user);
+      const fcmToken = await requestForToken();
+      if (fcmToken) await AuthService.updateFcmToken(fcmToken);
+    } catch (err: any) {
+      toast.error(err.message);
     } finally {
       setLoading(false);
     }
-  };
+  }, []);
 
   const logout = async () => {
     setLoading(true);
@@ -81,21 +71,14 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     }
   };
 
-  const register = async (email: string, password: string, name: string) => {
+  const register = async (params: { name: string; email: string; phone: string; password: string; otpCode: string }) => {
     setLoading(true);
     try {
-      const response = await fetch('/api/auth/register', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email, password, name }),
-      });
-
-      if (!response.ok) {
-        throw new Error('Registration failed');
-      }
-
-      const userData = await response.json();
-      setUser(userData);
+      await AuthService.register(params);
+      toast.success("Бүртгэл амжилттай үүслээ, нэвтэрнэ үү");
+      router.push("/auth/login");
+    } catch (err: any) {
+      toast.error(err.message);
     } finally {
       setLoading(false);
     }

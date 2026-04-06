@@ -1,108 +1,184 @@
 "use client";
 
-import Link from "next/link";
+import React, { useState } from "react";
 import { useCart } from "../context/cart_context";
-import { useAuth } from "../context/auth_context";
-import CartItemTile from "./components/cartItem";
+import CartItemTile from "./components/CartItem";
 import { useOrder } from "../context/order_context";
 import Header from "../components/Header";
-import { useAddress } from "../context/address_context";
+import { useAddress, AddressInput } from "../context/address_context";
+import toast from "react-hot-toast";
+import EmptyCart from "./components/EmptyCart";
+import CheckoutPanel, { EMPTY_ADDR, Step, CheckoutPanelProps } from "./components/CheckoutPanel";
+import { Cart } from "@/interface/cart";
 
 export default function CartPage() {
     const { cart, loading } = useCart();
-    const { create } = useOrder()
-   
-    if (loading && !cart) {
-        return (
-            <div className="min-h-screen flex items-center justify-center dark:bg-slate-950">
-                <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-teal-500"></div>
-            </div>
-        );
-    }
+    const { createOrder } = useOrder();
+    const { myAddresses, districts, fetchAddress } = useAddress();
+    const [step, setStep] = useState<Step>("summary");
+    const [selectedAddressId, setSelectedAddressId] = useState<number | null>(null);
+    const [paymentMethod, setPaymentMethod] = useState("");
+    const [note, setNote] = useState("");
+    const [placing, setPlacing] = useState(false);
+    const [sheetOpen, setSheetOpen] = useState(false);
+    const [orderNumber, setOrderNumber] = useState("");
+    const [showAddressForm, setShowAddressForm] = useState(false);
+    const [savingAddress, setSavingAddress] = useState(false);
+    const [newAddr, setNewAddr] = useState<AddressInput>(EMPTY_ADDR);
+    const handleSaveNewAddress = async (e: React.FormEvent) => {
+        e.preventDefault();
+        setSavingAddress(true);
+        try {
+            const res = await fetch("/api/address", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ address: newAddr }),
+            });
+            const data = await res.json();
+            if (res.ok) {
+                toast.success("Хаяг хадгалагдлаа");
+                await fetchAddress();
+                setSelectedAddressId(data.data?.id ?? null);
+                setShowAddressForm(false);
+                setNewAddr(EMPTY_ADDR);
+            } else {
+                toast.error(data.message ?? "Хадгалахад алдаа гарлаа");
+            }
+        } catch {
+            toast.error("Алдаа гарлаа");
+        } finally {
+            setSavingAddress(false);
+        }
+    };
+
+    const resetCheckout = () => {
+        setStep("summary");
+        setSelectedAddressId(null);
+        setPaymentMethod("");
+        setNote("");
+        setPlacing(false);
+        setShowAddressForm(false);
+        setNewAddr(EMPTY_ADDR);
+        setSheetOpen(false);
+        setOrderNumber("");
+    };
+
+    const handleConfirmOrder = async (paymentConfirmed: boolean) => {
+        if (!paymentMethod) return;
+        setPlacing(true);
+        try {
+            const ok = await createOrder({ addressId: selectedAddressId, paymentMethod, note, paymentConfirmed });
+            if (ok) {
+                const num = `AAA${String(Math.floor(Math.random() * 999999)).padStart(6, "0")}`;
+                setOrderNumber(num);
+                setStep("done");
+            }
+        } finally {
+            setPlacing(false);
+        }
+    };
+
+    const openCheckout = () => {
+        fetchAddress();
+        setStep("summary");
+        setSheetOpen(true);
+    };
+
+    if (loading && !cart) return (
+        <div className="min-h-screen flex items-center justify-center dark:bg-slate-950">
+            <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-teal-500" />
+        </div>
+    );
 
     const isEmpty = !cart || !cart.items || cart.items.length === 0;
 
-    return (
-        <div className="min-h-screen bg-slate-50 dark:bg-slate-950 font-sans pb-20">
+    const sharedProps: CheckoutPanelProps = {
+        cart, step, setStep,
+        selectedAddressId, setSelectedAddressId, myAddresses,
+        paymentMethod, setPaymentMethod,
+        note, setNote,
+        showAddressForm, setShowAddressForm,
+        savingAddress, districts, newAddr, setNewAddr, handleSaveNewAddress,
+        handleConfirmOrder, placing,
+        orderNumber, resetCheckout,
+        onStartCheckout: () => { fetchAddress(); setStep("summary"); },
+    };
 
+    return (
+        <div className="min-h-screen bg-slate-50 dark:bg-slate-950 font-sans">
             <Header />
 
-            <div className="max-w-7xl mx-auto px-6 pt-32">
-                <CartHeader
-                    isEmpty={isEmpty}
-                    count={cart?.totalCount || 0}
-                />
+            <div className="max-w-7xl mx-auto px-4 sm:px-6 pt-24 sm:pt-24 pb-32 lg:pb-16">
 
-                {isEmpty ? (
-                    <div className="text-center py-20 bg-white dark:bg-slate-900 rounded-3xl border border-dashed border-slate-300 dark:border-slate-800">
-                        <h2 className="text-2xl font-bold text-slate-900 dark:text-white mb-4">Сагс хоосон байна</h2>
-                        <Link href="/product">
-                            <button className="bg-gradient-to-r from-teal-500 to-blue-500 text-white px-8 py-3 rounded-full font-bold hover:shadow-lg transition-all active:scale-95">
-                                Дэлгүүр хэсэх
-                            </button>
-                        </Link>
-                    </div>
-                ) : (
-                    <div className="flex flex-col lg:flex-row gap-8">
-                        {/* Cart Items List */}
-                        <div className="flex-1 space-y-4">
-                            {cart.items.map((item) => (
-                                <CartItemTile key={item.id} {...item} />
-                            ))}
+                <CartTitle cart={cart!} isEmpty={isEmpty}></CartTitle>
+
+                {isEmpty ? (<EmptyCart />) : (
+                    <div className="flex flex-col lg:flex-row gap-6 lg:gap-8">
+                        <div className="flex-1 space-y-3">
+                            {cart.items.map((item: any) => <CartItemTile key={item.id} {...item} />)}
                         </div>
 
-                        {/* Order Summary Sidebar */}
-                        <div className="w-full lg:w-96">
-                            <div className="sticky top-32 bg-white dark:bg-slate-900 rounded-3xl border border-slate-200 dark:border-slate-800 p-8 shadow-xl shadow-slate-200/50 dark:shadow-none">
-                                <h3 className="text-xl font-bold text-slate-900 dark:text-white mb-6">Захиалгын хэсэг</h3>
-                                <div className="space-y-4 mb-8">
-                                    <div className="flex justify-between text-slate-500">
-                                        <span>Барааны тоо</span>
-                                        <span className="font-semibold text-slate-900 dark:text-white">{cart.totalCount || 0} ширхэг</span>
-                                    </div>
-                                    <div className="flex justify-between text-slate-500">
-                                        <span>Хүргэлт</span>
-                                        <span className="text-teal-500 font-medium">Үнэгүй</span>
-                                    </div>
-                                    <div className="pt-4 border-t border-slate-100 dark:border-slate-800 flex justify-between items-end">
-                                        <span className="text-lg font-bold dark:text-white">Нийт дүн</span>
-                                        <span className="text-2xl font-extrabold text-slate-900 dark:text-white">
-                                            ₮{cart.totalPrice?.toLocaleString() || '0'}
-                                        </span>
-                                    </div>
-                                </div>
-                                <button
-                                    onClick={create}
-                                    className="w-full bg-slate-900 dark:bg-teal-600 text-white py-4 rounded-2xl font-bold text-lg hover:shadow-2xl hover:-translate-y-1 transition-all active:scale-95"
-                                >
-                                    Худалдан авах
-                                </button>
-                                <p className="text-xs text-slate-400 text-center mt-4 italic">
-                                    * Таны захиалга 24-48 цагийн дотор хүргэгдэнэ.
-                                </p>
+                        {/* Desktop sidebar */}
+                        <div className="hidden lg:block w-96 flex-shrink-0">
+                            <div className="sticky top-28 bg-white dark:bg-slate-900 rounded-3xl border border-slate-200 dark:border-slate-800 shadow-xl overflow-hidden">
+                                <CheckoutPanel {...sharedProps} />
                             </div>
                         </div>
                     </div>
                 )}
             </div>
+
+            {/* Mobile sticky bar */}
+            {!isEmpty && (<MobileStickyBar cart={cart} openCheckout={openCheckout} />)}
+
+            {/* Mobile sheet */}
+            {sheetOpen && (
+                <>
+                    <div className="lg:hidden fixed inset-0 z-40 bg-black/50 backdrop-blur-sm" onClick={() => step !== "done" && setSheetOpen(false)} />
+                    <div className="lg:hidden fixed bottom-0 left-0 right-0 z-50 bg-white dark:bg-slate-900 rounded-t-3xl border-t border-slate-200 dark:border-slate-800 shadow-2xl max-h-[90dvh] flex flex-col">
+                        <div className="flex justify-center pt-3 pb-1 flex-shrink-0">
+                            <div className="w-10 h-1 rounded-full bg-slate-200 dark:bg-slate-700" />
+                        </div>
+                        <div className="overflow-y-auto flex-1">
+                            <CheckoutPanel {...sharedProps} />
+                        </div>
+                    </div>
+                </>
+            )}
         </div>
     );
 }
 
-// Sub-component for Header Text
-interface CartHeaderProps {
-    isEmpty: boolean;
-    count: number;
-}
-const CartHeader = ({ isEmpty, count }: CartHeaderProps) => {
+
+
+function CartTitle(
+    { cart, isEmpty }: { cart: Cart, isEmpty: boolean }
+) {
     return (
-        <div className="mb-12">
-            <h1 className="text-4xl font-extrabold text-slate-900 dark:text-white mb-2">
+        <div className="mb-6 sm:mb-10">
+            <h1 className="text-2xl sm:text-4xl font-extrabold text-slate-900 dark:text-white mb-1">
                 Миний <span className="bg-gradient-to-r from-teal-500 to-blue-500 bg-clip-text text-transparent">сагс</span>
             </h1>
-            <p className="text-slate-500 dark:text-slate-400">
-                {isEmpty ? "Таны сагс одоогоор хоосон байна." : `Нийт ${count} бараа сонгосон байна.`}
+            <p className="text-sm text-slate-500 dark:text-slate-400">
+                {isEmpty ? "Таны сагс одоогоор хоосон байна." : `Нийт ${cart.totalCount} бараа сонгосон.`}
             </p>
         </div>
-    );
+    )
+}
+
+function MobileStickyBar({ cart, openCheckout }: { cart: Cart | null, openCheckout: () => void }) {
+    return (
+        <div className="lg:hidden fixed bottom-0 left-0 right-0 z-40 bg-white/90 dark:bg-slate-900/90 backdrop-blur-md border-t border-slate-200 dark:border-slate-800 px-4 py-3">
+            <div className="flex items-center gap-4 max-w-lg mx-auto">
+                <div className="flex-1">
+                    <p className="text-xs text-slate-400">Нийт дүн</p>
+                    <p className="text-xl font-extrabold text-slate-900 dark:text-white">₮{Number(cart?.totalPrice).toLocaleString()}</p>
+                </div>
+                <button onClick={openCheckout}
+                    className="flex-shrink-0 bg-gradient-to-r from-teal-500 to-teal-400 text-white px-8 py-3.5 rounded-2xl font-bold text-sm shadow-lg shadow-teal-500/30 active:scale-95 transition-all">
+                    Захиалах →
+                </button>
+            </div>
+        </div>
+    )
 }

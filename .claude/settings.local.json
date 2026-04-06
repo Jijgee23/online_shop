@@ -1,0 +1,20 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(npx prisma:*)",
+      "Bash(npm list:*)",
+      "Bash(find C:Usersjijgeonline_shop -type f \\\\\\(-name *theme* -o -name *dark* \\\\\\))",
+      "Bash(grep -r \"next-themes\\\\|ThemeProvider\\\\|darkMode\\\\|useTheme\" C:Usersjijgeonline_shop --include=*.json --include=*.tsx --include=*.ts --include=*.js)",
+      "Bash(grep -r \"dark:\\\\|@media.*prefers-color-scheme\" C:Usersjijgeonline_shop/src --include=*.tsx --include=*.css)",
+      "Bash(grep:*)",
+      "Bash(npm install:*)",
+      "Bash(ls:*)",
+      "Bash(npx ts-node:*)",
+      "Bash(node -e \"const {PrismaPg} = require\\('@prisma/adapter-pg'\\); console.log\\(PrismaPg.toString\\(\\).slice\\(0,300\\)\\)\")",
+      "Bash(npx tsc:*)",
+      "Bash(node -e ':*)",
+      "mcp__ide__getDiagnostics",
+      "Bash(2>&1)"
+    ]
+  }
+}

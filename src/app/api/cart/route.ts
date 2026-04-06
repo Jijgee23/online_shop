@@ -120,14 +120,23 @@ export async function PATCH(req: NextRequest) {
 
         if (!product) return NextResponse.json({ error: "Бараа олдсонгүй" }, { status: 400 })
 
-        const alreadyInCart = cart.items.map((e) => e.productId).includes(productId);
+        const existingItem = cart.items.find(e => e.productId === productId);
 
-        if (alreadyInCart) {
-            return NextResponse.json({ error: "Бараа хэдийн сагслагдсан байна!" }, { status: 401 })
+        if (existingItem) {
+            const newQty = existingItem.quantity + (productQty ?? 1);
+            if (newQty > product.stock) {
+                return NextResponse.json({ error: "Барааны үлдэгдэл хүрэлцэхгүй байна!" }, { status: 400 });
+            }
+            await prisma.cartItem.update({
+                where: { id: existingItem.id },
+                data: { quantity: newQty },
+            });
+            await recalculateCart(cart.userId);
+            return NextResponse.json({ success: true, message: product.name + " тоо шинэчлэгдлээ" }, { status: 200 });
         }
 
-        if (product.stock < productQty) {
-            return NextResponse.json({ error: "Барааны үлдэгдэл хүрэлцэхгүй байна!" }, { status: 401 })
+        if (product.stock < (productQty ?? 1)) {
+            return NextResponse.json({ error: "Барааны үлдэгдэл хүрэлцэхгүй байна!" }, { status: 400 });
         }
 
         const newItem = await prisma.cartItem.create({
@@ -139,10 +148,10 @@ export async function PATCH(req: NextRequest) {
         });
 
         if (!newItem) {
-            return NextResponse.json({ error: "Амжилтгүй" }, { status: 401 })
+            return NextResponse.json({ error: "Амжилтгүй" }, { status: 400 });
         }
 
-        return NextResponse.json({ success: true, message: product.name + "ийг сагсаллаа" }, { status: 200 })
+        return NextResponse.json({ success: true, message: product.name + " сагсанд нэмэгдлээ" }, { status: 200 })
 
     } catch (error) {
         console.log(error)
@@ -184,7 +193,7 @@ export async function DELETE(req: NextRequest) {
 
         const newTotalCount = remainingItems.reduce((sum, item) => sum + item.quantity, 0);
         const newTotalPrice = remainingItems.reduce((sum, item) => {
-            return sum + (item.quantity * (item.product?.price || 0));
+            return sum + (item.quantity * Number(item.product?.price || 0));
         }, 0);
 
         // 3. Сагсны (Cart) мэдээллийг шинэчлэх

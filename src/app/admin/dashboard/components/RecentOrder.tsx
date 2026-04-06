@@ -9,15 +9,15 @@ export default function RecentOrderComp(order: RecentOrder) {
     const router = useRouter()
 
     const handleTap = () => {
-        router.push(`/order/${order.id}`)
+        router.push(`/admin/order/${order.id}`)
     }
 
-    return (<tr key={order.id} onClick={handleTap} className="hover:bg-zinc-800/30 transition-colors cursor-pointer group">
-        <td className="px-8 py-5 font-mono text-zinc-400 text-xs">#{order.orderNumber}</td>
+    return (<tr key={order.id} onClick={handleTap} className="hover:bg-slate-100 dark:hover:bg-zinc-800/30 transition-colors cursor-pointer group">
+        <td className="px-8 py-5 font-mono text-slate-500 dark:text-zinc-400 text-xs">#{order.orderNumber}</td>
         <td className="px-8 py-5">
             <div className="flex flex-col">
-                <span className="font-bold text-white">{order.user.name}</span>
-                <span className="text-[10px] text-zinc-500">{order.user.email}</span>
+                <span className="font-bold text-slate-900 dark:text-white">{order.user.name}</span>
+                <span className="text-[10px] text-slate-400 dark:text-zinc-500">{order.user.email}</span>
             </div>
         </td>
         <td className="px-8 py-5">
@@ -25,7 +25,7 @@ export default function RecentOrderComp(order: RecentOrder) {
                 {statusInfo.name}
             </span>
         </td>
-        <td className="px-8 py-5 text-right font-bold text-white">
+        <td className="px-8 py-5 text-right font-bold text-slate-900 dark:text-white">
             ₮{order.totalPrice.toLocaleString()}
         </td>
     </tr>)

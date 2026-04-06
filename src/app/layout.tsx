@@ -2,19 +2,22 @@ import type { Metadata } from "next";
 import { Inter } from "next/font/google";
 import "./globals.css";
 import { AuthProvider } from "./context/auth_context";
-import { AdminProvider } from "./context/admin_context";
 import { CategoryProvider } from "./context/category_context";
 import { CartProvider } from "./context/cart_context";
 import { OrderProvider } from "./context/order_context";
 import { ProductProvider } from "./context/product_context";
 import { ConfirmProvider } from "./context/confirm_context";
 import { AddressProvider } from "./context/address_context";
+import { WishlistProvider } from "./context/wishlist_context";
+import { SettingsProvider } from "./context/settings_context";
 import { Toaster } from "react-hot-toast";
+import RouterInitializer from "./components/RouterInitializer";
+import ThemeProvider from "./components/ThemeProvider";
 
 const inter = Inter({
-  subsets: ['latin'],
-  display: 'swap',
-})
+  subsets: ["latin"],
+  display: "swap",
+});
 
 export const metadata: Metadata = {
   title: "Ishop",
@@ -27,39 +30,42 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en">
-      <body
-        className={`${inter.className} antialiased`}
-      >  <ConfirmProvider>
-          <AuthProvider>
-            <AddressProvider>
-              <AdminProvider>
-                <CategoryProvider>
-                  <CartProvider>
-                    <OrderProvider >
-                      <ProductProvider>
-
-                        {children}
-                        <Toaster
-                          position="top-center"
-                          toastOptions={{
-                            duration: 3000,
-                            style: {
-                              background: '#18181b', // zinc-900
-                              color: '#fff',
-                              borderRadius: '1rem',
-                              border: '1px solid #27272a', // zinc-800
-                            },
-                          }}
-                        />
-                      </ProductProvider>
-                    </OrderProvider>
-                  </CartProvider>
-                </CategoryProvider>
-              </AdminProvider>
-            </AddressProvider>
-          </AuthProvider>
-        </ConfirmProvider>
+    <html lang="en" suppressHydrationWarning>
+      <body className={`${inter.className} antialiased`}>
+        <ThemeProvider>
+          <SettingsProvider>
+            <ConfirmProvider>
+              <AuthProvider>
+                <AddressProvider>
+                    <CategoryProvider>
+                      <CartProvider>
+                        <OrderProvider>
+                          <ProductProvider>
+                            <WishlistProvider>
+                              <RouterInitializer />
+                              {children}
+                              <Toaster
+                                position="top-center"
+                                toastOptions={{
+                                  duration: 3000,
+                                  style: {
+                                    background: "#18181b",
+                                    color: "#fff",
+                                    borderRadius: "1rem",
+                                    border: "1px solid #27272a",
+                                  },
+                                }}
+                              />
+                            </WishlistProvider>
+                          </ProductProvider>
+                        </OrderProvider>
+                      </CartProvider>
+                    </CategoryProvider>
+                </AddressProvider>
+              </AuthProvider>
+            </ConfirmProvider>
+          </SettingsProvider>
+        </ThemeProvider>
       </body>
     </html>
   );

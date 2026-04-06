@@ -4,9 +4,9 @@ import { Cart } from "@/interface/cart";
 import { createContext, ReactNode, useContext, useState, useEffect } from "react";
 import { useAuth } from "./auth_context";
 import { UserRole } from "@/generated/prisma";
-import toast from "react-hot-toast";
+import { CartService } from "./services/cart_service";
 
-interface CartAction {
+export interface CartAction {
     cartId: number | null,
     productId: number;
     productQty: number;
@@ -28,90 +28,36 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
     const [cart, setCart] = useState<Cart | null>(null);
     const [loading, setLoading] = useState(true);
     const { user } = useAuth()
-    // 1. Сагсны мэдээллийг API-аас татах (Күүки ашиглан Server-side шалгана)
+
     const fetchCart = async () => {
         const isAdmin = user?.role == UserRole.ADMIN
-        if (isAdmin) return
-        try {
-            const res = await fetch("/api/cart");
-            console.log("get cart status", res.status) // Энэ API нь accessToken-г уншаад сагсыг буцаана
-            if (res.ok) {
-                const data = await res.json();
-                setCart(data.data);
-            }
-        } catch (err) {
-            console.error("Cart fetch error:", err);
-        } finally {
-            setLoading(false);
-        }
+        const cardData = await CartService.fetchCart(isAdmin)
+        if (cardData === null || cardData === undefined) return
+        setCart((cardData as any).data)
+        setLoading(false)
     };
 
     useEffect(() => {
         fetchCart();
     }, []);
 
-    // 2. Сагсанд нэмэх
     const add = async (data: CartAction) => {
-        const res = await fetch("/api/cart", {
-            method: "PATCH",
-            body: JSON.stringify(data),
-        });
-        if (res.ok) {
-            toast.success("Амжилттай сагсдагдлаа")
-            await fetchCart();
-            return;
-        }
-
-        const body = await res.json()
-
-        toast.error(body.error)
+        await CartService.addItem(data, fetchCart)
     };
 
-    // 3. Сагснаас устгах
     const remove = async (itemId: number) => {
-        const res = await fetch(`/api/cart?itemId=${itemId}`, {
-            method: 'DELETE',
-        });
-        if (res.ok) {
-            toast.success('Бараа сагнаас хасагдлаа')
-            fetchCart();
-        }
+        await CartService.removeItem(itemId, fetchCart)
     };
 
     const updateQty = async (itemId: number, newQty: number) => {
 
         setLoading(true);
         const cartId = cart?.id;
-        const res = await fetch("/api/cart/update", {
-            method: "PATCH",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ cartId, itemId, newQty }),
-        });
-
-        if (res.ok) {
-            toast.success('Амжилттай')
-            await fetchCart();
-        }
-
-        const data = await res.json()
-
-        if (!res.ok)
-            toast.error(data.error ?? 'Амжилтгүй')
+        await CartService.updateItem(cartId, itemId, newQty, fetchCart)
         setLoading(false);
     };
 
-
-
-    const clear = async () => {
-        const res = await fetch("/api/cart/clear", {
-            method: "POST",
-        });
-
-        if (res.ok) {
-            toast.success('Сагс цэвэрлэгдлээ')
-            await fetchCart()
-        }
-    }
+    const clear = async () => await CartService.clearCart(fetchCart)
 
     return (
         <CartContext.Provider value={{ cart, loading, fetchCart, add, remove, updateQty, clear }}>

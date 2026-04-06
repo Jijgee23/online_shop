@@ -4,8 +4,11 @@ import AdminDashboardPage from '../admin/dashboard/page';
 import AdminOrdersPage from '../admin/order/page';
 import AdminProductsPage from '../admin/products/page';
 import NewProductPage from '../admin/products/newProduct/page';
+import FeaturedProductsPage from '../admin/products/featured/page';
 import AdminCategoryPage from '../admin/category/page';
 import AdminCustomersPage from '../admin/customers/page';
+import AdminSettingsPage from '../admin/settings/page';
+import AdminNotificationsPage from '../admin/notifications/page';
 import { DashboardResponse } from '@/interface/dashboard';
 
 interface AdminContextType {
@@ -16,28 +19,23 @@ interface AdminContextType {
     setIsMobileSidebarOpen: (value: boolean) => void,
     pages: Record<PageKey, JSX.Element>,
     dashboardData: DashboardResponse | null,
-    fetchDashboardData: (page: PageKey) => void;
+    fetchDashboardData: () => void;
 }
 
 const AdminContext = createContext<AdminContextType | undefined>(undefined);
-export type PageKey = "Хянах самбар" | "Захиалгууд" | "Бүтээгдэхүүнүүд" | "Шинэ бүтээгдэхүүнүүд" | "Ангилал" | "Харилцагчид" | "Тохиргоо";
+export type PageKey = "Хянах самбар" | "Захиалгууд" | "Бүтээгдэхүүнүүд" | "Шинэ бүтээгдэхүүнүүд" | "Онцлох бүтээгдэхүүн" | "Ангилал" | "Харилцагчид" | "Тохиргоо" | "Мэдэгдэл";
 
 export const AdminProvider = ({ children }: { children: ReactNode }) => {
     const [loading, setLoading] = useState(false);
-    const [activePage, setActivePage] = useState<PageKey>("Хянах самбар");
+    const [activePage, setActivePage] = useState<PageKey>(() => {
+        if (typeof window === 'undefined') return "Хянах самбар";
+        return (localStorage.getItem("adminActivePage") as PageKey) || "Хянах самбар";
+    });
     const [isMobileSidebarOpen, setIsMobileSidebarOpen] = useState(false);
     const [dashboardData, setData] = useState<DashboardResponse | null>(null);
-    useEffect(() => {
-        const savedPage = localStorage.getItem("adminActivePage") as PageKey;
-        if (savedPage) {
-            setActivePage(savedPage);
-        }
-    }, []);
 
     useEffect(() => {
-        if (activePage) {
-            localStorage.setItem("adminActivePage", activePage);
-        }
+        localStorage.setItem("adminActivePage", activePage);
     }, [activePage]);
 
     useEffect(() => { fetchDashboardData() }, [])
@@ -47,9 +45,11 @@ export const AdminProvider = ({ children }: { children: ReactNode }) => {
         "Захиалгууд": <AdminOrdersPage />,
         "Бүтээгдэхүүнүүд": <AdminProductsPage />,
         "Шинэ бүтээгдэхүүнүүд": <NewProductPage />,
+        "Онцлох бүтээгдэхүүн": <FeaturedProductsPage />,
         "Ангилал": <AdminCategoryPage />,
         "Харилцагчид": <AdminCustomersPage />,
-        "Тохиргоо": <div className="text-white">Тохиргооны хуудас - Хөгжүүлэгдэж байна</div>
+        "Тохиргоо": <AdminSettingsPage />,
+        "Мэдэгдэл": <AdminNotificationsPage />
     };
     const fetchDashboardData = async () => {
         try {

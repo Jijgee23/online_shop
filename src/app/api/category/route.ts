@@ -13,10 +13,6 @@ export async function GET() {
         include: { _count: { select: { products: true } } },
     });
 
-
-    // if (categories) {
-
-    // }
     return NextResponse.json(categories);
 }
 

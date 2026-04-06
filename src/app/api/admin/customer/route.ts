@@ -1,61 +1,64 @@
-
-
 import { prisma } from '@/lib/prisma';
-import { UserRole } from '@prisma/client';
-import { NextResponse } from 'next/server';
+import { UserRole } from '@/generated/prisma';
+import { NextRequest, NextResponse } from 'next/server';
 
-export async function POST(request: Request) {
+export async function GET(req: NextRequest) {
     try {
-        // Admin logic here - authentication is handled by middleware
-    } catch (err) {
-        console.log("create customer error");
-    }
-}
+        const p        = req.nextUrl.searchParams;
+        const page     = Math.max(1, Number(p.get("page")     || 1));
+        const pageSize = Math.max(1, Number(p.get("pageSize") || 20));
+        const search   = p.get("search") || "";
+        const status   = p.get("status") || "";
 
-export async function GET(request: Request) {
-    try {
-        const users = await prisma.user.findMany({
-            where: {
-                role: UserRole.CUSTOMER,
-            },
-            select: {
-                id: true,
-                name: true,
-                email: true,
-                status: true,
-                role: true,
-                createdAt: true,
-                orders: {
-                    select: {
-                        totalCount: true,
-                        totalPrice: true
-                    }
-                }
-            }
-        });
+        const where: any = { role: UserRole.CUSTOMER, deletedAt: null };
 
-        // Transform to Customer format
+        if (search.trim()) {
+            where.OR = [
+                { name:  { contains: search, mode: "insensitive" } },
+                { email: { contains: search, mode: "insensitive" } },
+                { phone: { contains: search, mode: "insensitive" } },
+            ];
+        }
+
+        if (status) where.status = status;
+
+        const [users, total] = await prisma.$transaction([
+            prisma.user.findMany({
+                where,
+                select: {
+                    id:        true,
+                    name:      true,
+                    email:     true,
+                    phone:     true,
+                    status:    true,
+                    role:      true,
+                    createdAt: true,
+                    orders: {
+                        select: { totalPrice: true },
+                    },
+                },
+                orderBy: { createdAt: "desc" },
+                skip: (page - 1) * pageSize,
+                take: pageSize,
+            }),
+            prisma.user.count({ where }),
+        ]);
+
         const customers = users.map(user => ({
-            id: user.id,
-            name: user.name,
-            email: user.email,
-            status: user.status,
-            role: user.role,
+            id:          user.id,
+            name:        user.name,
+            email:       user.email,
+            phone:       user.phone,
+            status:      user.status,
+            role:        user.role,
+            createdAt:   user.createdAt,
             totalOrders: user.orders.length,
-            totalSpent: user.orders.reduce((sum, order) => sum + (order.totalCount || 0), 0)
+            totalSpent:  user.orders.reduce((sum, o) => sum + Number(o.totalPrice || 0), 0),
         }));
 
-        return NextResponse.json({
-            data: customers ?? [],
-        }, {
-            status: 200
-        });
-
+        return NextResponse.json({ data: customers, total, page, pageSize }, { status: 200 });
     } catch (err) {
-        console.log("create customer error");
-        return NextResponse.json(
-            { error: "Cant get user" },
-            { status: 404 }
-        );
+        console.error("get customers error:", err);
+        return NextResponse.json({ error: "Хэрэглэгчид татахад алдаа гарлаа" }, { status: 500 });
     }
 }

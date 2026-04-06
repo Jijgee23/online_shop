@@ -1,0 +1,3 @@
+ALTER TABLE "StoreSettings"
+  ADD COLUMN "onlyInStock"   BOOLEAN NOT NULL DEFAULT false,
+  ADD COLUMN "onlyPublished" BOOLEAN NOT NULL DEFAULT true;

@@ -1,10 +1,11 @@
 import { OtpType } from '@/generated/prisma';
+import { requestForToken } from '@/lib/firebase/firebase';
 import { prisma } from '@/lib/prisma';
 import crypto from 'crypto';
+import { NextResponse } from 'next/server';
 import nodemailer from 'nodemailer';
 
 export const generateOTP = () => {
-    // 6 оронтой санамсаргүй тоо үүсгэх
     return crypto.randomInt(100000, 999999).toString();
 };
 
@@ -38,7 +39,7 @@ export const sendEmailOTP = async (email: string, otp: number, type: OtpType) =>
     const title = type === OtpType.SIGNUP ? "Тавтай морилно уу!" : "Нууц үг солих хүсэлт";
     const transporter = nodemailer.createTransport({
         service: 'gmail',
-        auth: { user: 'jijgee647@gmail.com', pass: 'uwsk ebrg nibq nvvn' }
+        auth: { user: process.env.MAIL_SENDER_EMAIL, pass: process.env.MAIL_SENDER_PASS }
     });
 
     await transporter.sendMail({
@@ -56,3 +57,42 @@ export const sendEmailOTP = async (email: string, otp: number, type: OtpType) =>
     `,
     });
 };
+
+export const createFCM = async (userId: number, token: string) => {
+    try {
+    
+        // 1. Өмнө нь энэ токен бүртгэгдсэн эсэхийг шалгах
+        const existingFCM = await prisma.fCM.findFirst({
+            where: {
+                token: token,
+                userId: userId
+            }
+        });
+
+        if (existingFCM) {
+            // Хэрэв өмнө нь Soft Delete хийгдсэн (deletedAt != null) бол буцааж идэвхжүүлэх
+            if (existingFCM.deletedAt) {
+                const updated = await prisma.fCM.update({
+                    where: { id: existingFCM.id },
+                    data: { deletedAt: null }
+                });
+                return { data: updated, message: "Токен дахин идэвхжлээ", status: 200 };
+            }
+            return { message: "Токен аль хэдийн бүртгэгдсэн байна", status: 200 };
+        }
+
+        // 2. Шинээр токен үүсгэх
+        const newFCM = await prisma.fCM.create({
+            data: {
+                token: token,
+                userId: userId
+            }
+        });
+
+        return { data: newFCM, message: "Амжилттай бүртгэгдлээ", status: 201 };
+
+    } catch (error) {
+        console.error("FCM Registration Error in Utils:", error);
+        return { error: "Серверийн алдаа", status: 500 };
+    }
+}

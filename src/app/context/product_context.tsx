@@ -1,16 +1,16 @@
-
-
 'use client';
 
-import { ProductWithRelations } from "@/interface/product";
+import { Product } from "@/interface/product";
 import { createContext, ReactNode, useContext, useEffect, useState } from "react";
 import toast from "react-hot-toast";
 
 
 interface ProductContextType {
-    products: ProductWithRelations[] | [],
+    products: Product[] | [],
     fetchProducts: () => Promise<void>;
     deleteProduct: (id: number) => Promise<void>;
+    restoreProduct: (id: number) => Promise<void>;
+    refetchSignal: number;
 }
 
 
@@ -18,7 +18,8 @@ const ProductContext = createContext<ProductContextType | undefined>(undefined);
 
 export const ProductProvider = ({ children }: { children: ReactNode }) => {
 
-    const [products, setProducts] = useState<ProductWithRelations[]>([])
+    const [products, setProducts] = useState<Product[]>([])
+    const [refetchSignal, setRefetchSignal] = useState(0)
 
     const fetchProducts = async () => {
         try {
@@ -37,15 +38,22 @@ export const ProductProvider = ({ children }: { children: ReactNode }) => {
 
     const deleteProduct = async (id: number) => {
         try {
-            const res = await fetch(`api/admin/product/${id}`, { method: 'DELETE' })
-            console.log(res.status)
+            const res = await fetch(`/api/admin/product/${id}`, { method: 'DELETE' });
             if (res.ok) {
-                toast.success('Бараа амжилттай устгагдлаа')
-                fetchProducts()
+                toast.success('Бараа амжилттай устгагдлаа');
+                setRefetchSignal(s => s + 1);
             }
-        } catch (err) {
+        } catch (err) { }
+    };
 
-        }
+    const restoreProduct = async (id: number) => {
+        try {
+            const res = await fetch(`/api/admin/product/${id}`, { method: 'PUT' });
+            if (res.ok) {
+                toast.success('Бараа амжилттай сэргээгдлээ');
+                setRefetchSignal(s => s + 1);
+            }
+        } catch (err) { }
     };
 
     useEffect(() => { fetchProducts() }, [])
@@ -53,7 +61,9 @@ export const ProductProvider = ({ children }: { children: ReactNode }) => {
     const value: ProductContextType = {
         products,
         fetchProducts,
-        deleteProduct
+        deleteProduct,
+        restoreProduct,
+        refetchSignal,
     }
     return <ProductContext.Provider value={value}>{children}</ProductContext.Provider>;
 }

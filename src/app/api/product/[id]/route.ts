@@ -15,12 +15,19 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
                 images: true,
                 category: true,
                 _count: true,
-                reviews: true
+                reviews: {
+                    where: { deletedAt: null },
+                    include: { user: { select: { id: true, name: true } } },
+                    orderBy: { createdAt: "desc" },
+                },
+                productSizes: true,
+                colors: true,
+                features: true
             }
         })
 
         if (!product) return NextResponse.json({ error: 'product not found' }, { status: 400 })
-        console.log(product)
+        // console.log(product)
         return NextResponse.json({ product: product }, { status: 200 })
 
     } catch (e) {

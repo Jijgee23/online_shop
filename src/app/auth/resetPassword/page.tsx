@@ -2,9 +2,9 @@
 
 import { useState } from "react"
 import { useRouter } from "next/navigation"
-import Link from "next/link" // Өмнө үүсгэсэн компонент
-import { OtpType } from "@/generated/prisma"
-import { Input } from "@/app/components/ui/Input"
+import Link from "next/link"
+import { Input } from "@/ui/Input"
+import { AuthService } from "@/app/context/services/auth_service"
 
 export default function ResetPasswordPage() {
   const [step, setStep] = useState(1) // 1: Email, 2: OTP & New Password
@@ -23,17 +23,8 @@ export default function ResetPasswordPage() {
     e.preventDefault()
     setLoading(true)
     setError("")
-
     try {
-      const res = await fetch("/api/auth/getOtp", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email, type: 'FORGOT_PASSWORD' }),
-      })
-
-      const data = await res.json()
-      if (!res.ok) throw new Error(data.message || data.error)
-
+      await AuthService.sendResetOtp(email)
       setStep(2)
     } catch (err: any) {
       setError(err.message)
@@ -46,20 +37,10 @@ export default function ResetPasswordPage() {
   const handleResetPassword = async (e: React.FormEvent) => {
     e.preventDefault()
     if (newPassword.length < 6) return setError("Нууц үг хамгийн багадаа 6 тэмдэгт байх ёстой")
-
     setLoading(true)
     setError("")
-
     try {
-      const res = await fetch("/api/auth/reset-password", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email, otpCode, newPassword }),
-      })
-
-      const data = await res.json()
-      if (!res.ok) throw new Error(data.error || "Алдаа гарлаа")
-
+      await AuthService.resetPassword({ email, otpCode, newPassword })
       setSuccess(true)
       setTimeout(() => router.push("/auth/login"), 3000)
     } catch (err: any) {
@@ -70,19 +51,19 @@ export default function ResetPasswordPage() {
   }
 
   return (
-    <div className="min-h-screen relative flex items-center justify-center bg-slate-950 px-4 overflow-hidden font-sans">
-      <div className="absolute top-0 -left-20 w-96 h-96 bg-purple-600 rounded-full mix-blend-multiply filter blur-[128px] opacity-20 animate-pulse"></div>
-      <div className="absolute bottom-0 -right-20 w-96 h-96 bg-teal-600 rounded-full mix-blend-multiply filter blur-[128px] opacity-20 animate-pulse delay-700"></div>
+    <div className="min-h-screen relative flex items-center justify-center bg-slate-50 dark:bg-slate-950 px-4 overflow-hidden font-sans">
+      <div className="absolute top-0 -left-20 w-96 h-96 bg-purple-500 rounded-full mix-blend-multiply dark:mix-blend-screen filter blur-[128px] opacity-10 dark:opacity-20 animate-pulse"></div>
+      <div className="absolute bottom-0 -right-20 w-96 h-96 bg-teal-500 rounded-full mix-blend-multiply dark:mix-blend-screen filter blur-[128px] opacity-10 dark:opacity-20 animate-pulse delay-700"></div>
 
       <div className="relative w-full max-w-md z-10">
-        <div className="bg-white/10 dark:bg-slate-900/50 backdrop-blur-xl border border-white/20 dark:border-slate-800 rounded-3xl shadow-2xl p-8 md:p-12">
+        <div className="bg-white dark:bg-slate-900/50 backdrop-blur-xl border border-slate-200 dark:border-slate-800 rounded-3xl shadow-2xl p-8 md:p-12">
 
           {/* Header */}
           <div className="text-center mb-8">
-            <h2 className="text-2xl font-bold text-white mb-2">
+            <h2 className="text-2xl font-bold text-slate-900 dark:text-white mb-2">
               {success ? "Амжилттай!" : "Нууц үг сэргээх"}
             </h2>
-            <p className="text-slate-400 text-sm">
+            <p className="text-slate-500 dark:text-slate-400 text-sm">
               {success
                 ? "Таны нууц үг амжилттай солигдлоо. Түр хүлээнэ үү..."
                 : step === 1
@@ -145,7 +126,7 @@ export default function ResetPasswordPage() {
                 >
                   {loading ? "Шинэчилж байна..." : "Нууц үг солих"}
                 </button>
-                <button type="button" onClick={() => setStep(1)} className="w-full text-xs text-slate-500 hover:text-white">
+                <button type="button" onClick={() => setStep(1)} className="w-full text-xs text-slate-400 dark:text-slate-500 hover:text-slate-900 dark:hover:text-white">
                   Имэйл хаяг солих
                 </button>
               </form>
@@ -153,7 +134,7 @@ export default function ResetPasswordPage() {
           )}
 
           <div className="mt-8 text-center">
-            <Link href="/auth/login" className="text-slate-400 hover:text-white text-sm flex items-center justify-center gap-2 transition-colors">
+            <Link href="/auth/login" className="text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white text-sm flex items-center justify-center gap-2 transition-colors">
               <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M10 19l-7-7m0 0l7-7m-7 7h18" /></svg>
               Буцах
             </Link>

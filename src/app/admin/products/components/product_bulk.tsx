@@ -90,12 +90,12 @@ export function ProductBulk() {
         <>
             <header className="flex justify-between items-center mb-10">
                 <div>
-                    <p className="text-zinc-500">Шинээр эсвэл Excel файлаар олноор нэмэх боломжтой.</p>
+                    <p className="text-slate-400 dark:text-zinc-500">Шинээр эсвэл Excel файлаар олноор нэмэх боломжтой.</p>
                 </div>
             </header>
 
             <div className="max-w-6xl mb-10">
-                <div className={`bg-zinc-900/50 border-2 border-dashed rounded-[2rem] p-8 text-center transition-all group ${selectedData ? 'border-teal-500/50' : 'border-zinc-800'}`}>
+                <div className={`bg-white dark:bg-zinc-900/50 border-2 border-dashed rounded-[2rem] p-8 text-center transition-all group ${selectedData ? 'border-teal-500/50' : 'border-slate-200 dark:border-zinc-800'}`}>
                     <div className="flex flex-col items-center">
                         <div className={`w-12 h-12 rounded-full flex items-center justify-center mb-4 transition-transform ${selectedData ? 'bg-teal-500 text-white animate-bounce' : 'bg-teal-500/10 text-teal-500'}`}>
                             <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -103,16 +103,16 @@ export function ProductBulk() {
                             </svg>
                         </div>
 
-                        <h3 className="text-white font-bold text-lg mb-1">
+                        <h3 className="text-slate-900 dark:text-white font-bold text-lg mb-1">
                             {selectedData ? "Файл бэлэн боллоо" : "Excel файлаар нэмэх"}
                         </h3>
-                        <p className="text-zinc-500 text-sm mb-6">
+                        <p className="text-slate-400 dark:text-zinc-500 text-sm mb-6">
                             {selectedData ? `Сонгогдсон: ${fileName} (${selectedData.length} мөр)` : "Олон тооны бүтээгдэхүүнийг нэгэн зэрэг оруулах бол Excel файл ашиглана уу."}
                         </p>
 
                         <div className="flex flex-wrap justify-center gap-4">
                             {/* Файл сонгох товч */}
-                            <label className="bg-zinc-800 hover:bg-zinc-700 text-zinc-300 border border-zinc-700 px-8 py-3 rounded-xl cursor-pointer transition-all font-bold text-sm inline-flex items-center gap-2">
+                            <label className="bg-slate-100 dark:bg-zinc-800 hover:bg-slate-200 dark:hover:bg-zinc-700 text-slate-600 dark:text-zinc-300 border border-slate-300 dark:border-zinc-700 px-8 py-3 rounded-xl cursor-pointer transition-all font-bold text-sm inline-flex items-center gap-2">
                                 <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828l6.414-6.586a4 4 0 00-5.656-5.656l-6.415 6.585a6 6 0 108.486 8.486L20.5 13" />
                                 </svg>
@@ -142,7 +142,7 @@ export function ProductBulk() {
                         <button
                             type="button"
                             onClick={downloadTemplate}
-                            className="mt-8 text-zinc-500 hover:text-zinc-300 text-xs font-bold underline decoration-zinc-700 underline-offset-4 transition-colors"
+                            className="mt-8 text-slate-400 dark:text-zinc-500 hover:text-slate-600 dark:hover:text-zinc-300 text-xs font-bold underline decoration-slate-300 dark:decoration-zinc-700 underline-offset-4 transition-colors"
                         >
                             Загвар файл татах
                         </button>
@@ -151,9 +151,9 @@ export function ProductBulk() {
             </div>
 
             <div className="flex items-center gap-4 mb-8">
-                <div className="h-[1px] bg-zinc-800 flex-1"></div>
-                <span className="text-zinc-600 text-xs font-bold uppercase tracking-widest">Эсвэл нэг бүрчлэн нэмэх</span>
-                <div className="h-[1px] bg-zinc-800 flex-1"></div>
+                <div className="h-[1px] bg-slate-200 dark:bg-zinc-800 flex-1"></div>
+                <span className="text-slate-400 dark:text-zinc-600 text-xs font-bold uppercase tracking-widest">Эсвэл нэг бүрчлэн нэмэх</span>
+                <div className="h-[1px] bg-slate-200 dark:bg-zinc-800 flex-1"></div>
             </div>
         </>
     );

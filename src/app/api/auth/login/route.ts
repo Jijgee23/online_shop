@@ -2,10 +2,11 @@ import { NextResponse } from "next/server"
 import { prisma } from "@/lib/prisma"
 import bcrypt from "bcrypt"
 import { generateAccessToken, generateRefreshToken } from "../jwt/jwt_controller";
+import { createFCM } from "../utils/utils";
 
 export async function POST(req: Request) {
   console.log("logging in backend");
-  const { email, password } = await req.json()
+  const { email, password, token } = await req.json()
 
   if (!email || !password) {
 
@@ -14,6 +15,7 @@ export async function POST(req: Request) {
       { status: 400 }
     )
   }
+  
   console.log("email:" + email, "password:" + password);
 
   try {
@@ -28,6 +30,13 @@ export async function POST(req: Request) {
         { error: "Бүртгэлтэй хэрэглэгч олдсонгүй!" },
         { status: 404 }
       )
+    }
+
+    if (!user.password) {
+      return NextResponse.json(
+        { error: "Энэ бүртгэл Google-ээр нэвтрэх боломжтой. Нууц үг тохируулагдаагүй байна." },
+        { status: 401 }
+      );
     }
 
     // Check if password is hashed (bcrypt hashes start with $2) or plain text
@@ -68,7 +77,7 @@ export async function POST(req: Request) {
       path: '/',
     });
 
-  
+
     result.cookies.set('refreshToken', refreshToken, {
       httpOnly: true,
       secure: process.env.NODE_ENV === 'production',
@@ -77,7 +86,10 @@ export async function POST(req: Request) {
       path: '/',
     });
 
+    if (token) { await createFCM(user.id, token) }
+
     if (user && valid) {
+
       // console.log("returning result")
       return result
     }

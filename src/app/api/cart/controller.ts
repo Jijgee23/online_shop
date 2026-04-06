@@ -40,7 +40,7 @@ export async function recalculateCart(userId: number) {
     );
 
     const totalPrice = cart.items.reduce((sum, item) => {
-        return sum + item.quantity * (item.product?.price || 0);
+        return sum + item.quantity * Number(item.product?.price || 0);
     }, 0);
 
     return await prisma.cart.update({
