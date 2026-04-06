@@ -2,7 +2,6 @@ import { NextResponse } from "next/server";
 import { verifyRefreshToken, generateAccessToken } from "../jwt/jwt_controller";
 import { prisma } from "@/lib/prisma";
 import { cookies } from "next/headers";
-import { User } from "@prisma/client";
 
 export async function POST(request: Request) {
   try {
