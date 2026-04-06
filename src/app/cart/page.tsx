@@ -2,7 +2,7 @@
 
 import React, { useState } from "react";
 import { useCart } from "../context/cart_context";
-import CartItemTile from "./components/CartItem";
+import CartItemTile from "./components/CartItemTile";
 import { useOrder } from "../context/order_context";
 import Header from "../components/Header";
 import { useAddress, AddressInput } from "../context/address_context";
