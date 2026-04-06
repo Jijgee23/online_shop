@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useState } from "react";
 import { ProductState } from "@/generated/prisma";
-import ProductTile from "./components/Product_tile";
+import ProductTile from "./components/ProductTile";
 import { useAdmin } from "@/app/context/admin_context";
 import { useCategory } from "@/app/context/category_context";
 import { useProducts } from "@/app/context/product_context";
