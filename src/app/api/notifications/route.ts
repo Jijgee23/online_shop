@@ -61,11 +61,9 @@ export async function PATCH(req: NextRequest) {
 export async function DELETE(req: NextRequest) {
     const userId = await getUserId();
     if (!userId) return NextResponse.json({ message: "Нэвтрэх шаардлагатай" }, { status: 401 });
-
     try {
         const { id } = await req.json();
         if (!id) return NextResponse.json({ message: "id шаардлагатай" }, { status: 400 });
-
         await prisma.notification.deleteMany({ where: { id: Number(id), userId } });
         return NextResponse.json({ message: "Устгагдлаа" });
     } catch (e) {
