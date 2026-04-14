@@ -37,7 +37,7 @@ export default function CustomerTile(user: Customer) {
       
       <td className="px-8 py-5 text-sm">
         <p className="text-slate-600 dark:text-zinc-300">{user.email}</p>
-        <p className="text-slate-400 dark:text-zinc-500 text-xs">{user.phone ?? 'Утас байхгүй'}</p>
+        <p className="text-slate-400 dark:text-zinc-500 text-xs">{user.phone}</p>
       </td>
       
       <td className="px-8 py-5 text-center">

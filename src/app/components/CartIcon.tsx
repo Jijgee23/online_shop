@@ -1,18 +1,15 @@
-import { useAuth } from "../context/auth_context";
 import { useCart } from "../context/cart_context"
 import { useRouter } from "next/navigation";
 
 export default function CartIcon() {
 
     const { cart } = useCart()
-    const { user } = useAuth()
     const router = useRouter()
     const toCart = () => {
         router.push('/cart')
     }
-    const loggedIn = user !== null;
 
-    if (!loggedIn) return <div></div>
+    // if (!loggedIn) return <div></div>
 
     return (<div
         onClick={toCart}
@@ -34,7 +31,7 @@ export default function CartIcon() {
         </svg>
 
         {/* The Badge */}
-        {loggedIn && cart && (cart.totalCount ?? 0) > 0 && (
+        {cart && (cart.totalCount ?? 0) > 0 && (
             <span className="absolute top-0 right-0 flex h-5 w-5">
                 {/* Optional: Ping animation for attention */}
                 <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75"></span>

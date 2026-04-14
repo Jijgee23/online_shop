@@ -41,7 +41,11 @@ export default function NotificationBell() {
         if (!isAuthenticated) return;
         fetchNotifications();
         const interval = setInterval(fetchNotifications, 60_000);
-        return () => clearInterval(interval);
+        window.addEventListener("fcm-message", fetchNotifications);
+        return () => {
+            clearInterval(interval);
+            window.removeEventListener("fcm-message", fetchNotifications);
+        };
     }, [isAuthenticated]);
 
     // Close dropdown on outside click

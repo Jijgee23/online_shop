@@ -8,6 +8,7 @@ import { useEffect, useState } from "react";
 import toast from "react-hot-toast";
 import ImageCropper from "@/app/components/ImageCropper";
 import { useImageCrop } from "@/utils/useImageCrop";
+import DropdownSelect from "@/ui/DropdownSelect";
 
 
 export default function EditProductPage() {
@@ -190,28 +191,24 @@ export default function EditProductPage() {
                                 <div className="grid grid-cols-2 gap-4">
                                     <div>
                                         <label className="block text-sm font-bold text-slate-500 dark:text-zinc-400 mb-2">Ангилал</label>
-                                        <select
-                                            name="categoryId"
-                                            value={formData.categoryId}
-                                            onChange={handleInputChange}
-                                            className="w-full bg-slate-100 dark:bg-zinc-800/50 border border-slate-300 dark:border-zinc-700 rounded-2xl px-5 py-4 text-slate-900 dark:text-white outline-none"
-                                        >
-                                            {categories.map(cat => (
-                                                <option key={cat.id} value={cat.id}>{cat.name}</option>
-                                            ))}
-                                        </select>
+                                        <DropdownSelect
+                                            value={String(formData.categoryId)}
+                                            onChange={id => setFormData(prev => ({ ...prev, categoryId: String(id) }))}
+                                            options={categories.map(cat => ({ id: String(cat.id), label: cat.name }))}
+                                            placeholder="Сонгох"
+                                        />
                                     </div>
                                     <div>
                                         <label className="block text-sm font-bold text-slate-500 dark:text-zinc-400 mb-2">Төлөв</label>
-                                        <select
-                                            name="isPublished"
+                                        <DropdownSelect
                                             value={String(formData.isPublished)}
-                                            onChange={handleInputChange}
-                                            className="w-full bg-slate-100 dark:bg-zinc-800/50 border border-slate-300 dark:border-zinc-700 rounded-2xl px-5 py-4 text-slate-900 dark:text-white"
-                                        >
-                                            <option value="true">Идэвхтэй</option>
-                                            <option value="false">Идэвхгүй</option>
-                                        </select>
+                                            onChange={id => setFormData(prev => ({ ...prev, isPublished: id === "true" }))}
+                                            options={[
+                                                { id: "true", label: "Идэвхтэй" },
+                                                { id: "false", label: "Идэвхгүй" },
+                                            ]}
+                                            searchable={false}
+                                        />
                                     </div>
                                 </div>
 

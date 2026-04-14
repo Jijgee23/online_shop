@@ -3,8 +3,35 @@
 import { useAdmin, PageKey } from "../context/admin_context";
 import ProfileSection from "../components/ProfileSection";
 import { useEffect, useState } from "react";
-import { ChevronDown, LayoutDashboard, ShoppingCart, Package, Tag, Users, Settings, Bell } from "lucide-react";
+import { ChevronDown, LayoutDashboard, ShoppingCart, Package, Users, Settings, Bell, CreditCard, Receipt } from "lucide-react";
 import AdminNotificationBell from "../components/AdminNotificationBell";
+import AdminDashboardPage       from "./dashboard/page";
+import AdminOrdersPage          from "./order/page";
+import AdminProductsPage        from "./products/page";
+import NewProductPage           from "./products/newProduct/page";
+import FeaturedProductsPage     from "./products/featured/page";
+import AdminCategoryPage        from "./category/page";
+import AdminCustomersPage       from "./customers/page";
+import AdminPaymentsPage        from "./payments/page";
+import AdminInvoicesPage        from "./invoices/page";
+import AdminSettingsPage        from "./settings/page";
+import AdminNotificationsPage   from "./notifications/page";
+
+function ActivePage({ page }: { page: PageKey }) {
+    switch (page) {
+        case "Хянах самбар":          return <AdminDashboardPage />;
+        case "Захиалгууд":            return <AdminOrdersPage />;
+        case "Бүтээгдэхүүнүүд":       return <AdminProductsPage />;
+        case "Шинэ бүтээгдэхүүнүүд": return <NewProductPage />;
+        case "Онцлох бүтээгдэхүүн":  return <FeaturedProductsPage />;
+        case "Ангилал":               return <AdminCategoryPage />;
+        case "Харилцагчид":           return <AdminCustomersPage />;
+        case "Төлбөрүүд":             return <AdminPaymentsPage />;
+        case "Invoices":              return <AdminInvoicesPage />;
+        case "Тохиргоо":              return <AdminSettingsPage />;
+        case "Мэдэгдэл":              return <AdminNotificationsPage />;
+    }
+}
 
 type NavItem =
   | { type: "link"; label: string; page: PageKey; icon: React.ReactNode }
@@ -16,24 +43,34 @@ const NAV: NavItem[] = [
   {
     type: "group", label: "Бүтээгдэхүүн", icon: <Package className="w-4 h-4" />,
     children: [
-      { label: "Жагсаалт",  page: "Бүтээгдэхүүнүүд" },
+      { label: "Жагсаалт",   page: "Бүтээгдэхүүнүүд" },
       { label: "Шинэ нэмэх", page: "Шинэ бүтээгдэхүүнүүд" },
       { label: "⭐ Онцлох",  page: "Онцлох бүтээгдэхүүн" },
+      { label: "Ангилал",    page: "Ангилал" },
     ],
   },
-  { type: "link", label: "Ангилал", page: "Ангилал", icon: <Tag className="w-4 h-4" /> },
   { type: "link", label: "Харилцагчид", page: "Харилцагчид", icon: <Users className="w-4 h-4" /> },
+  {
+    type: "group", label: "Санхүү", icon: <CreditCard className="w-4 h-4" />,
+    children: [
+      { label: "Төлбөрүүд", page: "Төлбөрүүд" },
+      { label: "QPay Invoice", page: "Invoices" },
+    ],
+  },
   { type: "link", label: "Тохиргоо", page: "Тохиргоо", icon: <Settings className="w-4 h-4" /> },
   { type: "link", label: "Мэдэгдэл", page: "Мэдэгдэл", icon: <Bell className="w-4 h-4" /> },
 ];
 
 export default function AdminDashboard() {
-  const { activePage, setActivePage, isMobileSidebarOpen, setIsMobileSidebarOpen, pages } = useAdmin();
+  const { activePage, setActivePage, isMobileSidebarOpen, setIsMobileSidebarOpen } = useAdmin();
+  const [mounted, setMounted] = useState(false);
   const [openGroups, setOpenGroups] = useState<string[]>(() =>
     NAV.filter(n => n.type === "group" && n.children.some(c => c.page === "Бүтээгдэхүүнүүд")).map(n => n.label)
   );
 
   const { fetchDashboardData } = useAdmin();
+
+  useEffect(() => { setMounted(true); }, []);
 
   const handlePageChange = (page: PageKey) => {
     setActivePage(page);
@@ -78,7 +115,7 @@ export default function AdminDashboard() {
           <AdminNotificationBell onNavigate={() => handlePageChange("Мэдэгдэл")} />
         </div>
 
-        <ProfileSection />
+        <ProfileSection onAdminSettings={() => handlePageChange("Тохиргоо")} />
 
         <nav className="space-y-1">
           {NAV.map(item => {
@@ -144,7 +181,11 @@ export default function AdminDashboard() {
           <AdminNotificationBell onNavigate={() => handlePageChange("Мэдэгдэл")} />
         </div>
 
-        {pages[activePage]}
+        {mounted ? <ActivePage page={activePage} /> : (
+          <div className="flex justify-center items-center py-32">
+            <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-teal-500" />
+          </div>
+        )}
 
       </main>
 

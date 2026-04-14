@@ -6,6 +6,19 @@ import { Order, OrderStatus } from "@/interface/order";
 import { useOrder } from "@/app/context/order_context";
 import { getOrderStatusInfo } from "../components/AdminOrderTile";
 import toast from "react-hot-toast";
+import dynamic from "next/dynamic";
+import { MapPin } from "lucide-react";
+import DropdownSelect from "@/ui/DropdownSelect";
+
+const MapPicker = dynamic(() => import("@/app/components/MapPicker"), { ssr: false });
+
+const PAYMENT_STATUS_MN: Record<string, string> = {
+    PENDING:   "Хүлээгдэж буй",
+    PAID:      "Төлөгдсөн",
+    FAILED:    "Амжилтгүй",
+    CANCELLED: "Цуцлагдсан",
+    REFUNDED:  "Буцаагдсан",
+};
 
 // ─── Status pipeline config ────────────────────────────────────────────────────
 
@@ -29,11 +42,14 @@ export default function AdminOrderDetailPage() {
     const router  = useRouter();
     const { updateOrderStatus } = useOrder();
 
-    const [order,   setOrder]   = useState<Order | null>(null);
-    const [loading, setLoading] = useState(true);
-    const [saving,  setSaving]  = useState(false);
-    const [note,    setNote]    = useState("");
-    const [noteChanged, setNoteChanged] = useState(false);
+    const [order,         setOrder]         = useState<Order | null>(null);
+    const [loading,       setLoading]       = useState(true);
+    const [saving,        setSaving]        = useState(false);
+    const [note,          setNote]          = useState("");
+    const [noteChanged,   setNoteChanged]   = useState(false);
+    const [showMap,       setShowMap]       = useState(false);
+    const [paymentStatus, setPaymentStatus] = useState<string>("");
+    const [savingPayment, setSavingPayment] = useState(false);
 
     // ── Fetch order ────────────────────────────────────────────────────────────
     const load = async () => {
@@ -44,6 +60,7 @@ export default function AdminOrderDetailPage() {
             if (res.ok) {
                 setOrder(data.order);
                 setNote(data.order.note ?? "");
+                setPaymentStatus(data.order.payment?.status ?? "");
             } else {
                 toast.error("Захиалга олдсонгүй");
                 router.back();
@@ -102,6 +119,28 @@ export default function AdminOrderDetailPage() {
         setSaving(false);
     };
 
+    const updatePaymentStatus = async () => {
+        if (!order || !paymentStatus) return;
+        setSavingPayment(true);
+        try {
+            const res = await fetch(`/api/admin/order/${order.id}`, {
+                method: "PATCH",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ paymentStatus }),
+            });
+            if (res.ok) {
+                setOrder(prev => prev?.payment ? { ...prev, payment: { ...prev.payment, status: paymentStatus } } : prev);
+                toast.success("Төлбөрийн төлөв шинэчлэгдлээ");
+            } else {
+                toast.error("Алдаа гарлаа");
+            }
+        } catch {
+            toast.error("Алдаа гарлаа");
+        } finally {
+            setSavingPayment(false);
+        }
+    };
+
     // ── Loading / not found ────────────────────────────────────────────────────
     if (loading) {
         return (
@@ -119,6 +158,7 @@ export default function AdminOrderDetailPage() {
     const nextLabel   = NEXT_STATUS_LABEL[order.status];
 
     return (
+        <>
         <div className="min-h-screen bg-slate-50 dark:bg-zinc-950 text-slate-600 dark:text-zinc-300">
             {/* Admin top bar */}
             <div className="border-b border-slate-200 dark:border-zinc-800 bg-white dark:bg-zinc-900/50 px-6 py-4 flex items-center gap-4">
@@ -201,12 +241,12 @@ export default function AdminOrderDetailPage() {
                     <div className="bg-white dark:bg-zinc-900 border border-slate-200 dark:border-zinc-800 rounded-[2rem] p-6">
                         <h3 className="font-bold text-slate-900 dark:text-white mb-4">Хэрэглэгч</h3>
                         <div className="flex items-center gap-4">
-                            <div className="w-12 h-12 rounded-full bg-teal-500/20 border border-teal-500/30 flex items-center justify-center text-teal-400 font-bold text-lg flex-shrink-0">
-                                {order.user?.name?.charAt(0).toUpperCase() ?? "?"}
+                            <div className="w-12 h-12 rounded-full flex items-center justify-center font-bold text-lg flex-shrink-0 bg-teal-500/20 border border-teal-500/30 text-teal-400">
+                                {order.user?.name?.charAt(0).toUpperCase()}
                             </div>
                             <div>
-                                <p className="font-bold text-slate-900 dark:text-white">{order.user?.name ?? "—"}</p>
-                                <p className="text-slate-400 dark:text-zinc-500 text-sm">{order.user?.email ?? "—"}</p>
+                                <p className="font-bold text-slate-900 dark:text-white">{order.user?.name}</p>
+                                <p className="text-slate-400 dark:text-zinc-500 text-sm">{order.user?.email}</p>
                             </div>
                         </div>
                     </div>
@@ -214,7 +254,18 @@ export default function AdminOrderDetailPage() {
                     {/* Address */}
                     {order.address && (
                         <div className="bg-white dark:bg-zinc-900 border border-slate-200 dark:border-zinc-800 rounded-[2rem] p-6">
-                            <h3 className="font-bold text-slate-900 dark:text-white mb-4">Хүргэлтийн хаяг</h3>
+                            <div className="flex items-center justify-between mb-4">
+                                <h3 className="font-bold text-slate-900 dark:text-white">Хүргэлтийн хаяг</h3>
+                                {order.address.latitude && order.address.longitude && (
+                                    <button
+                                        onClick={() => setShowMap(true)}
+                                        className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-teal-500/10 hover:bg-teal-500/20 text-teal-500 text-xs font-bold transition-colors"
+                                    >
+                                        <MapPin className="w-3.5 h-3.5" />
+                                        Газрын зураг
+                                    </button>
+                                )}
+                            </div>
                             <div className="space-y-1.5 text-sm">
                                 <Row label="Хот/Аймаг"   value={order.address.city} />
                                 <Row label="Дүүрэг"      value={order.address.district?.name} />
@@ -335,10 +386,25 @@ export default function AdminOrderDetailPage() {
                     {order.payment && (
                         <div className="bg-white dark:bg-zinc-900 border border-slate-200 dark:border-zinc-800 rounded-[2rem] p-6">
                             <h3 className="font-bold text-slate-900 dark:text-white mb-4">Төлбөр</h3>
-                            <div className="space-y-2.5 text-sm">
-                                <Row label="Арга"    value={order.payment.method} />
-                                <Row label="Дүн"     value={`₮${order.payment.amount.toLocaleString()}`} bold />
-                                <Row label="Төлөв"   value={order.payment.status} />
+                            <div className="space-y-2.5 text-sm mb-4">
+                                <Row label="Арга" value={order.payment.type === "ON_DELIVERY" ? "Хүргэлтийн үеэр" : order.payment.method} />
+                                <Row label="Дүн"  value={`₮${order.payment.amount.toLocaleString()}`} bold />
+                            </div>
+                            <div className="space-y-2">
+                                <p className="text-xs font-bold text-slate-400 dark:text-zinc-500 uppercase tracking-wider">Төлбөрийн төлөв</p>
+                                <DropdownSelect
+                                    value={paymentStatus}
+                                    onChange={v => setPaymentStatus(v as string)}
+                                    options={Object.entries(PAYMENT_STATUS_MN).map(([val, label]) => ({ id: val, label }))}
+                                    searchable={false}
+                                />
+                                <button
+                                    onClick={updatePaymentStatus}
+                                    disabled={savingPayment || paymentStatus === order.payment.status}
+                                    className="w-full py-2.5 bg-teal-500 hover:bg-teal-400 disabled:opacity-50 text-white text-sm font-bold rounded-xl transition-colors"
+                                >
+                                    {savingPayment ? "Хадгалж байна..." : "Төлөв шинэчлэх"}
+                                </button>
                             </div>
                         </div>
                     )}
@@ -346,6 +412,16 @@ export default function AdminOrderDetailPage() {
             </div>
             </div>
         </div>
+
+        {showMap && order?.address?.latitude && order?.address?.longitude && (
+            <MapPicker
+                lat={order.address.latitude}
+                lng={order.address.longitude}
+                onClose={() => setShowMap(false)}
+                readOnly
+            />
+        )}
+        </>
     );
 }
 

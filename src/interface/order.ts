@@ -40,7 +40,7 @@ export interface Order {
     // Relations: include ашигласан үед орж ирнэ
     items?: OrderItem[];
     address?: Address; // Шаардлагатай бол Address интерфэйс нэмж болно
-    user?: User | null;
+    user?: User;
     payment?: Payment;
 }
 
@@ -83,6 +83,6 @@ export interface Address {
     longitude: number;
     districtId: number;
     district?: District;
-    user?: User | null;
+    user?: User;
     orders?: Order[];
 }

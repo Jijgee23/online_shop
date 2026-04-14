@@ -39,7 +39,7 @@ export function Toggle({ checked, onChange, disabled }: { checked: boolean; onCh
     );
 }
 
-export function SaveBtn({ onClick, saving }: { onClick: () => void; saving: boolean }) {
+export function SaveBtn({ onClick, saving, label }: { onClick: () => void; saving: boolean, label?: string }) {
     return (
         <button
             onClick={onClick}
@@ -47,7 +47,7 @@ export function SaveBtn({ onClick, saving }: { onClick: () => void; saving: bool
             className="flex items-center gap-2 px-5 py-2.5 bg-teal-500 hover:bg-teal-400 disabled:opacity-60 text-white text-sm font-bold rounded-2xl transition-all shadow-lg shadow-teal-500/20 active:scale-95"
         >
             <Save className="w-4 h-4" />
-            {saving ? "Хадгалж байна..." : "Хадгалах"}
+             {label || (saving ? "Хадгалж байна..." : "Хадгалах")}
         </button>
     );
 }

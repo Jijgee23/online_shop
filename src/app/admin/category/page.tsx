@@ -8,6 +8,7 @@ import toast from "react-hot-toast";
 import CategoryTree from "@/app/components/CategoryTree";
 import Image from "next/image";
 import CropModal from "./components/CropModal";
+import DropdownSelect from "@/ui/DropdownSelect";
 
 // ─── Main page ────────────────────────────────────────────────────────────────
 
@@ -215,12 +216,12 @@ export default function AdminCategoryPage() {
                         </div>
                         <div>
                             <label className={labelCls}>Эцэг ангилал</label>
-                            <select name="parentId" value={formData.parentId ?? ""} onChange={handleInputChange} className={inputCls}>
-                                <option value="">— Үндсэн ангилал —</option>
-                                {parentOptions.map(cat => (
-                                    <option key={cat.id} value={cat.id}>{cat.name}</option>
-                                ))}
-                            </select>
+                            <DropdownSelect
+                                placeholder="— Үндсэн ангилал —"
+                                value={formData.parentId !== null ? String(formData.parentId) : ""}
+                                onChange={id => setFormData(prev => ({ ...prev, parentId: id ? Number(id) : null }))}
+                                options={parentOptions.map(c => ({ id: String(c.id), label: c.name }))}
+                            />
                         </div>
                     </div>
 

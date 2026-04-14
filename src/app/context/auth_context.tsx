@@ -4,13 +4,14 @@ import { UserRole } from '@/generated/prisma';
 import { createContext, useContext, useState, useEffect, ReactNode, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import toast from 'react-hot-toast';
-import { requestForToken } from '@/lib/firebase/firebase';
-import { AuthService } from '@/app/context/services/auth_service';
+import { requestForToken, initForegroundMessaging } from '@/lib/firebase/firebase';
+import { AuthService } from '@/services/auth.service';
 
 interface User {
   id: string;
   email: string;
   name: string;
+  phone: string;
   role: UserRole;
   googleId?: string | null;
   password?: string | null;
@@ -21,9 +22,9 @@ interface AuthContextType {
   loading: boolean;
   isAdmin: boolean,
   isAuthenticated: boolean;
-  login: (email: string, password: string) => Promise<void>;
+  login: (identifier: string, password: string) => Promise<void>;
   logout: () => Promise<void>;
-  register: (params: { name: string; email: string; phone: string; password: string; otpCode: string }) => Promise<void>;
+  register: (params: { name: string; email: string; phone: string; password: string; otpCode: string; otpVia: "email" | "phone" }) => Promise<void>;
   checkUser: () => Promise<void>;
 }
 
@@ -44,15 +45,59 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
   useEffect(() => {
     checkUser();
+    initForegroundMessaging(); // re-register onMessage after page refresh
   }, []);
 
-  const login = useCallback(async (email: string, password: string) => {
+  const askNotificationPermission = async () => {
+    const fcmToken = await requestForToken();
+    if (fcmToken) await AuthService.updateFcmToken(fcmToken);
+  };
+
+  const login = useCallback(async (identifier: string, password: string) => {
     setLoading(true);
     try {
-      const data = await AuthService.login({ email, password });
+      const data = await AuthService.login(identifier, password);
       setUser(data.user);
-      const fcmToken = await requestForToken();
-      if (fcmToken) await AuthService.updateFcmToken(fcmToken);
+
+      if (typeof Notification === "undefined") return;
+
+      if (Notification.permission === "granted") {
+        // Already allowed — silently register token
+        askNotificationPermission();
+      } else if (Notification.permission === "default") {
+        // Show custom prompt before native browser dialog
+        toast(
+          (t) => (
+            <div className="flex flex-col gap-3">
+              <div className="flex items-start gap-3">
+                <span className="text-2xl">🔔</span>
+                <div>
+                  <p className="font-bold text-slate-900 dark:text-white text-sm">Мэдэгдэл идэвхжүүлэх үү?</p>
+                  <p className="text-xs text-slate-500 dark:text-zinc-400 mt-0.5">Захиалгын мэдээлэл, урамшуулал хүлээн авна</p>
+                </div>
+              </div>
+              <div className="flex gap-2 justify-end">
+                <button
+                  onClick={() => toast.dismiss(t.id)}
+                  className="px-3 py-1.5 text-xs font-semibold text-slate-500 dark:text-zinc-400 hover:text-slate-700 dark:hover:text-zinc-200 transition-colors"
+                >
+                  Болих
+                </button>
+                <button
+                  onClick={() => {
+                    toast.dismiss(t.id);
+                    askNotificationPermission();
+                  }}
+                  className="px-4 py-1.5 text-xs font-bold bg-teal-500 hover:bg-teal-400 text-white rounded-xl transition-colors"
+                >
+                  Зөвшөөрөх
+                </button>
+              </div>
+            </div>
+          ),
+          { duration: 8000, style: { maxWidth: 340 } }
+        );
+      }
     } catch (err: any) {
       toast.error(err.message);
     } finally {
@@ -71,7 +116,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     }
   };
 
-  const register = async (params: { name: string; email: string; phone: string; password: string; otpCode: string }) => {
+  const register = async (params: { name: string; email: string; phone: string; password: string; otpCode: string; otpVia: "email" | "phone" }) => {
     setLoading(true);
     try {
       await AuthService.register(params);

@@ -2,6 +2,7 @@
 
 import { Product } from "@/interface/product";
 import { useCart } from "../context/cart_context";
+import { useAuth } from "../context/auth_context";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
 import { useState } from "react";
@@ -10,6 +11,7 @@ import { useWishlist } from "../context/wishlist_context";
 
 export default function ProductCard(product: Product) {
     const { cart, loading: cartLoading, add } = useCart();
+    const { isAuthenticated } = useAuth();
     const router = useRouter();
 
     const [currentIndex, setCurrentIndex] = useState(0);
@@ -39,6 +41,10 @@ export default function ProductCard(product: Product) {
 
     const handleAdd = async (e: React.MouseEvent) => {
         e.stopPropagation();
+        if (!isAuthenticated) {
+            router.push("/auth/login");
+            return;
+        }
         await add({ cartId: cart?.id ?? null, productId: product.id, productQty: 1 });
         setAddedFlash(true);
         setTimeout(() => setAddedFlash(false), 1200);
@@ -53,7 +59,7 @@ export default function ProductCard(product: Product) {
         <div
             onClick={() => router.push(`/product/${product.id}`)}
             onMouseLeave={handleMouseLeave}
-            className="group relative bg-white dark:bg-slate-900 rounded-3xl overflow-hidden cursor-pointer flex flex-col border border-slate-100 dark:border-slate-800 hover:border-slate-200 dark:hover:border-slate-700 hover:shadow-xl hover:shadow-slate-200/50 dark:hover:shadow-none transition-all duration-300"
+            className="group relative bg-white dark:bg-slate-900 rounded-3xl overflow-hidden cursor-pointer flex flex-col border border-slate-300 dark:border-slate-800 hover:border-slate-200 dark:hover:border-slate-700 hover:shadow-xl hover:shadow-slate-200/50 dark:hover:shadow-none transition-all duration-300"
         >
             {/* ── Image area ── */}
             <div
@@ -89,8 +95,8 @@ export default function ProductCard(product: Product) {
                     <Heart className={`w-4 h-4 transition-all ${isWished ? "fill-white" : ""}`} />
                 </button>
 
-                {/* Quick add — slides up on hover */}
-                <div className="absolute bottom-0 left-0 right-0 z-10 translate-y-full group-hover:translate-y-0 transition-transform duration-300 p-3">
+                {/* Quick add overlay — desktop hover only */}
+                <div className="hidden md:block absolute bottom-0 left-0 right-0 z-10 translate-y-full group-hover:translate-y-0 transition-transform duration-300 p-3">
                     <button
                         onClick={handleAdd}
                         disabled={cartLoading}
@@ -126,6 +132,19 @@ export default function ProductCard(product: Product) {
                         {product.description}
                     </p>
                 )}
+
+                {/* Add to cart — mobile only, below price */}
+                <button
+                    onClick={handleAdd}
+                    disabled={cartLoading}
+                    className={`md:hidden w-full py-2 rounded-xl font-bold text-xs flex items-center justify-center gap-1.5 transition-all active:scale-95 disabled:opacity-60
+                        ${addedFlash
+                            ? "bg-teal-500 text-white"
+                            : "bg-slate-100 dark:bg-slate-800 text-slate-900 dark:text-white"}`}
+                >
+                    <ShoppingCart className="w-3.5 h-3.5" />
+                    {addedFlash ? "Нэмэгдлээ ✓" : "Сагслах"}
+                </button>
 
                 <div className="flex items-end justify-between mt-1">
                     <div>

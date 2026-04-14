@@ -1,27 +1,32 @@
 import { prisma } from "@/lib/prisma";
 import { NextRequest, NextResponse } from "next/server";
 import bcrypt from "bcrypt";
-import { UserRole } from "@/generated/prisma";
+import { OtpType, UserRole } from "@/generated/prisma";
+import { validateOtp } from "@/app/api/auth/utils/utils";
 
 export async function POST(req: NextRequest) {
     try {
         const body = await req.json();
-        const { name, email, password, speacialCode } = body;
+        const { name, email, password, speacialCode, otp } = body;
 
-        // 1. Оролтын өгөгдлийг шалгах
-        if (!name || !email || !password || !speacialCode) {
+        if (!name || !email || !password || !speacialCode || !otp) {
             return NextResponse.json(
                 { message: "Бүх талбарыг бөглөнө үү" },
                 { status: 400 }
             );
         }
-        
-        console.log(name, email, password, speacialCode)
-        // 2. Имэйл хаяг бүртгэлтэй эсэхийг шалгах
-        const existingUser = await prisma.user.findUnique({
-            where: { email },
-        });
 
+        // 1. OTP баталгаажуулах
+        const otpResult = await validateOtp(email, otp, OtpType.SIGNUP);
+        if (!otpResult.success) {
+            return NextResponse.json(
+                { message: otpResult.message },
+                { status: 400 }
+            );
+        }
+
+        // 2. Имэйл хаяг бүртгэлтэй эсэхийг шалгах
+        const existingUser = await prisma.user.findUnique({ where: { email } });
         if (existingUser) {
             return NextResponse.json(
                 { message: "Энэ имэйл хаяг аль хэдийн бүртгэгдсэн байна!" },
@@ -29,37 +34,32 @@ export async function POST(req: NextRequest) {
             );
         }
 
-        if (speacialCode !== 'SPCODE') {
+        // 3. Тусгай код шалгах
+        if (speacialCode !== process.env.ADMIN_SPECIAL_CODE) {
             return NextResponse.json(
                 { message: "Системийн тусгай код буруу байна!" },
                 { status: 400 }
             );
         }
 
-        // 3. Нууц үгийг хаших (Hash password)
-        // Salt rounds: 10 (Аюулгүй байдал болон хурдны тэнцвэр)
+        // 4. Нууц үгийг хаших
         const hashedPassword = await bcrypt.hash(password, 10);
 
-        // 4. Шинэ админ хэрэглэгч үүсгэх
-        // Таны User модель дээр 'role' талбар байгаа гэж үзлээ (ADMIN эсвэл USER)
+        // 5. Шинэ админ үүсгэх
         const newAdmin = await prisma.user.create({
             data: {
                 name,
                 email,
                 password: hashedPassword,
-                role: UserRole.ADMIN, // Эсвэл таны моделийн дагуу (жишээ нь isAdmin: true)
+                role: UserRole.ADMIN,
+                phone: `a${Date.now().toString().slice(-7)}`,
             },
         });
 
-        // 5. Нууц үгийг хасаж хариу илгээх
         const { password: _, ...adminData } = newAdmin;
 
         return NextResponse.json(
-            {
-                success: true,
-                message: "Админ амжилттай бүртгэгдлээ",
-                data: adminData
-            },
+            { success: true, message: "Админ амжилттай бүртгэгдлээ", data: adminData },
             { status: 201 }
         );
 

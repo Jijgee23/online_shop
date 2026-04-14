@@ -4,13 +4,9 @@ import { Cart } from "@/interface/cart";
 import { createContext, ReactNode, useContext, useState, useEffect } from "react";
 import { useAuth } from "./auth_context";
 import { UserRole } from "@/generated/prisma";
-import { CartService } from "./services/cart_service";
+import { CartService, CartAction } from "@/services/cart.service";
 
-export interface CartAction {
-    cartId: number | null,
-    productId: number;
-    productQty: number;
-}
+export type { CartAction };
 
 interface CartContextType {
     cart: Cart | null;
@@ -30,16 +26,19 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
     const { user } = useAuth()
 
     const fetchCart = async () => {
-        const isAdmin = user?.role == UserRole.ADMIN
-        const cardData = await CartService.fetchCart(isAdmin)
-        if (cardData === null || cardData === undefined) return
-        setCart((cardData as any).data)
-        setLoading(false)
+        if (!user || user.role === UserRole.ADMIN) {
+            setCart(null);
+            setLoading(false);
+            return;
+        }
+        const cardData = await CartService.fetchCart(false);
+        setCart(cardData?.data ?? null);
+        setLoading(false);
     };
 
     useEffect(() => {
         fetchCart();
-    }, []);
+    }, [user]);
 
     const add = async (data: CartAction) => {
         await CartService.addItem(data, fetchCart)
@@ -50,7 +49,6 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
     };
 
     const updateQty = async (itemId: number, newQty: number) => {
-
         setLoading(true);
         const cartId = cart?.id;
         await CartService.updateItem(cartId, itemId, newQty, fetchCart)

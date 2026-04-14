@@ -14,7 +14,7 @@ export default function CustomerTable({ customers, total, page, pageSize }: Prop
     const to   = Math.min(page * pageSize, total);
 
     return (
-        <div className="bg-white dark:bg-zinc-900 border border-slate-200 dark:border-zinc-800 rounded-[2rem] overflow-hidden shadow-2xl">
+        <div className="bg-white dark:bg-zinc-900 border border-slate-200 dark:border-zinc-800 rounded-[2rem] overflow-hidden shadow">
             <div className="overflow-x-auto">
                 <table className="w-full text-left">
                     <thead className="bg-slate-100 dark:bg-zinc-950/50 text-slate-400 dark:text-zinc-500 text-[10px] uppercase tracking-[0.2em]">

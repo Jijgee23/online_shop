@@ -17,7 +17,7 @@ model User {
   createdAt     DateTime       @default(now())
   deletedAt     DateTime?
   updatedAt     DateTime?      @updatedAt
-  phone         String?
+  phone         String         @unique @default("") @db.VarChar(8)
   status        UserStatus     @default(ACTIVE)
   addresses     Address[]
   cart          Cart?
@@ -26,8 +26,10 @@ model User {
   wishlist      Wishlist[]
   sessions      Session[]
   fcms          FCM[]
+  devices       Device[]
   notifications Notification[]
   reports       Report[]
+  activityLogs  ActivityLog[]
 }
 
 model Category {
@@ -110,12 +112,12 @@ model ProductSize {
 model Cart {
   id         Int        @id @default(autoincrement())
   userId     Int        @unique
-  deletedAt  DateTime?
-  updatedAt  DateTime?  @updatedAt
-  totalCount Int        @default(0)
-  totalPrice Decimal    @default(0) @db.Decimal(12, 2)
   user       User       @relation(fields: [userId], references: [id])
   items      CartItem[]
+  totalCount Int        @default(0)
+  totalPrice Decimal    @default(0) @db.Decimal(12, 2)
+  deletedAt  DateTime?
+  updatedAt  DateTime?  @updatedAt
 }
 
 model CartItem {
@@ -145,6 +147,7 @@ model Order {
   address     Address?    @relation(fields: [addressId], references: [id])
   user        User        @relation(fields: [userId], references: [id])
   items       OrderItem[]
+  paymentId   Int?
   payment     Payment?
 }
 
@@ -195,11 +198,11 @@ model Address {
   phone      String
   latitude   Decimal?
   longitude  Decimal?
-  userId     Int
+  userId     Int?
   isMain     Boolean   @default(false)
   deletedAt  DateTime?
   districtId Int
-  user       User      @relation(fields: [userId], references: [id])
+  user       User?     @relation(fields: [userId], references: [id])
   orders     Order[]
   district   District  @relation(fields: [districtId], references: [id])
 }
@@ -219,13 +222,15 @@ model Session {
 
 model Otp {
   id        Int      @id @default(autoincrement())
-  email     String
+  email     String?
+  phone     String?
   code      String
   expiresAt DateTime
   createdAt DateTime @default(now())
   type      OtpType
 
   @@unique([email, type])
+  @@unique([phone, type])
 }
 
 model Wishlist {
@@ -241,15 +246,28 @@ model Wishlist {
   @@index([productId])
 }
 
+model Device {
+  id          Int       @id @default(autoincrement())
+  userId      Int
+  platform    String?
+  deviceName  String?
+  ipAddresses String[]
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime? @updatedAt
+  lastSeenAt  DateTime?
+  user        User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  fcms        FCM[]
+}
+
 model FCM {
   id        Int       @id @default(autoincrement())
-  token     String
+  token     String    @unique
   createdAt DateTime  @default(now())
   deletedAt DateTime?
   userId    Int
+  deviceId  Int?
   user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
-
-  @@unique([userId, token])
+  device    Device?   @relation(fields: [deviceId], references: [id], onDelete: SetNull)
 }
 
 model District {
@@ -261,25 +279,60 @@ model District {
 }
 
 model StoreSettings {
-  id                   Int      @id @default(autoincrement())
-  storeName            String   @default("IShop")
-  storeDesc            String   @default("")
-  phone                String   @default("")
-  email                String   @default("")
-  address              String   @default("")
-  fee                  Decimal  @default(0) @db.Decimal(12, 2)
-  feeThreshold         Decimal  @default(0) @db.Decimal(12, 2)
-  onlyInStock          Boolean  @default(false)
-  onlyPublished        Boolean  @default(true)
-  showStatProducts     Boolean  @default(true)
-  showStatOrders       Boolean  @default(true)
-  showStatSatisfaction Boolean  @default(true)
-  showStatDelivery     Boolean  @default(true)
-  payQpay              Boolean  @default(true)
-  payBankApp           Boolean  @default(true)
-  payCard              Boolean  @default(true)
-  payOnDelivery        Boolean  @default(false)
-  updatedAt            DateTime @updatedAt
+  id                   Int           @id @default(autoincrement())
+  storeName            String        @default("IShop")
+  storeDesc            String        @default("")
+  phone                String        @default("")
+  email                String        @default("")
+  address              String        @default("")
+  fee                  Decimal       @default(0) @db.Decimal(12, 2)
+  feeThreshold         Decimal       @default(0) @db.Decimal(12, 2)
+  onlyInStock          Boolean       @default(false)
+  onlyPublished        Boolean       @default(true)
+  showStatProducts     Boolean       @default(true)
+  showStatOrders       Boolean       @default(true)
+  showStatSatisfaction Boolean       @default(true)
+  showStatDelivery     Boolean       @default(true)
+  payQpay              Boolean       @default(true)
+  payBankApp           Boolean       @default(true)
+  payCard              Boolean       @default(true)
+  payOnDelivery        Boolean       @default(false)
+  facebookUrl          String        @default("")
+  instagramUrl         String        @default("")
+  updatedAt            DateTime      @updatedAt
+  qpaySettings         QPaySettings?
+}
+
+model QPaySettings {
+  id                    Int           @id @default(autoincrement())
+  storeSettingsId       Int           @unique
+  storeSettigns         StoreSettings @relation(fields: [storeSettingsId], references: [id], onDelete: Cascade)
+  invoiceCode           String
+  username              String
+  password              String
+  accessToken           String?
+  refreshToken          String?
+  tokenExpiresAt        DateTime?
+  refreshTokenExpiresAt DateTime?
+  testedAt              DateTime?
+}
+
+model Invoice {
+  id                 String    @id @default(cuid())
+  invoiceId          String    @unique
+  qrText             String?
+  qpayShortUrl       String?
+  paymentUrls        Json?
+  createdAt          DateTime? @default(now())
+  orderId            Int?
+  cartId             Int?
+  addressId          Int?
+  senderInvoiceNo    String
+  amount             Int
+  description        String?
+  invoiceDescription String?
+  expiryDate         DateTime?
+  updatedAt          DateTime? @updatedAt
 }
 
 model Notification {
@@ -305,6 +358,20 @@ model Report {
   createdBy Int
   createdAt DateTime     @default(now())
   admin     User         @relation(fields: [createdBy], references: [id])
+}
+
+model ActivityLog {
+  id          Int            @id @default(autoincrement())
+  userId      Int
+  action      ActivityAction
+  description String?
+  ip          String?
+  userAgent   String?
+  metadata    Json?
+  createdAt   DateTime       @default(now())
+  user        User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
 }
 
 // ─── Enums ────────────────────────────────────────────────────────────────────
@@ -374,4 +441,15 @@ enum ReportPeriod {
   MONTHLY
   YEARLY
   CUSTOM
+}
+
+enum ActivityAction {
+  LOGIN
+  LOGIN_GOOGLE
+  SIGNUP
+  LOGOUT
+  PASSWORD_CHANGE
+  PASSWORD_RESET
+  PROFILE_UPDATE
+  DEVICE_REGISTERED
 }

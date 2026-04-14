@@ -3,28 +3,28 @@
 import React, { useState } from "react";
 import { useCart } from "../context/cart_context";
 import CartItemTile from "./components/CartItemTile";
-import { useOrder } from "../context/order_context";
 import Header from "../components/Header";
 import { useAddress, AddressInput } from "../context/address_context";
 import toast from "react-hot-toast";
 import EmptyCart from "./components/EmptyCart";
-import CheckoutPanel, { EMPTY_ADDR, Step, CheckoutPanelProps } from "./components/CheckoutPanel";
+
 import { Cart } from "@/interface/cart";
+import { CheckoutPanelProps, EMPTY_ADDR, Step } from "./components/CheckOutPanel/shared";
+import CheckoutPanel from "./components/CheckOutPanel/CheckoutPanel";
+import { ShoppingBag } from "lucide-react";
 
 export default function CartPage() {
-    const { cart, loading } = useCart();
-    const { createOrder } = useOrder();
+    const { cart, loading, fetchCart } = useCart();
     const { myAddresses, districts, fetchAddress } = useAddress();
     const [step, setStep] = useState<Step>("summary");
     const [selectedAddressId, setSelectedAddressId] = useState<number | null>(null);
-    const [paymentMethod, setPaymentMethod] = useState("");
     const [note, setNote] = useState("");
-    const [placing, setPlacing] = useState(false);
     const [sheetOpen, setSheetOpen] = useState(false);
     const [orderNumber, setOrderNumber] = useState("");
     const [showAddressForm, setShowAddressForm] = useState(false);
     const [savingAddress, setSavingAddress] = useState(false);
     const [newAddr, setNewAddr] = useState<AddressInput>(EMPTY_ADDR);
+
     const handleSaveNewAddress = async (e: React.FormEvent) => {
         e.preventDefault();
         setSavingAddress(true);
@@ -54,28 +54,17 @@ export default function CartPage() {
     const resetCheckout = () => {
         setStep("summary");
         setSelectedAddressId(null);
-        setPaymentMethod("");
         setNote("");
-        setPlacing(false);
         setShowAddressForm(false);
         setNewAddr(EMPTY_ADDR);
         setSheetOpen(false);
         setOrderNumber("");
     };
 
-    const handleConfirmOrder = async (paymentConfirmed: boolean) => {
-        if (!paymentMethod) return;
-        setPlacing(true);
-        try {
-            const ok = await createOrder({ addressId: selectedAddressId, paymentMethod, note, paymentConfirmed });
-            if (ok) {
-                const num = `AAA${String(Math.floor(Math.random() * 999999)).padStart(6, "0")}`;
-                setOrderNumber(num);
-                setStep("done");
-            }
-        } finally {
-            setPlacing(false);
-        }
+    const handleQPayDone = (num: string) => {
+        setOrderNumber(num);
+        setStep("done");
+        fetchCart();
     };
 
     const openCheckout = () => {
@@ -85,8 +74,8 @@ export default function CartPage() {
     };
 
     if (loading && !cart) return (
-        <div className="min-h-screen flex items-center justify-center dark:bg-slate-950">
-            <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-teal-500" />
+        <div className="min-h-screen flex items-center justify-center bg-white dark:bg-zinc-950">
+            <div className="animate-spin rounded-full h-10 w-10 border-t-2 border-b-2 border-teal-500" />
         </div>
     );
 
@@ -95,32 +84,66 @@ export default function CartPage() {
     const sharedProps: CheckoutPanelProps = {
         cart, step, setStep,
         selectedAddressId, setSelectedAddressId, myAddresses,
-        paymentMethod, setPaymentMethod,
         note, setNote,
         showAddressForm, setShowAddressForm,
         savingAddress, districts, newAddr, setNewAddr, handleSaveNewAddress,
-        handleConfirmOrder, placing,
+        onQPayDone: handleQPayDone,
         orderNumber, resetCheckout,
         onStartCheckout: () => { fetchAddress(); setStep("summary"); },
     };
 
     return (
-        <div className="min-h-screen bg-slate-50 dark:bg-slate-950 font-sans">
+        <div className="min-h-screen bg-slate-50 dark:bg-zinc-950">
             <Header />
 
-            <div className="max-w-7xl mx-auto px-4 sm:px-6 pt-24 sm:pt-24 pb-32 lg:pb-16">
+            <div className="max-w-7xl mx-auto px-4 sm:px-6 pt-24 pb-32 lg:pb-16">
 
-                <CartTitle cart={cart!} isEmpty={isEmpty}></CartTitle>
+                {/* Page title */}
+                <div className="mb-8">
+                    <div className="flex items-center gap-3 mb-1">
+                        <ShoppingBag className="w-7 h-7 text-teal-500" />
+                        <h1 className="text-2xl sm:text-3xl font-extrabold text-slate-900 dark:text-white tracking-tight">
+                            Миний сагс
+                        </h1>
+                    </div>
+                    <p className="text-sm text-slate-400 dark:text-zinc-500 ml-10">
+                        {isEmpty
+                            ? "Таны сагс одоогоор хоосон байна"
+                            : `${cart.totalCount} бараа сонгогдсон`}
+                    </p>
+                </div>
 
-                {isEmpty ? (<EmptyCart />) : (
+                {isEmpty ? (
+                    <EmptyCart />
+                ) : (
                     <div className="flex flex-col lg:flex-row gap-6 lg:gap-8">
+
+                        {/* Cart items */}
                         <div className="flex-1 space-y-3">
-                            {cart.items.map((item: any) => <CartItemTile key={item.id} {...item} />)}
+                            {cart.items.map((item: any) => (
+                                <CartItemTile key={item.id} {...item} />
+                            ))}
+
+                            {/* Mobile total summary */}
+                            <div className="lg:hidden bg-white dark:bg-zinc-900 border border-slate-100 dark:border-zinc-800 rounded-3xl p-5 flex items-center justify-between">
+                                <div>
+                                    <p className="text-xs text-slate-400 dark:text-zinc-500 mb-0.5">Нийт дүн</p>
+                                    <p className="text-2xl font-extrabold text-slate-900 dark:text-white">
+                                        ₮{Number(cart.totalPrice).toLocaleString()}
+                                    </p>
+                                </div>
+                                <button
+                                    onClick={openCheckout}
+                                    className="px-6 py-3 bg-teal-500 hover:bg-teal-400 active:scale-95 text-white font-bold rounded-2xl text-sm transition-all shadow-lg shadow-teal-500/25"
+                                >
+                                    Захиалах →
+                                </button>
+                            </div>
                         </div>
 
-                        {/* Desktop sidebar */}
-                        <div className="hidden lg:block w-96 flex-shrink-0">
-                            <div className="sticky top-28 bg-white dark:bg-slate-900 rounded-3xl border border-slate-200 dark:border-slate-800 shadow-xl overflow-hidden">
+                        {/* Desktop checkout sidebar */}
+                        <div className="hidden lg:block w-[400px] flex-shrink-0">
+                            <div className="sticky top-28 bg-white dark:bg-zinc-900 border border-slate-100 dark:border-zinc-800 rounded-3xl shadow-xl dark:shadow-zinc-900 overflow-hidden">
                                 <CheckoutPanel {...sharedProps} />
                             </div>
                         </div>
@@ -128,16 +151,36 @@ export default function CartPage() {
                 )}
             </div>
 
-            {/* Mobile sticky bar */}
-            {!isEmpty && (<MobileStickyBar cart={cart} openCheckout={openCheckout} />)}
+            {/* Mobile sticky bottom bar */}
+            {!isEmpty && (
+                <div className="lg:hidden fixed bottom-0 left-0 right-0 z-40 bg-white/90 dark:bg-zinc-900/90 backdrop-blur-md border-t border-slate-100 dark:border-zinc-800 px-4 py-3 safe-area-bottom">
+                    <div className="flex items-center gap-4 max-w-lg mx-auto">
+                        <div className="flex-1">
+                            <p className="text-xs text-slate-400 dark:text-zinc-500">Нийт дүн</p>
+                            <p className="text-xl font-extrabold text-slate-900 dark:text-white">
+                                ₮{Number(cart.totalPrice).toLocaleString()}
+                            </p>
+                        </div>
+                        <button
+                            onClick={openCheckout}
+                            className="flex-shrink-0 px-8 py-3.5 bg-teal-500 hover:bg-teal-400 active:scale-95 text-white font-bold text-sm rounded-2xl transition-all shadow-lg shadow-teal-500/25"
+                        >
+                            Захиалах →
+                        </button>
+                    </div>
+                </div>
+            )}
 
-            {/* Mobile sheet */}
+            {/* Mobile checkout sheet */}
             {sheetOpen && (
                 <>
-                    <div className="lg:hidden fixed inset-0 z-40 bg-black/50 backdrop-blur-sm" onClick={() => step !== "done" && setSheetOpen(false)} />
-                    <div className="lg:hidden fixed bottom-0 left-0 right-0 z-50 bg-white dark:bg-slate-900 rounded-t-3xl border-t border-slate-200 dark:border-slate-800 shadow-2xl max-h-[90dvh] flex flex-col">
+                    <div
+                        className="lg:hidden fixed inset-0 z-40 bg-black/50 backdrop-blur-sm"
+                        onClick={() => step !== "done" && setSheetOpen(false)}
+                    />
+                    <div className="lg:hidden fixed bottom-0 left-0 right-0 z-50 bg-white dark:bg-zinc-900 border-t border-slate-100 dark:border-zinc-800 rounded-t-3xl shadow-2xl max-h-[92dvh] flex flex-col">
                         <div className="flex justify-center pt-3 pb-1 flex-shrink-0">
-                            <div className="w-10 h-1 rounded-full bg-slate-200 dark:bg-slate-700" />
+                            <div className="w-10 h-1 rounded-full bg-slate-200 dark:bg-zinc-700" />
                         </div>
                         <div className="overflow-y-auto flex-1">
                             <CheckoutPanel {...sharedProps} />
@@ -147,38 +190,4 @@ export default function CartPage() {
             )}
         </div>
     );
-}
-
-
-
-function CartTitle(
-    { cart, isEmpty }: { cart: Cart, isEmpty: boolean }
-) {
-    return (
-        <div className="mb-6 sm:mb-10">
-            <h1 className="text-2xl sm:text-4xl font-extrabold text-slate-900 dark:text-white mb-1">
-                Миний <span className="bg-gradient-to-r from-teal-500 to-blue-500 bg-clip-text text-transparent">сагс</span>
-            </h1>
-            <p className="text-sm text-slate-500 dark:text-slate-400">
-                {isEmpty ? "Таны сагс одоогоор хоосон байна." : `Нийт ${cart.totalCount} бараа сонгосон.`}
-            </p>
-        </div>
-    )
-}
-
-function MobileStickyBar({ cart, openCheckout }: { cart: Cart | null, openCheckout: () => void }) {
-    return (
-        <div className="lg:hidden fixed bottom-0 left-0 right-0 z-40 bg-white/90 dark:bg-slate-900/90 backdrop-blur-md border-t border-slate-200 dark:border-slate-800 px-4 py-3">
-            <div className="flex items-center gap-4 max-w-lg mx-auto">
-                <div className="flex-1">
-                    <p className="text-xs text-slate-400">Нийт дүн</p>
-                    <p className="text-xl font-extrabold text-slate-900 dark:text-white">₮{Number(cart?.totalPrice).toLocaleString()}</p>
-                </div>
-                <button onClick={openCheckout}
-                    className="flex-shrink-0 bg-gradient-to-r from-teal-500 to-teal-400 text-white px-8 py-3.5 rounded-2xl font-bold text-sm shadow-lg shadow-teal-500/30 active:scale-95 transition-all">
-                    Захиалах →
-                </button>
-            </div>
-        </div>
-    )
 }

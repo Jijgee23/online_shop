@@ -15,10 +15,7 @@ async function saveImage(file: File): Promise<string> {
 
 export async function GET() {
     const categories = await prisma.category.findMany({
-        orderBy: { createdAt: "desc" },
-        where: { deletedAt: null, state: CategoryState.ACTIVE },
-        take: 20,
-        include: { _count: { select: { products: true } }, parent: { select: { id: true, name: true } } },
+        orderBy: { createdAt: "desc" }
     });
     return NextResponse.json(categories);
 }

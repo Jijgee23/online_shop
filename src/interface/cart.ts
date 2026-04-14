@@ -3,7 +3,7 @@ import { Product } from "./product"; // Өмнөх файлуудаас import �
 
 export interface Cart {
     id: number;
-    userId: number | null;
+    userId: number;
     items: CartItem[];
     updatedAt?: Date | string;
     deletedAt?: Date | string | null;

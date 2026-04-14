@@ -1,20 +1,22 @@
 "use client";
 
-import { useState } from "react";
-import { Truck, Globe, Palette, User, CreditCard, Package } from "lucide-react";
+import { useState, Suspense } from "react";
+import { Truck, Globe, Palette, User, CreditCard, Package, ShoppingCart } from "lucide-react";
 import GeneralTab  from "./tabs/GeneralTab";
 import ProductsTab from "./tabs/ProductsTab";
 import DeliveryTab from "./tabs/DeliveryTab";
 import StyleTab    from "./tabs/StyleTab";
 import ProfileTab  from "./tabs/ProfileTab";
 import QPayTab     from "./tabs/QPayTab";
+import OrderTab    from "./tabs/OrderTab";
 
-type Tab = "general" | "products" | "delivery" | "style" | "profile" | "qpay";
+type Tab = "general" | "products" | "delivery" | "order" | "style" | "profile" | "qpay";
 
 const TABS: { id: Tab; label: string; icon: React.ReactNode }[] = [
     { id: "general",  label: "Ерөнхий",      icon: <Globe className="w-4 h-4" /> },
     { id: "products", label: "Бүтээгдэхүүн", icon: <Package className="w-4 h-4" /> },
     { id: "delivery", label: "Хүргэлт",       icon: <Truck className="w-4 h-4" /> },
+    { id: "order",    label: "Захиалга",       icon: <ShoppingCart className="w-4 h-4" /> },
     { id: "style",    label: "Загвар",         icon: <Palette className="w-4 h-4" /> },
     { id: "profile",  label: "Профайл",        icon: <User className="w-4 h-4" /> },
     { id: "qpay",     label: "QPay холболт",   icon: <CreditCard className="w-4 h-4" /> },
@@ -24,6 +26,7 @@ const CONTENT: Record<Tab, React.ReactNode> = {
     general:  <GeneralTab />,
     products: <ProductsTab />,
     delivery: <DeliveryTab />,
+    order:    <OrderTab />,
     style:    <StyleTab />,
     profile:  <ProfileTab />,
     qpay:     <QPayTab />,
@@ -65,7 +68,9 @@ export default function AdminSettingsPage() {
                 </aside>
 
                 <div className="flex-1 min-w-0">
-                    {CONTENT[activeTab]}
+                    <Suspense fallback={null}>
+                        {CONTENT[activeTab]}
+                    </Suspense>
                 </div>
             </div>
         </div>

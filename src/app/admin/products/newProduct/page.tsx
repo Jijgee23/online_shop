@@ -7,9 +7,11 @@ import ImageCropper from "@/app/components/ImageCropper";
 import { useImageCrop } from "@/utils/useImageCrop";
 import toast from "react-hot-toast";
 import { ProductBulk } from "../components/ProductBulk";
+import DividerLine from "../components/DividerLine";
+import DropdownSelect from "@/ui/DropdownSelect";
 
-type Color   = { hex: string; name: string };
-type Size    = { sizeName: string; value: string };
+type Color = { hex: string; name: string };
+type Size = { sizeName: string; value: string };
 type Feature = { title: string; description: string };
 
 export default function NewProductPage() {
@@ -22,8 +24,8 @@ export default function NewProductPage() {
     description: "", slug: "", sku: "", discountPrice: "", isPublished: true, featured: false,
   });
 
-  const [colors,   setColors]   = useState<Color[]>([]);
-  const [sizes,    setSizes]    = useState<Size[]>([]);
+  const [colors, setColors] = useState<Color[]>([]);
+  const [sizes, setSizes] = useState<Size[]>([]);
   const [features, setFeatures] = useState<Feature[]>([]);
 
   const { images, imagePreviews, cropQueue, getImage, onCropDone, onCropCancel, removeImage } = useImageCrop();
@@ -60,8 +62,8 @@ export default function NewProductPage() {
       const fd = new FormData();
       Object.entries(formData).forEach(([key, value]) => fd.append(key, String(value)));
       images.forEach((image) => fd.append("images", image));
-      fd.append("colors",   JSON.stringify(colors));
-      fd.append("sizes",    JSON.stringify(sizes));
+      fd.append("colors", JSON.stringify(colors));
+      fd.append("sizes", JSON.stringify(sizes));
       fd.append("features", JSON.stringify(features));
 
       const res = await fetch("/api/admin/product", { method: "POST", body: fd });
@@ -117,12 +119,8 @@ export default function NewProductPage() {
         )}
       </div>
 
-      <div className="relative mb-8">
-        <div className="absolute inset-0 flex items-center"><div className="w-full border-t border-slate-200 dark:border-zinc-800" /></div>
-        <div className="relative flex justify-center">
-          <span className="bg-slate-50 dark:bg-black px-4 text-slate-400 dark:text-zinc-600 text-xs font-bold uppercase tracking-widest">Гараар бөглөх</span>
-        </div>
-      </div>
+
+      <DividerLine label="Гараар бөглөх"></DividerLine>
 
       <form onSubmit={handleSubmit}>
         <div className="bg-white dark:bg-zinc-900 border border-slate-200 dark:border-zinc-800 rounded-3xl shadow-2xl overflow-hidden">
@@ -139,25 +137,32 @@ export default function NewProductPage() {
               <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                 <div>
                   <label className={labelCls}>Ангилал *</label>
-                  <select name="categoryId" value={formData.categoryId} onChange={handleInputChange} required className={inputCls}>
-                    <option value="">Сонгох</option>
-                    {categories.map(cat => <option key={cat.id} value={cat.id}>{cat.name}</option>)}
-                  </select>
+                  <DropdownSelect
+                    value={formData.categoryId}
+                    onChange={id => setFormData(prev => ({ ...prev, categoryId: String(id) }))}
+                    options={categories.map(d => ({ label: d.name, id: String(d.id) }))}
+                    placeholder="Сонгох"
+                    required
+                  />
                 </div>
                 <div>
                   <label className={labelCls}>Төлөв</label>
-                  <select name="isPublished" value={String(formData.isPublished)} onChange={handleInputChange} className={inputCls}>
-                    <option value="true">Идэвхтэй</option>
-                    <option value="false">Идэвхгүй</option>
-                  </select>
+                  <DropdownSelect
+                    value={String(formData.isPublished)}
+                    onChange={id => setFormData(prev => ({ ...prev, isPublished: id === "true" }))}
+                    options={[
+                      { id: "true", label: "Идэвхтэй" },
+                      { id: "false", label: "Идэвхгүй" },
+                    ]}
+                    searchable={false}
+                  />
                 </div>
                 <div
                   onClick={() => setFormData(p => ({ ...p, featured: !p.featured }))}
-                  className={`flex items-center justify-between p-4 rounded-2xl border cursor-pointer transition-all col-span-2 ${
-                    formData.featured
-                      ? "border-teal-500 bg-teal-500/5"
-                      : "border-slate-200 dark:border-zinc-700 bg-slate-50 dark:bg-zinc-800/40"
-                  }`}
+                  className={`flex items-center justify-between p-4 rounded-2xl border cursor-pointer transition-all col-span-2 ${formData.featured
+                    ? "border-teal-500 bg-teal-500/5"
+                    : "border-slate-200 dark:border-zinc-700 bg-slate-50 dark:bg-zinc-800/40"
+                    }`}
                 >
                   <div className="flex items-center gap-3">
                     <span className="text-xl">⭐</span>

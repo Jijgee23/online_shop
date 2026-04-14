@@ -50,17 +50,18 @@ function StatCard({
 
 // ─── Bar chart ────────────────────────────────────────────────────────────────
 
-const BAR_AREA_PX = 120; // px reserved for bars (total container minus label row)
+const BAR_AREA_PX = 120;
+const BAR_MIN_W   = 28; // px — minimum column width before scroll kicks in
 
 function RevenueBarChart({ data }: { data: { date: string; revenue: number }[] }) {
-    const ref = useRef<HTMLDivElement>(null);
+    const outerRef = useRef<HTMLDivElement>(null);
+    const innerRef = useRef<HTMLDivElement>(null);
     const [started, setStarted] = useState(false);
     const [hovered, setHovered] = useState<number | null>(null);
 
     useEffect(() => {
-        const el = ref.current;
+        const el = outerRef.current;
         if (!el) return;
-        // fire immediately if already in viewport
         const obs = new IntersectionObserver(
             ([e]) => { if (e.isIntersecting) { setStarted(true); obs.disconnect(); } },
             { threshold: 0 }
@@ -69,46 +70,61 @@ function RevenueBarChart({ data }: { data: { date: string; revenue: number }[] }
         return () => obs.disconnect();
     }, []);
 
+    // Re-trigger animation when data changes (new date range)
+    useEffect(() => { setStarted(false); setTimeout(() => setStarted(true), 50); }, [data]);
+
     const max = Math.max(...data.map(d => Number(d.revenue)), 1);
+    const colW = Math.max(BAR_MIN_W, 0); // each column is at least BAR_MIN_W px wide
 
     return (
-        <div ref={ref} className="flex items-end gap-2 w-full" style={{ height: "160px" }}>
-            {data.map((d, i) => {
-                const rev = Number(d.revenue);
-                const barPx = started
-                    ? Math.max((rev / max) * BAR_AREA_PX, rev > 0 ? 4 : 0)
-                    : 0;
-                const active = hovered === i;
-                return (
-                    <div
-                        key={i}
-                        className="flex-1 flex flex-col items-center justify-end gap-1 cursor-default"
-                        style={{ height: "160px" }}
-                        onMouseEnter={() => setHovered(i)}
-                        onMouseLeave={() => setHovered(null)}
-                    >
-                        {/* Tooltip */}
-                        <div className={`text-[10px] font-bold text-teal-400 whitespace-nowrap transition-opacity duration-150 ${active && rev > 0 ? "opacity-100" : "opacity-0"}`}>
-                            ₮{rev.toLocaleString()}
-                        </div>
-
-                        {/* Bar */}
+        <div ref={outerRef} className="overflow-x-auto -mx-1 px-1">
+            <div
+                ref={innerRef}
+                className="flex items-end gap-1.5"
+                style={{
+                    height: "160px",
+                    minWidth: "100%",
+                    width: data.length * (colW + 6) > 0 ? `max(100%, ${data.length * (colW + 6)}px)` : "100%",
+                }}
+            >
+                {data.map((d, i) => {
+                    const rev = Number(d.revenue);
+                    const barPx = started
+                        ? Math.max((rev / max) * BAR_AREA_PX, rev > 0 ? 4 : 0)
+                        : 0;
+                    const active = hovered === i;
+                    return (
                         <div
-                            className={`w-full rounded-t-lg transition-all ease-out ${active ? "bg-teal-400" : "bg-teal-500/70"}`}
-                            style={{
-                                height: `${barPx}px`,
-                                transitionDuration: "700ms",
-                                transitionDelay: `${i * 60}ms`,
-                            }}
-                        />
+                            key={i}
+                            className="flex-1 flex flex-col items-center justify-end gap-1 cursor-default"
+                            style={{ height: "160px", minWidth: `${colW}px` }}
+                            onMouseEnter={() => setHovered(i)}
+                            onMouseLeave={() => setHovered(null)}
+                        >
+                            {/* Tooltip */}
+                            <div className={`text-[10px] font-bold text-teal-400 whitespace-nowrap transition-opacity duration-150 ${active && rev > 0 ? "opacity-100" : "opacity-0"}`}>
+                                ₮{rev.toLocaleString()}
+                            </div>
 
-                        {/* Label */}
-                        <span className={`text-[10px] font-semibold transition-colors ${active ? "text-slate-600 dark:text-zinc-300" : "text-slate-400 dark:text-zinc-600"}`}>
-                            {d.date}
-                        </span>
-                    </div>
-                );
-            })}
+                            {/* Bar */}
+                            <div
+                                className={`w-full rounded-t-md transition-all ease-out ${active ? "bg-teal-400" : "bg-teal-500/70"}`}
+                                style={{
+                                    height: `${barPx}px`,
+                                    transitionDuration: "600ms",
+                                    transitionDelay: `${Math.min(i * 30, 400)}ms`,
+                                }}
+                            />
+
+                            {/* Label — hidden when columns are too tight */}
+                            <span className={`text-[9px] font-semibold transition-colors truncate w-full text-center leading-tight
+                                ${active ? "text-slate-600 dark:text-zinc-300" : "text-slate-400 dark:text-zinc-600"}`}>
+                                {d.date}
+                            </span>
+                        </div>
+                    );
+                })}
+            </div>
         </div>
     );
 }
@@ -140,10 +156,17 @@ function StatusRing({ value, total, color, label }: { value: number; total: numb
 export default function AdminDashboardPage() {
     const { dashboardData, fetchDashboardData, setActivePage } = useAdmin();
     const [statsStarted, setStatsStarted] = useState(false);
+    const [dateFrom, setDateFrom] = useState("");
+    const [dateTo,   setDateTo]   = useState("");
     const statsRef = useRef<HTMLDivElement>(null);
 
+    const handleDateChange = (from: string, to: string) => {
+        setDateFrom(from);
+        setDateTo(to);
+        fetchDashboardData(from || undefined, to || undefined);
+    };
+
     useEffect(() => {
-        fetchDashboardData();
         const el = statsRef.current;
         if (!el) return;
         const obs = new IntersectionObserver(
@@ -168,12 +191,21 @@ export default function AdminDashboardPage() {
         { label: "Хүргэгдсэн", value: Math.max(0, totalOrders - (summary?.pendingOrders ?? 0)), color: "bg-teal-500" },
     ];
 
-    const today = new Date().toLocaleDateString("mn-MN", { year: "numeric", month: "long", day: "numeric" });
+    const [today, setToday] = useState("");
+    useEffect(() => {
+        setToday(new Date().toLocaleDateString("mn-MN", { year: "numeric", month: "long", day: "numeric" }));
+    }, []);
 
     return (
         <>
             {/* ── Header ── */}
-            <DashboardHeader today={today} setActivePage={setActivePage} />
+            <DashboardHeader
+                today={today}
+                setActivePage={setActivePage}
+                onDateChange={handleDateChange}
+                dateFrom={dateFrom}
+                dateTo={dateTo}
+            />
 
             {/* ── Stat cards ── */}
             <div ref={statsRef} className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
@@ -188,7 +220,7 @@ export default function AdminDashboardPage() {
 
                 {/* Revenue bar chart */}
                 <div className="lg:col-span-2 bg-white dark:bg-zinc-900 border border-slate-200 dark:border-zinc-800 rounded-[2rem] p-6">
-                    <LastWeekIncome chart={chart} />
+                    <LastWeekIncome chart={chart} dateFrom={dateFrom} dateTo={dateTo} />
 
                     {/* Y-axis hint */}
                     <div className="flex justify-end mb-1">

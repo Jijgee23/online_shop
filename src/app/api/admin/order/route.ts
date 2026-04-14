@@ -15,11 +15,12 @@ export async function GET(req: NextRequest) {
         const dateFrom = p.get("dateFrom") || "";
         const dateTo   = p.get("dateTo")   || "";
 
+        const userId = p.get("userId") ? Number(p.get("userId")) : undefined;
+
         const where: any = { deletedAt: null };
 
-        if (status && status !== "all") {
-            where.status = status as OrderStatus;
-        }
+        if (status && status !== "all") where.status = status as OrderStatus;
+        if (userId) where.userId = userId;
 
         if (search.trim()) {
             where.OR = [

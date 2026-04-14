@@ -1,6 +1,6 @@
 "use client";
 
-import { ReactNode, createContext, useContext, useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 import { useAuth } from "./context/auth_context";
 import { Product } from "@/interface/product";
 import { useCategory } from "./context/category_context";

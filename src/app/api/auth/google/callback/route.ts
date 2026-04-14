@@ -4,6 +4,8 @@ import { NextRequest, NextResponse } from "next/server";
 import { cookies } from "next/headers";
 import jwt from "jsonwebtoken";
 import { ACCESS_TOKEN_SECRET } from "../../jwt/jwt_controller";
+import { logActivity, registerDevice } from "../../utils/utils";
+import { ActivityAction } from "@/generated/prisma";
 
 export async function GET(req: NextRequest) {
     const code  = req.nextUrl.searchParams.get("code");
@@ -57,15 +59,17 @@ export async function GET(req: NextRequest) {
             // Make sure this Google account isn't already used by someone else
             const existing = await prisma.user.findUnique({ where: { googleId: googleUser.id } });
             if (existing && existing.id !== Number(decoded.userId)) {
-                return NextResponse.redirect(`${appUrl}/settings?error=google_already_used`);
+                const errBase = decoded.role === "ADMIN" ? `${appUrl}/admin/settings` : `${appUrl}/settings`;
+                return NextResponse.redirect(`${errBase}?error=google_already_used`);
             }
 
-            await prisma.user.update({
+            const updated = await prisma.user.update({
                 where: { id: Number(decoded.userId) },
                 data:  { googleId: googleUser.id },
             });
 
-            return NextResponse.redirect(`${appUrl}/settings?success=google_connected`);
+            const settingsBase = updated.role === "ADMIN" ? `${appUrl}/admin/settings` : `${appUrl}/settings`;
+            return NextResponse.redirect(`${settingsBase}?success=google_connected`);
         }
 
         // ── LOGIN / SIGNUP mode ───────────────────────────────────────────────
@@ -87,6 +91,7 @@ export async function GET(req: NextRequest) {
                     email:    googleUser.email,
                     googleId: googleUser.id,
                     password: null,
+                    phone:    `g_${googleUser.id}`.slice(0, 8),
                 },
             });
         }
@@ -95,9 +100,21 @@ export async function GET(req: NextRequest) {
         const refreshToken = generateRefreshToken(user as any);
         const isProd = process.env.NODE_ENV === "production";
 
-        const res = NextResponse.redirect(`${appUrl}/`);
+        const redirectTo = user.role === "ADMIN" ? `${appUrl}/admin` : `${appUrl}/`;
+        const res = NextResponse.redirect(redirectTo);
         res.cookies.set("accessToken",  accessToken,  { httpOnly: true, secure: isProd, sameSite: "strict", maxAge: 30 * 60 * 48, path: "/" });
         res.cookies.set("refreshToken", refreshToken, { httpOnly: true, secure: isProd, sameSite: "strict", maxAge: 7 * 24 * 60 * 60, path: "/" });
+
+        const ip        = req.headers.get("x-forwarded-for")?.split(",")[0].trim()
+                       ?? req.headers.get("x-real-ip")
+                       ?? undefined;
+        const userAgent = req.headers.get("user-agent") ?? undefined;
+
+        await Promise.all([
+            registerDevice(user.id, { ip, userAgent }),
+            logActivity(user.id, ActivityAction.LOGIN_GOOGLE, { ip, userAgent }),
+        ]);
+
         return res;
 
     } catch (err) {

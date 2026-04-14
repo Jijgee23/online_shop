@@ -3,9 +3,12 @@
 import { Address, District } from "@/interface/order";
 import React, { createContext, useContext, useState, ReactNode, useEffect } from "react";
 import toast from "react-hot-toast";
-import { MapPin, Plus, ChevronRight, X } from "lucide-react";
+import { MapPin, Plus, ChevronRight, X, Map } from "lucide-react";
 import { useConfirm } from "./confirm_context";
 import { Input } from "../../ui/Input";
+import dynamic from "next/dynamic";
+
+const MapPicker = dynamic(() => import("../components/MapPicker"), { ssr: false });
 
 export interface AddressInput {
     city: string;
@@ -13,6 +16,8 @@ export interface AddressInput {
     khoroo: string;
     detail: string;
     phone: string;
+    latitude?: number;
+    longitude?: number;
 }
 
 interface AddressContextType {
@@ -41,6 +46,7 @@ export const AddressProvider = ({ children }: { children: ReactNode }) => {
         phone: "",
     });
 
+    const [showMap, setShowMap] = useState(false);
     const [resolvePromise, setResolvePromise] = useState<(value: AddressInput | null) => void>();
 
     const fetchAddress = async () => {
@@ -235,6 +241,25 @@ export const AddressProvider = ({ children }: { children: ReactNode }) => {
                                         <Input maxLength={8} required type="tel" placeholder="88******" value={address.phone} onChange={e => setAddress({ ...address, phone: e.target.value })} className="w-full bg-slate-50 dark:bg-zinc-800/50 border border-slate-200 dark:border-zinc-700 rounded-2xl px-5 py-3 text-slate-900 dark:text-white outline-none focus:ring-2 focus:ring-teal-500/50" />
                                     </div>
 
+                                    {/* Map picker */}
+                                    <button
+                                        type="button"
+                                        onClick={() => setShowMap(true)}
+                                        className="w-full flex items-center gap-3 px-5 py-3 bg-slate-50 dark:bg-zinc-800/50 border border-slate-200 dark:border-zinc-700 hover:border-teal-500/50 rounded-2xl text-sm transition-colors group"
+                                    >
+                                        <Map className="w-4 h-4 text-slate-400 group-hover:text-teal-500 transition-colors flex-shrink-0" />
+                                        {address.latitude && address.longitude ? (
+                                            <span className="flex-1 text-left text-teal-500 font-semibold text-xs">
+                                                {address.latitude.toFixed(5)}, {address.longitude.toFixed(5)}
+                                            </span>
+                                        ) : (
+                                            <span className="flex-1 text-left text-slate-400 dark:text-zinc-500">Газрын зурагаас байршил сонгох</span>
+                                        )}
+                                        {address.latitude && address.longitude && (
+                                            <span className="text-[10px] font-bold text-teal-500 bg-teal-500/10 px-2 py-0.5 rounded-full">✓ Тохируулсан</span>
+                                        )}
+                                    </button>
+
                                     <div className="flex gap-4 mt-6">
                                         <button type="button" onClick={() => setShowForm(false)} className="flex-1 p-4 rounded-2xl bg-slate-100 dark:bg-zinc-800 text-slate-800 dark:text-white font-bold hover:bg-slate-200 dark:hover:bg-zinc-700">Буцах</button>
                                         <button type="submit" className="flex-1 p-4 rounded-2xl bg-teal-500 text-white font-black hover:bg-teal-400 shadow-lg shadow-teal-500/20 active:scale-95 transition-all">Хадгалах</button>
@@ -244,6 +269,17 @@ export const AddressProvider = ({ children }: { children: ReactNode }) => {
                         </div>
                     </div>
                 </div>
+            )}
+            {showMap && (
+                <MapPicker
+                    lat={address.latitude}
+                    lng={address.longitude}
+                    onConfirm={(lat, lng) => {
+                        setAddress(prev => ({ ...prev, latitude: lat, longitude: lng }));
+                        setShowMap(false);
+                    }}
+                    onClose={() => setShowMap(false)}
+                />
             )}
         </AddressContext.Provider>
     );

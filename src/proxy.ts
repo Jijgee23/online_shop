@@ -1,8 +1,7 @@
 import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
-import { verifyAccessToken } from './app/api/auth/jwt/jwt_controller';
-import { goto } from './utils/router';
-// Routes that don't require authentication
+import { jwtVerify } from 'jose';
+
 const publicRoutes = [
   '/api/auth/login',
   '/api/auth/signup',
@@ -16,37 +15,41 @@ const publicRoutes = [
   '/api/product',
   '/api/product/featured',
   '/api/category',
+  '/api/districts',
   '/api/admin/register',
+  '/api/invoice',
+  '/api/invoice/check',
+  '/api/payments',
+  '/api/settings'
 ];
 
-// Routes that require admin role
 const adminRoutes = [
   '/api/admin',
   '/api/admin/customer',
   '/api/admin/product',
   '/api/admin/category',
   '/api/admin/order',
+  '/api/admin/qpay',
+  '/api/admin/payment',
+  '/api/admin/invoice',
 ];
 
-// Helper function to get token from cookies or Authorization header
 function getToken(request: NextRequest): string | null {
-  // Try to get from Authorization header first
-
   const authHeader = request.headers.get('authorization');
-  if (authHeader && authHeader.startsWith('Bearer ')) {
+  if (authHeader?.startsWith('Bearer ')) {
     return authHeader.substring(7);
   }
-
-  // Try to get from cookies
-  console.log("getting token from cookies")
-  const token = request.cookies.get('accessToken')?.value;
-  return token || null;
+  return request.cookies.get('accessToken')?.value ?? null;
 }
 
-// Helper function to check if user is admin
-function isAdmin(token: string): boolean {
-  const decoded = verifyAccessToken(token);
-  return decoded ? decoded.role === 'ADMIN' : false;
+async function verifyToken(token: string) {
+  try {
+    const secret = new TextEncoder().encode(process.env.ACCESS_TOKEN_SECRET!);
+    const { payload } = await jwtVerify(token, secret);
+    return payload as { userId: number; role: string };
+  } catch {
+    return null;
+  }
 }
 
 export async function proxy(request: NextRequest) {
@@ -63,14 +66,13 @@ export async function proxy(request: NextRequest) {
   const token = getToken(request);
 
   if (!token) {
-    goto('/auth/login');
     return NextResponse.json(
       { error: 'Нэвтрэх шаардлагатай!' },
       { status: 401 }
     );
   }
 
-  const decoded = verifyAccessToken(token);
+  const decoded = await verifyToken(token);
   if (!decoded) {
     return NextResponse.json(
       { error: 'Хандах хугацаа дууссан, Нэвтэрнэ үү!' },
@@ -79,7 +81,7 @@ export async function proxy(request: NextRequest) {
   }
 
   if (adminRoutes.some(route => pathname.startsWith(route))) {
-    if (!isAdmin(token)) {
+    if (decoded.role !== 'ADMIN') {
       return NextResponse.json(
         { error: 'Хандах эрх байхгүй!' },
         { status: 403 }
@@ -93,4 +95,3 @@ export async function proxy(request: NextRequest) {
 export const config = {
   matcher: '/api/:path*',
 };
-

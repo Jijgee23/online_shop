@@ -1,31 +1,27 @@
-import { NextResponse } from "next/server"
+import { NextRequest, NextResponse } from "next/server"
 import { prisma } from "@/lib/prisma"
 import bcrypt from "bcrypt"
 import { generateAccessToken, generateRefreshToken } from "../jwt/jwt_controller";
-import { createFCM } from "../utils/utils";
+import { logActivity, registerDevice } from "../utils/utils";
+import { ActivityAction } from "@/generated/prisma";
 
-export async function POST(req: Request) {
-  console.log("logging in backend");
-  const { email, password, token } = await req.json()
+export async function POST(req: NextRequest) {
+  const { identifier, password, token } = await req.json()
 
-  if (!email || !password) {
-
+  if (!identifier || !password) {
     return NextResponse.json(
-      { error: "Имейл болон нууц үг шаардлагатай!" },
+      { error: "Нэвтрэх мэдээлэл дутуу байна!" },
       { status: 400 }
     )
   }
-  
-  console.log("email:" + email, "password:" + password);
 
   try {
-
-    const user = await prisma.user.findUnique({
-      where: { email }
-    })
+    const isEmail = identifier.includes("@")
+    const user = isEmail
+      ? await prisma.user.findUnique({ where: { email: identifier } })
+      : await prisma.user.findUnique({ where: { phone: identifier } })
 
     if (!user) {
-      console.log("user not found");
       return NextResponse.json(
         { error: "Бүртгэлтэй хэрэглэгч олдсонгүй!" },
         { status: 404 }
@@ -39,65 +35,53 @@ export async function POST(req: Request) {
       );
     }
 
-    // Check if password is hashed (bcrypt hashes start with $2) or plain text
-    let valid = false;
-    if (user.password.startsWith('$2')) {
-      // Password is hashed, use bcrypt compare
-      valid = await bcrypt.compare(password, user.password);
-    } else {
-      // Password is plain text (legacy), compare directly
-      valid = password === user.password;
-    }
+    const valid = user.password.startsWith('$2')
+      ? await bcrypt.compare(password, user.password)
+      : password === user.password;
 
     if (!valid) {
-      return NextResponse.json(
-        { error: "Нууц үг буруу байна" },
-        { status: 401 }
-      )
+      return NextResponse.json({ error: "Нууц үг буруу байна" }, { status: 401 })
     }
 
-    // console.log(user)
     const accessToken = generateAccessToken(user as any);
     const refreshToken = generateRefreshToken(user as any);
 
     const result = NextResponse.json({
       message: "Login success",
-      user: user,
-      accessToken: accessToken,
-      refreshToken: refreshToken
-    }, { status: 200 },
-    );
+      user,
+      accessToken,
+      refreshToken,
+    }, { status: 200 });
 
-    // Set HTTP-only cookies for security
     result.cookies.set('accessToken', accessToken, {
       httpOnly: true,
       secure: process.env.NODE_ENV === 'production',
       sameSite: 'strict',
-      maxAge: 30 * 60 * 48, // 30 minutes
+      maxAge: 30 * 60 * 48,
       path: '/',
     });
-
 
     result.cookies.set('refreshToken', refreshToken, {
       httpOnly: true,
       secure: process.env.NODE_ENV === 'production',
       sameSite: 'strict',
-      maxAge: 7 * 24 * 60 * 60, // 7 days
+      maxAge: 7 * 24 * 60 * 60,
       path: '/',
     });
 
-    if (token) { await createFCM(user.id, token) }
+    const ip        = req.headers.get("x-forwarded-for")?.split(",")[0].trim()
+                   ?? req.headers.get("x-real-ip")
+                   ?? undefined;
+    const userAgent = req.headers.get("user-agent") ?? undefined;
 
-    if (user && valid) {
+    await Promise.all([
+        registerDevice(user.id, { ip, userAgent, fcmToken: token ?? undefined }),
+        logActivity(user.id, ActivityAction.LOGIN, { ip, userAgent }),
+    ]);
 
-      // console.log("returning result")
-      return result
-    }
+    return result
 
   } catch (error) {
-    console.log("be err:" + error);
-    return NextResponse.json({
-      error: "Login not success"
-    }, { status: 400 })
+    return NextResponse.json({ error: "Нэвтрэхэд алдаа гарлаа" }, { status: 400 })
   }
 }

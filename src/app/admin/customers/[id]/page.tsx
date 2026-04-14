@@ -115,7 +115,7 @@ export default function CustomerDetailPage() {
                             {/* Contact info */}
                             <div className="w-full space-y-2 text-left">
                                 <InfoRow icon="✉️" label="Имэйл" value={customer.email} />
-                                <InfoRow icon="📞" label="Утас" value={customer.phone ?? "—"} />
+                                <InfoRow icon="📞" label="Утас" value={customer.phone} />
                                 <InfoRow icon="👤" label="Эрх" value={customer.role} />
                             </div>
                         </div>

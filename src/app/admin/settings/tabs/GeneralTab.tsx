@@ -7,18 +7,20 @@ import { CardSection, Field, SaveBtn, inputCls } from "../shared";
 export default function GeneralTab() {
     const [saving, setSaving] = useState(false);
     const [loading, setLoading] = useState(true);
-    const [form, setForm] = useState({ storeName: "", storeDesc: "", phone: "", email: "", address: "" });
+    const [form, setForm] = useState({ storeName: "", storeDesc: "", phone: "", email: "", address: "", facebookUrl: "", instagramUrl: "" });
 
     useEffect(() => {
         fetch("/api/admin/settings")
             .then(r => r.json())
             .then(d => {
                 if (d.data) setForm({
-                    storeName: d.data.storeName,
-                    storeDesc: d.data.storeDesc,
-                    phone:     d.data.phone,
-                    email:     d.data.email,
-                    address:   d.data.address,
+                    storeName:    d.data.storeName,
+                    storeDesc:    d.data.storeDesc,
+                    phone:        d.data.phone,
+                    email:        d.data.email,
+                    address:      d.data.address,
+                    facebookUrl:  d.data.facebookUrl  ?? "",
+                    instagramUrl: d.data.instagramUrl ?? "",
                 });
             })
             .finally(() => setLoading(false));
@@ -80,6 +82,17 @@ export default function GeneralTab() {
                             <input value={form.address} onChange={set("address")} placeholder="Улаанбаатар, ..." className={inputCls} />
                         </Field>
                     </div>
+                </div>
+            </CardSection>
+
+            <CardSection title="Сошиал холбоос" desc="Header дээр харагдах сошиал хаягууд">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <Field label="Facebook URL">
+                        <input value={form.facebookUrl} onChange={set("facebookUrl")} placeholder="https://facebook.com/..." className={inputCls} />
+                    </Field>
+                    <Field label="Instagram URL">
+                        <input value={form.instagramUrl} onChange={set("instagramUrl")} placeholder="https://instagram.com/..." className={inputCls} />
+                    </Field>
                 </div>
             </CardSection>
 

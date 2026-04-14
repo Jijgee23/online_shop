@@ -26,7 +26,14 @@
       "Bash(python -c \"import sys,json; d=json.load\\(sys.stdin\\); print\\(json.dumps\\(d, indent=2\\)\\)\")",
       "Bash(python -c \"import sys,json; d=json.load\\(sys.stdin\\); print\\('files count:', len\\(d.get\\('files',{}\\)\\)\\); print\\('version:', d.get\\('version'\\)\\); print\\('first 5 files:', list\\(d.get\\('files',{}\\).keys\\(\\)\\)[:5]\\)\")",
       "Bash(python:*)",
-      "Bash(node:*)"
+      "Bash(node:*)",
+      "Bash(find:*)",
+      "WebFetch(domain:developer.qpay.mn)",
+      "Bash(npm uninstall:*)",
+      "Bash(ngrok version:*)",
+      "Bash(curl -s -X PATCH http://localhost:3000/api/admin/settings -H 'Content-Type: application/json' -d '{\"payOnDelivery\": true}')",
+      "Read(//tmp/**)",
+      "Bash(curl -s http://localhost:3000/api/admin/settings -H \"Cookie: accessToken=$\\(cat /tmp/admin_token || echo 'none'\\)\")"
     ]
   }
 }

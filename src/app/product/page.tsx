@@ -6,8 +6,10 @@ import { useSearchParams } from "next/navigation";
 import ProductCard from "../components/ProductCard";
 import Header from "../components/Header";
 import { Product } from "@/interface/product";
+import { Category } from "@/interface/category";
 import Pagination from "../../ui/Pagination";
 import DropdownSelect from "../../ui/DropdownSelect";
+import { ChevronDown, ChevronRight } from "lucide-react";
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 
@@ -17,6 +19,81 @@ const SORT_OPTIONS = [
     { value: "price_asc", label: "Хямд эхэлж" },
     { value: "price_desc", label: "Үнэтэй эхэлж" },
 ];
+
+// ─── Category tree node ───────────────────────────────────────────────────────
+
+function CategoryTreeNode({
+    cat,
+    selectedCatId,
+    expandedCats,
+    onSelect,
+    onToggle,
+}: {
+    cat: Category;
+    selectedCatId: number;
+    expandedCats: Set<number>;
+    onSelect: (id: number) => void;
+    onToggle: (id: number) => void;
+}) {
+    const hasChildren = (cat.children?.length ?? 0) > 0;
+    const isExpanded = expandedCats.has(cat.id);
+    const isSelected = selectedCatId === cat.id;
+    return (
+        <div>
+            <div className="flex items-center gap-1">
+                {hasChildren ? (
+                    <button
+                        onClick={() => onToggle(cat.id)}
+                        className="p-1 flex-shrink-0 text-slate-400 hover:text-teal-500 transition-colors"
+                    >
+                        {isExpanded ? <ChevronDown size={14} /> : <ChevronRight size={14} />}
+                    </button>
+                ) : (
+                    <span className="w-6 flex-shrink-0" />
+                )}
+                <button
+                    onClick={() => onSelect(cat.id)}
+                    className={`flex-1 min-w-0 px-3 py-2 rounded-xl text-sm font-semibold text-left transition-all flex items-center justify-between gap-1
+                        ${isSelected
+                            ? "bg-teal-600 text-white shadow-lg shadow-teal-500/20"
+                            : "bg-white dark:bg-slate-900 text-slate-600 dark:text-slate-400 border border-slate-200 dark:border-slate-800 hover:border-teal-400"}`}
+                >
+                    <span className="truncate">{cat.name}</span>
+                    {cat._count != null && (
+                        <span className={`text-[11px] flex-shrink-0 ${isSelected ? "text-teal-100" : "text-slate-400"}`}>
+                            {cat._count.products}
+                        </span>
+                    )}
+                </button>
+            </div>
+            {hasChildren && isExpanded && (
+                <div className="ml-5 mt-1 space-y-1 border-l border-slate-200 dark:border-slate-700 pl-2">
+                    {cat.children!.map(child => (
+                        <CategoryTreeNode
+                            key={child.id}
+                            cat={child}
+                            selectedCatId={selectedCatId}
+                            expandedCats={expandedCats}
+                            onSelect={onSelect}
+                            onToggle={onToggle}
+                        />
+                    ))}
+                </div>
+            )}
+        </div>
+    );
+}
+
+// ─── Helper: find category name recursively ───────────────────────────────────
+
+function findCategoryName(cats: Category[], id: number): string {
+    for (const c of cats) {
+        if (c.id === id) return c.name;
+        const found = findCategoryName(c.children ?? [], id);
+        if (found) return found;
+    }
+    return "";
+}
 
 // ─── Main component ───────────────────────────────────────────────────────────
 
@@ -37,10 +114,17 @@ function ProductListContent() {
     const [priceMin, setPriceMin] = useState<number | undefined>();
     const [priceMax, setPriceMax] = useState<number | undefined>();
     const [mobileFiltersOpen, setMobileFiltersOpen] = useState(false);
+    const [expandedCats, setExpandedCats] = useState<Set<number>>(new Set());
     const [page, setPage] = useState(1);
     const pageSize = 20;
     const [total, setTotal] = useState(0);
-    const totalPages = Math.ceil(total / pageSize);
+
+    const toggleExpand = (id: number) =>
+        setExpandedCats(prev => {
+            const s = new Set(prev);
+            s.has(id) ? s.delete(id) : s.add(id);
+            return s;
+        });
 
     // Reset to page 1 when filters change
     useEffect(() => { setPage(1); }, [selectedCatId, search, sort, inStock, priceMin, priceMax]);
@@ -69,7 +153,7 @@ function ProductListContent() {
         const res = await fetch(`/api/product?${q.toString()}`);
         const body = await res.json();
         setProducts(body.data || []);
-        setTotal(body.total ?? 0);
+        setTotal(body.pagination?.total ?? body.total ?? 0);
         setLoading(false);
     }, [selectedCatId, search, sort, inStock, priceMin, priceMax, page]);
 
@@ -94,27 +178,36 @@ function ProductListContent() {
         sort !== "newest",
     ].filter(Boolean).length;
 
-    const allCategories = [{ id: 0, name: "Бүгд" }, ...categories];
+    const selectedCatName = findCategoryName(categories, selectedCatId) || "Бүгд";
 
     // ─── Sidebar content (shared desktop/mobile) ──────────────────────────────
 
     const SidebarContent = () => (
         <div className="space-y-7">
-            {/* Category */}
+            {/* Category tree */}
             <div>
                 <p className="text-xs font-bold uppercase tracking-widest text-slate-400 dark:text-slate-500 mb-3">Ангилал</p>
-                <div className="flex flex-wrap lg:flex-col gap-2">
-                    {allCategories.map(cat => (
-                        <button
+                <div className="space-y-1 gap-1 flex flex-col">
+                    {/* "Бүгд" */}
+                    <button
+                        onClick={() => { setSelectedCatId(0); setMobileFiltersOpen(false); }}
+                        className={`w-full px-4 py-2.5 rounded-xl text-sm font-semibold text-left transition-all
+                            ${selectedCatId === 0
+                                ? "bg-teal-600 text-white shadow-lg shadow-teal-500/20"
+                                : "bg-white dark:bg-slate-900 text-slate-600 dark:text-slate-400 border border-slate-200 dark:border-slate-800 hover:border-teal-400"}`}
+                    >
+                        Бүгд
+                    </button>
+                    {/* Tree */}
+                    {categories.map(cat => (
+                        <CategoryTreeNode
                             key={cat.id}
-                            onClick={() => { setSelectedCatId(cat.id); setMobileFiltersOpen(false); }}
-                            className={`px-4 py-2.5 rounded-xl text-sm font-semibold transition-all text-left
-                                ${selectedCatId === cat.id
-                                    ? "bg-teal-600 text-white shadow-lg shadow-teal-500/20"
-                                    : "bg-white dark:bg-slate-900 text-slate-600 dark:text-slate-400 border border-slate-200 dark:border-slate-800 hover:border-teal-400"}`}
-                        >
-                            {cat.name}
-                        </button>
+                            cat={cat}
+                            selectedCatId={selectedCatId}
+                            expandedCats={expandedCats}
+                            onSelect={(id) => { setSelectedCatId(id); setMobileFiltersOpen(false); }}
+                            onToggle={toggleExpand}
+                        />
                     ))}
                 </div>
             </div>
@@ -230,12 +323,12 @@ function ProductListContent() {
                         <div className="flex items-center justify-between gap-3 mb-6 flex-wrap">
                             <div className="flex items-center gap-3 flex-wrap">
                                 <h2 className="text-base font-bold text-slate-900 dark:text-white">
-                                    {allCategories.find(e => e.id === selectedCatId)?.name}
+                                    {selectedCatName}
                                     <span className="text-slate-400 font-normal ml-1.5">({total})</span>
                                 </h2>
                                 {/* Active filter chips */}
                                 {selectedCatId !== 0 && (
-                                    <FilterChip label={allCategories.find(e => e.id === selectedCatId)?.name ?? ""} onRemove={() => setSelectedCatId(0)} />
+                                    <FilterChip label={selectedCatName} onRemove={() => setSelectedCatId(0)} />
                                 )}
                                 {(priceMinInput || priceMaxInput) && (
                                     <FilterChip
@@ -289,13 +382,12 @@ function ProductListContent() {
                                 </button>
                             </div>
                         ) : (
-                            <div className="grid grid-cols-2 sm:grid-cols-3 xl:grid-cols-6 gap-4 sm:gap-6">
+                            <div className="grid grid-cols-2 sm:grid-cols-3 xl:grid-cols-5 gap-4 sm:gap-6">
                                 {products.map(item => <ProductCard key={item.id} {...item} />)}
                             </div>
                         )}
 
                         <Pagination currentPage={page} totalItems={total} pageSize={pageSize} onPageChange={setPage} />
-
 
                     </div>
                 </div>
@@ -318,7 +410,6 @@ function ProductListContent() {
                     </div>
                 </>
             )}
-
 
         </div>
     );

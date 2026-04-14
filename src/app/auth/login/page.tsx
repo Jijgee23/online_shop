@@ -9,19 +9,18 @@ import toast from "react-hot-toast"
 import { Input } from "@/ui/Input"
 
 export default function LoginPage() {
-  const { login, loading, user, checkUser } = useAuth();
-  const [email, setEmail] = useState("")
+  const { login, loading, user } = useAuth();
+  const [identifier, setIdentifier] = useState("")
   const [password, setPassword] = useState("")
   const router = useRouter()
-  useEffect(() => { }, [])
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!email || !password) {
-      toast.error('Имейл болон нууц үг оруулна уу!')
+    if (!identifier || !password) {
+      toast.error('Нэвтрэх мэдээллээ оруулна уу!')
       return
     }
-    await login(email, password);
+    await login(identifier, password);
   };
 
   useEffect(() => {
@@ -46,7 +45,7 @@ export default function LoginPage() {
         <div className="bg-white dark:bg-slate-900/50 backdrop-blur-xl border border-slate-200 dark:border-slate-800 rounded-3xl shadow-2xl p-10">
 
           {/* Header */}
-          <div className="text-center mb-10">
+          <div className="text-center mb-8">
             <Link href="/" className="inline-block mb-4">
               <h1 className="text-3xl font-extrabold bg-gradient-to-r from-teal-500 to-blue-500 dark:from-teal-400 dark:to-blue-400 bg-clip-text text-transparent">
                 IShop
@@ -59,19 +58,23 @@ export default function LoginPage() {
           </div>
 
           {/* Form Fields */}
-          <form className="space-y-5" onSubmit={handleSubmit}>
-            {/* Email Input */}
+          <form className="space-y-4" onSubmit={handleSubmit}>
+            {/* Identifier Input */}
             <Input
-              label="Имэйл хаяг"
-              type="email"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              placeholder="name@example.com"
+              label="Имэйл эсвэл утасны дугаар"
+              type="text"
+              value={identifier}
+              onChange={(e) => setIdentifier(e.target.value)}
+              placeholder="name@example.com / 99001234"
               required
               icon={
-                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M16 12a4 4 0 10-8 0 4 4 0 008 0zm0 0v1.5a2.5 2.5 0 005 0V12a9 9 0 10-9 9m4.5-1.206a8.959 8.959 0 01-4.5 1.207" />
-                </svg>
+                identifier.includes("@")
+                  ? <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+                    </svg>
+                  : <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z" />
+                    </svg>
               }
             />
 
@@ -102,7 +105,7 @@ export default function LoginPage() {
             <button
               disabled={loading}
               type="submit"
-              className="relative w-full bg-gradient-to-r from-teal-500 to-blue-500 text-white py-4 rounded-2xl font-bold text-lg shadow-lg shadow-teal-500/20 hover:shadow-teal-500/40 hover:-translate-y-0.5 active:scale-[0.98] transition-all disabled:opacity-50 disabled:cursor-not-allowed group"
+              className="relative w-full bg-gradient-to-r from-teal-500 to-blue-500 text-white py-3.5 rounded-2xl font-bold text-sm shadow-lg shadow-teal-500/20 hover:shadow-teal-500/40 hover:-translate-y-0.5 active:scale-[0.98] transition-all disabled:opacity-50 disabled:cursor-not-allowed group"
             >
               <span className={`flex items-center justify-center gap-2 ${loading ? 'opacity-0' : 'opacity-100'}`}>
                 Нэвтрэх
@@ -122,7 +125,7 @@ export default function LoginPage() {
             </button>
           </form>
 
-          <div className="mt-8 relative">
+          <div className="mt-6 relative">
             <div className="absolute inset-0 flex items-center px-2">
               <div className="w-full border-t border-slate-200 dark:border-slate-700"></div>
             </div>
@@ -133,7 +136,7 @@ export default function LoginPage() {
 
           <a
             href="/api/auth/google"
-            className="mt-6 flex w-full items-center justify-center gap-3 rounded-2xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800/50 px-4 py-3 text-sm font-semibold text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors"
+            className="mt-6 flex w-full items-center justify-center gap-3 rounded-2xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800/50 px-4 py-3.5 text-sm font-semibold text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors"
           >
             <svg className="w-5 h-5 flex-shrink-0" viewBox="0 0 24 24">
               <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
@@ -144,7 +147,7 @@ export default function LoginPage() {
             Google-ээр нэвтрэх
           </a>
 
-          <div className="mt-8 text-center">
+          <div className="mt-6 text-center">
             <p className="text-slate-500 dark:text-slate-400 text-sm">
               Бүртгэлгүй юу?{" "}
               <Link

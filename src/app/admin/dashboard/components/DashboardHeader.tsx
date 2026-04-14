@@ -1,16 +1,23 @@
 import { PageKey } from "@/app/context/admin_context";
+import DateRangePicker from "@/ui/DateRangePicker";
 
+interface DashboardHeaderProps {
+    today: String;
+    setActivePage: (page: PageKey) => void;
+    onDateChange: (dateFrom: string, dateTo: string) => void;
+    dateFrom: string;
+    dateTo:   string;
+}
 
-
-export default function DashboardHeader({ today, setActivePage }: { today: String, setActivePage: (page: PageKey) => void }) {
-
+export default function DashboardHeader({ today, setActivePage, onDateChange, dateFrom, dateTo }: DashboardHeaderProps) {
     return (
         <header className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 mb-10">
             <div>
                 <h2 className="text-3xl font-bold text-slate-900 dark:text-white tracking-tight">Сайн байна уу, Админ!</h2>
                 <p className="text-slate-400 dark:text-zinc-500 text-sm">{today} — дэлгүүрийн тойм</p>
             </div>
-            <div className="flex gap-2">
+            <div className="flex flex-wrap items-center gap-2">
+                <DateRangePicker dateFrom={dateFrom} dateTo={dateTo} onChange={onDateChange} />
                 <button
                     onClick={() => setActivePage("Захиалгууд")}
                     className="px-4 py-2 bg-teal-500/10 border border-teal-500/30 text-teal-400 text-sm font-bold rounded-xl hover:bg-teal-500/20 transition-colors"
@@ -25,5 +32,5 @@ export default function DashboardHeader({ today, setActivePage }: { today: Strin
                 </button>
             </div>
         </header>
-    )
+    );
 }

@@ -22,9 +22,9 @@ export async function PATCH(req: NextRequest) {
     try {
         const body = await req.json();
         const { storeName, storeDesc, phone, email, address, onlyInStock, onlyPublished,
-                payQpay, payBankApp, payCard, payOnDelivery,
+                payQpay, payOnDelivery,
                 showStatProducts, showStatOrders, showStatSatisfaction, showStatDelivery,
-                fee, feeThreshold } = body;
+                fee, feeThreshold, facebookUrl, instagramUrl } = body;
 
         const data: any = {};
         if (storeName            !== undefined) data.storeName            = storeName;
@@ -35,8 +35,6 @@ export async function PATCH(req: NextRequest) {
         if (onlyInStock          !== undefined) data.onlyInStock          = onlyInStock;
         if (onlyPublished        !== undefined) data.onlyPublished        = onlyPublished;
         if (payQpay              !== undefined) data.payQpay              = payQpay;
-        if (payBankApp           !== undefined) data.payBankApp           = payBankApp;
-        if (payCard              !== undefined) data.payCard              = payCard;
         if (payOnDelivery        !== undefined) data.payOnDelivery        = payOnDelivery;
         if (showStatProducts     !== undefined) data.showStatProducts     = showStatProducts;
         if (showStatOrders       !== undefined) data.showStatOrders       = showStatOrders;
@@ -44,6 +42,8 @@ export async function PATCH(req: NextRequest) {
         if (showStatDelivery     !== undefined) data.showStatDelivery     = showStatDelivery;
         if (fee                  !== undefined) data.fee                  = fee;
         if (feeThreshold         !== undefined) data.feeThreshold         = feeThreshold;
+        if (facebookUrl          !== undefined) data.facebookUrl          = facebookUrl;
+        if (instagramUrl         !== undefined) data.instagramUrl         = instagramUrl;
 
         const settings = await prisma.storeSettings.upsert({
             where: { id: SETTINGS_ID },

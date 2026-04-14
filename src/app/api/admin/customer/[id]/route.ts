@@ -1,4 +1,5 @@
 import { prisma } from "@/lib/prisma";
+import { CustomerService } from "@/services/customer.service";
 import { NextResponse, NextRequest } from "next/server";
 export async function GET(
   request: NextRequest,
@@ -6,10 +7,8 @@ export async function GET(
 ) {
   try {
     // 1. Params-ийг заавал await хийж авна
-    const { id } = await context.params;
-
+    const { id } = await context.params
     console.log("Татаж буй хэрэглэгчийн ID:", id);
-
     const userId = Number(id);
 
     if (isNaN(userId)) {
@@ -20,8 +19,7 @@ export async function GET(
       where: { id: userId },
       include: {
         orders: {
-          orderBy: { createdAt: "desc" },
-          // take: 20,
+          orderBy: { createdAt: "desc" }
         },
       },
     });
@@ -29,9 +27,6 @@ export async function GET(
     if (!customer) {
       return NextResponse.json({ message: "Хэрэглэгч олдсонгүй" }, { status: 404 });
     }
-
-    // Нийт статистик тооцоолох
-    // Хэрэв таны Order модел дээр үнийн дүн нь 'totalAmount' биш 'total' бол үүнийг тааруулна уу
     const totalSpent = customer.orders.reduce((sum, order) => sum + (Number(order.totalPrice) || 0), 0);
     const totalOrders = customer.orders.length;
 
@@ -57,19 +52,12 @@ export async function PATCH(
     const userId = Number(id);
     const body = await request.json();
     const { status, name, phone } = body;
-
-    const updatedUser = await prisma.user.update({
-      where: { id: userId },
-      data: {
-        status: status, // Жишээ нь: ACTIVE, BLOCKED, NEW
-        name: name,
-        // phone: phone,
-      },
-    });
-
+    const updatedUser = await CustomerService.update(userId, { status, name, phone });
+    if ("message" in updatedUser) {
+      return NextResponse.json({ message: updatedUser.message }, { status: 404 });
+    }
     return NextResponse.json(updatedUser);
   } catch (error) {
-    console.error("PATCH Customer Error:", error);
     return NextResponse.json({ message: "Засахад алдаа гарлаа" }, { status: 500 });
   }
 }
@@ -81,13 +69,11 @@ export async function DELETE(
 ) {
   try {
     const { id } = await context.params;
-    const userId = Number(id);
-
-    await prisma.user.delete({
-      where: { id: userId },
-    });
-
-    return NextResponse.json({ message: "Амжилттай устгагдлаа" });
+    const deletion = await CustomerService.delete(Number(id))
+    if ("message" in deletion) {
+      return NextResponse.json({ message: deletion.message }, { status: 404 });
+    }
+    return NextResponse.json({ message: "Амжилттай устгагдлаа", data: deletion });
   } catch (error) {
     return NextResponse.json({ message: "Устгахад алдаа гарлаа" }, { status: 500 });
   }

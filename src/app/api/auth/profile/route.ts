@@ -4,6 +4,8 @@ import jwt from "jsonwebtoken";
 import bcrypt from "bcrypt";
 import { ACCESS_TOKEN_SECRET } from "../jwt/jwt_controller";
 import { NextRequest, NextResponse } from "next/server";
+import { ActivityAction } from "@/generated/prisma";
+import { logActivity } from "../utils/utils";
 
 async function getAuthedUserId(): Promise<number | null> {
     const cookieStore = await cookies();
@@ -20,10 +22,8 @@ async function getAuthedUserId(): Promise<number | null> {
 export async function PATCH(req: NextRequest) {
     const userId = await getAuthedUserId();
     if (!userId) return NextResponse.json({ error: "Нэвтрээгүй байна" }, { status: 401 });
-
     const body = await req.json();
-    const { name, email, currentPassword, newPassword } = body;
-
+    const { name, email, phone, currentPassword, newPassword } = body;
     try {
         const user = await prisma.user.findUnique({ where: { id: userId } });
         if (!user) return NextResponse.json({ error: "Хэрэглэгч олдсонгүй" }, { status: 404 });
@@ -37,19 +37,31 @@ export async function PATCH(req: NextRequest) {
             }
             const hashed = await bcrypt.hash(newPassword, 10);
             await prisma.user.update({ where: { id: userId }, data: { password: hashed } });
+            await logActivity(userId, ActivityAction.PASSWORD_CHANGE, {
+                ip: req.headers.get("x-forwarded-for")?.split(",")[0].trim() ?? req.headers.get("x-real-ip") ?? undefined,
+                userAgent: req.headers.get("user-agent") ?? undefined,
+            });
             return NextResponse.json({ success: true });
         }
-
         // ── Profile update ────────────────────────────────────────────────────
         const data: any = {};
         if (name  !== undefined) data.name  = name;
+        if (phone !== undefined) {
+            const taken = await prisma.user.findFirst({ where: { phone, NOT: { id: userId } } });
+            if (taken) return NextResponse.json({ error: "Энэ утасны дугаар аль хэдийн бүртгэлтэй байна" }, { status: 400 });
+            data.phone = phone;
+        }
         if (email !== undefined) {
             const taken = await prisma.user.findFirst({ where: { email, NOT: { id: userId } } });
             if (taken) return NextResponse.json({ error: "Энэ и-мэйл хаяг аль хэдийн бүртгэлтэй байна" }, { status: 400 });
             data.email = email;
         }
-
         const updated = await prisma.user.update({ where: { id: userId }, data });
+        await logActivity(userId, ActivityAction.PROFILE_UPDATE, {
+            ip: req.headers.get("x-forwarded-for")?.split(",")[0].trim() ?? req.headers.get("x-real-ip") ?? undefined,
+            userAgent: req.headers.get("user-agent") ?? undefined,
+            metadata: { fields: Object.keys(data) },
+        });
         return NextResponse.json({ user: updated });
     } catch (err) {
         console.error(err);

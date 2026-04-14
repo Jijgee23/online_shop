@@ -16,9 +16,8 @@ export const WishlistProvider = ({ children }: { children: React.ReactNode }) =>
     const [wishIds, setWishIds] = useState<number[]>([]);
     const [isLoading, setIsLoading] = useState(false);
 
-    // Нэвтэрсэн үед зүрхэлсэн ID-нуудыг татах
     const fetchWishIds = async () => {
-        if (!user) {
+        if (!user || user.role === "ADMIN") {
             setWishIds([]);
             return;
         }

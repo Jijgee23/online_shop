@@ -1,11 +1,12 @@
 "use client";
 
-import { OrderStatus } from "@/generated/prisma";
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import AdminOrderTile from "./components/AdminOrderTile";
-import { Order } from "@/interface/order";
+import { Order, OrderStatus } from "@/interface/order";
+import toast from "react-hot-toast";
 import Pagination from "@/ui/Pagination";
 import { usePersistedPage } from "@/app/hooks/usePersistedPage";
+import DateRangePicker from "@/ui/DateRangePicker";
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 
@@ -27,6 +28,117 @@ const STATUS_OPTIONS = [
     { value: OrderStatus.CANCELLED, label: "Цуцлагдсан" },
 ];
 
+// ─── Customer picker ──────────────────────────────────────────────────────────
+
+function CustomerPicker({ value, onChange }: {
+    value: { id: number; name: string } | null;
+    onChange: (v: { id: number; name: string } | null) => void;
+}) {
+    const [query,   setQuery]   = useState("");
+    const [results, setResults] = useState<any[]>([]);
+    const [open,    setOpen]    = useState(false);
+    const [loading, setLoading] = useState(false);
+    const ref = useRef<HTMLDivElement>(null);
+
+    useEffect(() => {
+        if (!open) return;
+        const handler = (e: MouseEvent) => {
+            if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false);
+        };
+        document.addEventListener("mousedown", handler);
+        return () => document.removeEventListener("mousedown", handler);
+    }, [open]);
+
+    useEffect(() => {
+        if (!open) return;
+        const t = setTimeout(async () => {
+            setLoading(true);
+            try {
+                const q = new URLSearchParams({ pageSize: "10" });
+                if (query.trim()) q.set("search", query.trim());
+                const res = await fetch(`/api/admin/customer?${q}`);
+                const d   = await res.json();
+                setResults(d.data ?? []);
+            } finally { setLoading(false); }
+        }, 250);
+        return () => clearTimeout(t);
+    }, [query, open]);
+
+    const select = (c: any) => {
+        onChange({ id: c.id, name: c.name });
+        setOpen(false);
+        setQuery("");
+    };
+
+    const clear = (e: React.MouseEvent) => {
+        e.stopPropagation();
+        onChange(null);
+    };
+
+    return (
+        <div ref={ref} className="relative">
+            <button
+                type="button"
+                onClick={() => { setOpen(o => !o); setQuery(""); }}
+                className={`flex items-center gap-2 px-3 py-2 rounded-xl border text-sm font-bold transition-all whitespace-nowrap ${
+                    value
+                        ? "bg-teal-500/10 border-teal-500/40 text-teal-400"
+                        : "bg-white dark:bg-zinc-900 border-slate-200 dark:border-zinc-800 text-slate-600 dark:text-zinc-300 hover:border-slate-300 dark:hover:border-zinc-700"
+                }`}
+            >
+                <svg className="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                </svg>
+                {value ? value.name : "Хэрэглэгч"}
+                {value && (
+                    <span onClick={clear} className="hover:text-red-400 transition-colors">
+                        <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M6 18L18 6M6 6l12 12" />
+                        </svg>
+                    </span>
+                )}
+            </button>
+
+            {open && (
+                <div className="absolute left-0 top-full mt-1.5 z-50 w-72 bg-white dark:bg-zinc-900 border border-slate-200 dark:border-zinc-700 rounded-2xl shadow-xl overflow-hidden">
+                    <div className="p-2 border-b border-slate-100 dark:border-zinc-800">
+                        <div className="relative">
+                            <svg className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                            </svg>
+                            <input
+                                autoFocus
+                                type="text"
+                                value={query}
+                                onChange={e => setQuery(e.target.value)}
+                                placeholder="Нэр, имэйл, утас..."
+                                className="w-full bg-slate-50 dark:bg-zinc-800 rounded-xl pl-8 pr-3 py-2 text-sm text-slate-800 dark:text-white outline-none placeholder:text-slate-400"
+                            />
+                        </div>
+                    </div>
+                    <ul className="max-h-52 overflow-y-auto py-1">
+                        {loading ? (
+                            <li className="px-4 py-3 text-center">
+                                <div className="inline-block animate-spin rounded-full h-4 w-4 border-t-2 border-teal-500" />
+                            </li>
+                        ) : results.length === 0 ? (
+                            <li className="px-4 py-3 text-sm text-slate-400 text-center">Олдсонгүй</li>
+                        ) : results.map(c => (
+                            <li key={c.id}>
+                                <button type="button" onClick={() => select(c)}
+                                    className={`w-full text-left px-4 py-2.5 text-sm transition-colors hover:bg-slate-50 dark:hover:bg-zinc-800 ${value?.id === c.id ? "text-teal-500 font-semibold" : "text-slate-700 dark:text-zinc-300"}`}>
+                                    <p className="font-medium">{c.name}</p>
+                                    <p className="text-xs text-slate-400 dark:text-zinc-500">{c.email}</p>
+                                </button>
+                            </li>
+                        ))}
+                    </ul>
+                </div>
+            )}
+        </div>
+    );
+}
+
 // ─── Page ─────────────────────────────────────────────────────────────────────
 
 export default function AdminOrdersPage() {
@@ -41,9 +153,10 @@ export default function AdminOrdersPage() {
     const [priceMax,     setPriceMax]     = useState("");
     const [dateFrom,     setDateFrom]     = useState("");
     const [dateTo,       setDateTo]       = useState("");
+    const [customer,     setCustomer]     = useState<{ id: number; name: string } | null>(null);
     const [showFilters,  setShowFilters]  = useState(false);
 
-    const [page, setPage] = usePersistedPage("admin:orders:page", [searchTerm, statusFilter, sortBy, priceMin, priceMax, dateFrom, dateTo]);
+    const [page, setPage] = usePersistedPage("admin:orders:page", [searchTerm, statusFilter, sortBy, priceMin, priceMax, dateFrom, dateTo, customer?.id]);
 
     const fetchOrders = useCallback(async () => {
         setLoading(true);
@@ -57,6 +170,7 @@ export default function AdminOrdersPage() {
         if (priceMax)               q.set("priceMax", priceMax);
         if (dateFrom)               q.set("dateFrom", dateFrom);
         if (dateTo)                 q.set("dateTo",   dateTo);
+        if (customer)               q.set("userId",   String(customer.id));
 
         try {
             const res  = await fetch(`/api/admin/order?${q.toString()}`);
@@ -65,17 +179,34 @@ export default function AdminOrdersPage() {
         } finally {
             setLoading(false);
         }
-    }, [page, searchTerm, statusFilter, sortBy, priceMin, priceMax, dateFrom, dateTo]);
+    }, [page, searchTerm, statusFilter, sortBy, priceMin, priceMax, dateFrom, dateTo, customer]);
 
     useEffect(() => { fetchOrders(); }, [fetchOrders]);
 
     const activeFilterCount = [
-        statusFilter !== "all", !!priceMin, !!priceMax, !!dateFrom, !!dateTo, sortBy !== "newest",
+        statusFilter !== "all", !!priceMin, !!priceMax, !!(dateFrom || dateTo), sortBy !== "newest", !!customer,
     ].filter(Boolean).length;
+
+    const handleStatusChange = async (id: number, status: OrderStatus) => {
+        const prev = orders.find(o => o.id === id)?.status;
+        setOrders(cur => cur.map(o => o.id === id ? { ...o, status } : o));
+        try {
+            const res = await fetch(`/api/admin/order/${id}`, {
+                method: "PATCH",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ status }),
+            });
+            if (!res.ok) throw new Error();
+            toast.success("Төлөв шинэчлэгдлээ");
+        } catch {
+            setOrders(cur => cur.map(o => o.id === id ? { ...o, status: prev! } : o));
+            toast.error("Төлөв шинэчлэхэд алдаа гарлаа");
+        }
+    };
 
     const resetFilters = () => {
         setStatusFilter("all"); setSortBy("newest");
-        setPriceMin(""); setPriceMax(""); setDateFrom(""); setDateTo("");
+        setPriceMin(""); setPriceMax(""); setDateFrom(""); setDateTo(""); setCustomer(null);
     };
 
     const inputCls = "bg-white dark:bg-zinc-900 border border-slate-200 dark:border-zinc-800 rounded-xl px-3 py-2 text-slate-900 dark:text-white text-sm focus:outline-none focus:ring-1 focus:ring-teal-500 transition-all";
@@ -127,7 +258,7 @@ export default function AdminOrdersPage() {
 
             {/* ── Filter bar ── */}
             {showFilters && (
-                <div className="bg-white dark:bg-zinc-900/60 border border-slate-200 dark:border-zinc-800 rounded-2xl p-5 mb-6 grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
+                <div className="bg-white dark:bg-zinc-900/60 border border-slate-200 dark:border-zinc-800 rounded-2xl p-5 mb-6 flex flex-wrap gap-4 items-end">
                     <div className="flex flex-col gap-1">
                         <label className="text-[10px] font-bold text-slate-400 dark:text-zinc-500 uppercase tracking-wider">Төлөв</label>
                         <select value={statusFilter} onChange={e => setStatusFilter(e.target.value)} className={inputCls}>
@@ -151,19 +282,21 @@ export default function AdminOrdersPage() {
                             className={inputCls + " [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"} />
                     </div>
                     <div className="flex flex-col gap-1">
-                        <label className="text-[10px] font-bold text-slate-400 dark:text-zinc-500 uppercase tracking-wider">Огноо (эхлэх)</label>
-                        <input type="date" value={dateFrom} onChange={e => setDateFrom(e.target.value)} className={inputCls + " [color-scheme:dark]"} />
+                        <label className="text-[10px] font-bold text-slate-400 dark:text-zinc-500 uppercase tracking-wider">Огноо</label>
+                        <DateRangePicker
+                            dateFrom={dateFrom}
+                            dateTo={dateTo}
+                            onChange={(from, to) => { setDateFrom(from); setDateTo(to); }}
+                        />
                     </div>
                     <div className="flex flex-col gap-1">
-                        <label className="text-[10px] font-bold text-slate-400 dark:text-zinc-500 uppercase tracking-wider">Огноо (дуусах)</label>
-                        <input type="date" value={dateTo} onChange={e => setDateTo(e.target.value)} className={inputCls + " [color-scheme:dark]"} />
+                        <label className="text-[10px] font-bold text-slate-400 dark:text-zinc-500 uppercase tracking-wider">Хэрэглэгч</label>
+                        <CustomerPicker value={customer} onChange={setCustomer} />
                     </div>
                     {activeFilterCount > 0 && (
-                        <div className="col-span-2 sm:col-span-3 lg:col-span-6 flex justify-end">
-                            <button onClick={resetFilters} className="text-xs font-bold text-red-400 hover:text-red-300 transition-colors">
-                                Шүүлтүүр арилгах ({activeFilterCount})
-                            </button>
-                        </div>
+                        <button onClick={resetFilters} className="text-xs font-bold text-red-400 hover:text-red-300 transition-colors ml-auto">
+                            Шүүлтүүр арилгах ({activeFilterCount})
+                        </button>
                     )}
                 </div>
             )}
@@ -184,7 +317,7 @@ export default function AdminOrdersPage() {
             </div>
 
             {/* ── Table ── */}
-            <div className="bg-white dark:bg-zinc-900 border border-slate-200 dark:border-zinc-800 rounded-[2rem] overflow-hidden shadow-2xl">
+            <div className="bg-white dark:bg-zinc-900 border border-slate-200 dark:border-zinc-800 rounded-[2rem] overflow-hidden shadow-1">
                 <div className="overflow-x-auto">
                     <table className="w-full text-left">
                         <thead className="bg-slate-100 dark:bg-zinc-950/50 text-slate-400 dark:text-zinc-500 text-[10px] uppercase tracking-[0.2em]">
@@ -220,7 +353,7 @@ export default function AdminOrdersPage() {
                                     </td>
                                 </tr>
                             ) : (
-                                orders.map(order => <AdminOrderTile key={order.id} {...order} />)
+                                orders.map(order => <AdminOrderTile key={order.id} {...order} onStatusChange={handleStatusChange} />)
                             )}
                         </tbody>
                     </table>

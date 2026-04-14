@@ -1,5 +1,0 @@
-ALTER TABLE "StoreSettings"
-  ADD COLUMN "payQpay"       BOOLEAN NOT NULL DEFAULT true,
-  ADD COLUMN "payBankApp"    BOOLEAN NOT NULL DEFAULT true,
-  ADD COLUMN "payCard"       BOOLEAN NOT NULL DEFAULT true,
-  ADD COLUMN "payOnDelivery" BOOLEAN NOT NULL DEFAULT false;

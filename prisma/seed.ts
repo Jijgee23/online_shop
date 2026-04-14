@@ -21,6 +21,18 @@ async function main() {
   }
 
   console.log('✅ Дүүргүүд амжилттай нэмэгдлээ')
+
+  await prisma.category.upsert({
+    where: { slug: 'busad' },
+    update: {},
+    create: {
+      name: 'Бусад',
+      slug: 'busad',
+      state: 'ACTIVE',
+      featured: false,
+    },
+  })
+  console.log('✅ "Бусад" ангилал амжилттай нэмэгдлээ')
 }
 
 main()

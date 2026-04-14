@@ -1,5 +1,5 @@
-importScripts('https://www.gstatic.com/firebasejs/9.0.0/firebase-app-compat.js');
-importScripts('https://www.gstatic.com/firebasejs/9.0.0/firebase-messaging-compat.js');
+importScripts('https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js');
+importScripts('https://www.gstatic.com/firebasejs/10.12.0/firebase-messaging-compat.js');
 
 firebase.initializeApp({
   apiKey: "AIzaSyBeUjKXulpS95iUvE--ADVoaz3uZ-SGpts",
@@ -12,14 +12,31 @@ firebase.initializeApp({
 
 const messaging = firebase.messaging();
 
-// Background мэдэгдэл хүлээн авах
 messaging.onBackgroundMessage((payload) => {
-  console.log('Background message: ', payload);
-  const notificationTitle = payload.notification.title;
-  const notificationOptions = {
-    body: payload.notification.body,
-    icon: '/logo.png' // Өөрийн логоны замыг тавина
-  };
+  const title = payload.notification?.title || payload.data?.title || 'Мэдэгдэл';
+  const body  = payload.notification?.body  || payload.data?.body  || '';
+  const link  = payload.data?.link || '/';
 
-  self.registration.showNotification(notificationTitle, notificationOptions);
+  self.registration.showNotification(title, {
+    body,
+    icon: '/logo.png',
+    badge: '/logo.png',
+    data: { link },
+  });
+});
+
+self.addEventListener('notificationclick', (event) => {
+  event.notification.close();
+  const link = event.notification.data?.link || '/';
+  event.waitUntil(
+    clients.matchAll({ type: 'window', includeUncontrolled: true }).then((clientList) => {
+      for (const client of clientList) {
+        if (client.url.includes(self.location.origin) && 'focus' in client) {
+          client.navigate(link);
+          return client.focus();
+        }
+      }
+      if (clients.openWindow) return clients.openWindow(link);
+    })
+  );
 });

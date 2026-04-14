@@ -6,14 +6,15 @@ interface InputProps extends React.InputHTMLAttributes<HTMLInputElement> {
     label?: string
     icon?: React.ReactNode
     error?: string
+    wrapperClassName?: string
 }
 
-export const Input = ({ label, icon, error, type, className, ...props }: InputProps) => {
+export const Input = ({ label, icon, error, type, className, wrapperClassName, ...props }: InputProps) => {
     const [showPassword, setShowPassword] = useState(false)
     const isPassword = type === "password"
 
     return (
-        <div className="space-y-1 w-full">
+        <div className={`space-y-1 w-full ${wrapperClassName ?? ""}`}>
             {label && (
                 <label className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase ml-1 tracking-wider">
                     {label}

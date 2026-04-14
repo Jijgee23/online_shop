@@ -22,7 +22,11 @@ export default function AdminNotificationBell({ onNavigate }: AdminNotificationB
     useEffect(() => {
         fetchUnread();
         const interval = setInterval(fetchUnread, 30_000);
-        return () => clearInterval(interval);
+        window.addEventListener("fcm-message", fetchUnread);
+        return () => {
+            clearInterval(interval);
+            window.removeEventListener("fcm-message", fetchUnread);
+        };
     }, []);
 
     return (

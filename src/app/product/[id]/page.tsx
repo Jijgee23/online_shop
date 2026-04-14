@@ -15,7 +15,7 @@ export default function ProductDetail() {
     const id = params.id;
     const { cart, add } = useCart();
     const { wishIds, toggleWish } = useWishlist();
-    const { user } = useAuth();
+    const { user, isAuthenticated } = useAuth();
     const router = useRouter();
 
     const [product, setProduct] = useState<Product>();
@@ -104,6 +104,10 @@ export default function ProductDetail() {
 
     const addCart = async () => {
         if (!product) return;
+        if (!isAuthenticated) {
+            router.push("/auth/login");
+            return;
+        }
         add({
             productId: Number(id),
             productQty: quantity,

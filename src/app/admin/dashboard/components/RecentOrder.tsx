@@ -16,8 +16,8 @@ export default function RecentOrderComp(order: RecentOrder) {
         <td className="px-8 py-5 font-mono text-slate-500 dark:text-zinc-400 text-xs">#{order.orderNumber}</td>
         <td className="px-8 py-5">
             <div className="flex flex-col">
-                <span className="font-bold text-slate-900 dark:text-white">{order.user.name}</span>
-                <span className="text-[10px] text-slate-400 dark:text-zinc-500">{order.user.email}</span>
+                <span className="font-bold text-slate-900 dark:text-white">{order.user?.name}</span>
+                <span className="text-[10px] text-slate-400 dark:text-zinc-500">{order.user?.email}</span>
             </div>
         </td>
         <td className="px-8 py-5">

@@ -22,7 +22,6 @@ export async function GET(req: NextRequest) {
 
         return NextResponse.json({ data: addresses }, { status: 200 })
 
-
     } catch (e) {
 
         console.log("error get address", e)
@@ -49,7 +48,7 @@ export async function POST(req: NextRequest) {
 
         if (!address) return NextResponse.json({ error: "Мэдээлэл дутуу байна" }, { status: 400 });
 
-        const { city, districtId, khoroo, detail, phone } = address;
+        const { city, districtId, khoroo, detail, phone, latitude, longitude } = address;
         const parsedDistrictId = Number(districtId);
 
         if (!city || !parsedDistrictId || !khoroo || !detail || !phone) {
@@ -68,6 +67,10 @@ export async function POST(req: NextRequest) {
                 khoroo,
                 detail,
                 phone,
+                ...(latitude != null && longitude != null && {
+                    latitude: latitude,
+                    longitude: longitude,
+                }),
             },
             include: { district: true },
         })

@@ -1,2 +1,0 @@
--- Add missing createdAt column to ProductImage
-ALTER TABLE "ProductImage" ADD COLUMN "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP;

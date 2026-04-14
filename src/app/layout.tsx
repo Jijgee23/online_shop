@@ -5,14 +5,14 @@ import { AuthProvider } from "./context/auth_context";
 import { CategoryProvider } from "./context/category_context";
 import { CartProvider } from "./context/cart_context";
 import { OrderProvider } from "./context/order_context";
-import { ProductProvider } from "./context/product_context";
 import { ConfirmProvider } from "./context/confirm_context";
 import { AddressProvider } from "./context/address_context";
 import { WishlistProvider } from "./context/wishlist_context";
 import { SettingsProvider } from "./context/settings_context";
-import { Toaster } from "react-hot-toast";
 import RouterInitializer from "./components/RouterInitializer";
+import ThemedToaster from "./components/ThemedToaster";
 import ThemeProvider from "./components/ThemeProvider";
+import PhoneSetupModal from "./components/PhoneSetupModal";
 
 const inter = Inter({
   subsets: ["latin"],
@@ -31,36 +31,24 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en" suppressHydrationWarning>
-      <body className={`${inter.className} antialiased`}>
+      <body className={`${inter.className} antialiased`} suppressHydrationWarning>
         <ThemeProvider>
           <SettingsProvider>
             <ConfirmProvider>
               <AuthProvider>
                 <AddressProvider>
-                    <CategoryProvider>
-                      <CartProvider>
-                        <OrderProvider>
-                          <ProductProvider>
-                            <WishlistProvider>
-                              <RouterInitializer />
-                              {children}
-                              <Toaster
-                                position="top-center"
-                                toastOptions={{
-                                  duration: 3000,
-                                  style: {
-                                    background: "#18181b",
-                                    color: "#fff",
-                                    borderRadius: "1rem",
-                                    border: "1px solid #27272a",
-                                  },
-                                }}
-                              />
-                            </WishlistProvider>
-                          </ProductProvider>
-                        </OrderProvider>
-                      </CartProvider>
-                    </CategoryProvider>
+                  <CategoryProvider>
+                    <CartProvider>
+                      <OrderProvider>
+                        <WishlistProvider>
+                          <RouterInitializer />
+                          <PhoneSetupModal />
+                          {children}
+                          <ThemedToaster />
+                        </WishlistProvider>
+                      </OrderProvider>
+                    </CartProvider>
+                  </CategoryProvider>
                 </AddressProvider>
               </AuthProvider>
             </ConfirmProvider>

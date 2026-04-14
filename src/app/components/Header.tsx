@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useAuth } from "../context/auth_context";
 import { useOrder } from "../context/order_context";
+import { useSettings } from "../context/settings_context";
 import CartIcon from "./CartIcon";
 import NotificationBell from "./NotificationBell";
 import ProfileSection from "./ProfileSection";
@@ -14,14 +15,17 @@ import { useTheme } from "next-themes";
 export default function Header() {
     const { isAuthenticated, user, logout } = useAuth();
     const { toOrders } = useOrder();
+    const { settings , refresh } = useSettings();
     const router = useRouter();
     const { resolvedTheme, setTheme } = useTheme();
     const [isMenuOpen, setIsMenuOpen] = useState(false);
     const [scrolled, setScrolled] = useState(false);
     const [mounted, setMounted] = useState(false);
+
     useEffect(() => setMounted(true), []);
 
     useEffect(() => {
+        refresh()
         const onScroll = () => setScrolled(window.scrollY > 10);
         window.addEventListener("scroll", onScroll, { passive: true });
         return () => window.removeEventListener("scroll", onScroll);
@@ -90,26 +94,20 @@ export default function Header() {
                         )}
 
                         {/* Social Links */}
-                        <div className="flex items-center gap-2 pl-2 border-l border-slate-200 dark:border-slate-700">
-                            <Link
-                                href="https://www.instagram.com/jijgeest/"
-                                target="_blank"
-                                rel="noopener noreferrer"
-                                className="transition-transform hover:scale-110"
-                                aria-label="Instagram"
-                            >
-                                <Image alt="Instagram" width={28} height={28} src="/icons/instagram.png" className="rounded-full object-contain" />
-                            </Link>
-                            <Link
-                                href="https://www.facebook.com/jijgee.sg1/"
-                                target="_blank"
-                                rel="noopener noreferrer"
-                                className="transition-transform hover:scale-110"
-                                aria-label="Facebook"
-                            >
-                                <Image alt="Facebook" width={28} height={28} src="/icons/fb.png" className="rounded-full object-cover" />
-                            </Link>
-                        </div>
+                        {(settings.instagramUrl || settings.facebookUrl) && (
+                            <div className="flex items-center gap-2 pl-2 border-l border-slate-200 dark:border-slate-700">
+                                {settings.instagramUrl && (
+                                    <Link href={settings.instagramUrl} target="_blank" rel="noopener noreferrer" className="transition-transform hover:scale-110" aria-label="Instagram">
+                                        <Image alt="Instagram" width={28} height={28} src="/icons/instagram.png" className="rounded-full object-contain" />
+                                    </Link>
+                                )}
+                                {settings.facebookUrl && (
+                                    <Link href={settings.facebookUrl} target="_blank" rel="noopener noreferrer" className="transition-transform hover:scale-110" aria-label="Facebook">
+                                        <Image alt="Facebook" width={28} height={28} src="/icons/fb.png" className="rounded-full object-cover" />
+                                    </Link>
+                                )}
+                            </div>
+                        )}
                     </nav>
 
                     {/* Mobile: right-side actions */}
@@ -244,14 +242,20 @@ export default function Header() {
                         )}
 
                         {/* Social links */}
-                        <div className="flex items-center gap-3 px-3 pt-3 pb-1">
-                            <Link href="https://www.instagram.com/jijgeest/" target="_blank" rel="noopener noreferrer" onClick={close} aria-label="Instagram">
-                                <Image alt="Instagram" width={32} height={32} src="/icons/instagram.png" className="rounded-full object-contain hover:scale-110 transition-transform" />
-                            </Link>
-                            <Link href="https://www.facebook.com/jijgee.sg1/" target="_blank" rel="noopener noreferrer" onClick={close} aria-label="Facebook">
-                                <Image alt="Facebook" width={32} height={32} src="/icons/fb.png" className="rounded-full object-cover hover:scale-110 transition-transform" />
-                            </Link>
-                        </div>
+                        {(settings.instagramUrl || settings.facebookUrl) && (
+                            <div className="flex items-center gap-3 px-3 pt-3 pb-1">
+                                {settings.instagramUrl && (
+                                    <Link href={settings.instagramUrl} target="_blank" rel="noopener noreferrer" onClick={close} aria-label="Instagram">
+                                        <Image alt="Instagram" width={32} height={32} src="/icons/instagram.png" className="rounded-full object-contain hover:scale-110 transition-transform" />
+                                    </Link>
+                                )}
+                                {settings.facebookUrl && (
+                                    <Link href={settings.facebookUrl} target="_blank" rel="noopener noreferrer" onClick={close} aria-label="Facebook">
+                                        <Image alt="Facebook" width={32} height={32} src="/icons/fb.png" className="rounded-full object-cover hover:scale-110 transition-transform" />
+                                    </Link>
+                                )}
+                            </div>
+                        )}
                     </div>
                 </div>
             </header>

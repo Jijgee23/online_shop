@@ -1,28 +1,19 @@
 import { prisma } from "@/lib/prisma";
 
 
-export async function Clear(userId: number) {
-
-    const cart = await prisma.cart.findUnique({
-        where: { userId: userId }
-    });
-
-    if (!cart) return
-
+export async function Clear(cartId: number) {
     await prisma.$transaction([
-        prisma.cartItem.deleteMany({ where: { cartId: cart.id } }),
+        prisma.cartItem.deleteMany({ where: { cartId } }),
         prisma.cart.update({
-            where: { id: cart.id },
+            where: { id: cartId },
             data: { totalCount: 0, totalPrice: 0 }
         })
-
     ]);
 }
 
-export async function recalculateCart(userId: number) {
-
+export async function recalculateCart(cartId: number) {
     const cart = await prisma.cart.findUnique({
-        where: { userId },
+        where: { id: cartId },
         include: {
             items: {
                 include: {

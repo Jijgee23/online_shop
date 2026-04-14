@@ -1,37 +1,44 @@
-import { NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { OtpType } from "@/generated/prisma";
+import { ActivityAction, OtpType } from "@/generated/prisma";
 import bcrypt from "bcrypt";
-import { validateOtp } from "../utils/utils";
+import { logActivity, validateOtp } from "../utils/utils";
 
-export async function POST(req: Request) {
+export async function POST(req: NextRequest) {
     try {
-        const { email, otpCode, newPassword } = await req.json();
+        const { email, phone, otpCode, newPassword } = await req.json();
 
-        if (!email || !otpCode || !newPassword) {
+        if ((!email && !phone) || !otpCode || !newPassword) {
             return NextResponse.json({ error: "Мэдээлэл дутуу байна" }, { status: 400 });
         }
 
-        // 1. OTP баталгаажуулах
-        const otpValidation = await validateOtp(email, otpCode, OtpType.FORGOT_PASSWORD);
+        const via: "email" | "phone" = phone ? "phone" : "email";
+        const identifier = phone ?? email;
+
+        const otpValidation = await validateOtp(identifier, otpCode, OtpType.FORGOT_PASSWORD, via);
         if (!otpValidation.success) {
             return NextResponse.json({ error: otpValidation.message }, { status: 400 });
         }
 
-        // 2. Хэрэглэгчийг олох
-        const user = await prisma.user.findUnique({ where: { email } });
+        const user = via === "phone"
+            ? await prisma.user.findUnique({ where: { phone } })
+            : await prisma.user.findUnique({ where: { email } });
+
         if (!user) {
             return NextResponse.json({ error: "Хэрэглэгч олдсонгүй" }, { status: 404 });
         }
 
-        // 3. Шинэ нууц үгийг хашилах (hash)
         const hashedPassword = await bcrypt.hash(newPassword, 10);
-
-        // 4. Баазад шинэчлэх
         await prisma.user.update({
-            where: { email },
+            where: { id: user.id },
             data: { password: hashedPassword }
         });
+
+        const ip        = req.headers.get("x-forwarded-for")?.split(",")[0].trim()
+                       ?? req.headers.get("x-real-ip")
+                       ?? undefined;
+        const userAgent = req.headers.get("user-agent") ?? undefined;
+        await logActivity(user.id, ActivityAction.PASSWORD_RESET, { ip, userAgent });
 
         return NextResponse.json({ message: "Нууц үг амжилттай шинэчлэгдлээ" }, { status: 200 });
 

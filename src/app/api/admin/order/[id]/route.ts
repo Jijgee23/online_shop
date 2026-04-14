@@ -13,7 +13,7 @@ export async function GET(
             where: { id: Number(id) },
             include: {
                 user: true,
-                address: true,
+                address: { include: { district: true } },
                 payment: true,
                 items: {
                     include: {
@@ -22,9 +22,7 @@ export async function GET(
                 },
             },
         });
-
         if (!order) return NextResponse.json({ message: "Захиалга олдсонгүй" }, { status: 404 });
-
         return NextResponse.json({ order }, { status: 200 });
     } catch (err) {
         console.error(err);
@@ -39,9 +37,9 @@ export async function PATCH(
     try {
         const { id } = await context.params;
         const body = await req.json();
-        const { status, note } = body;
+        const { status, note, paymentStatus } = body;
 
-        const order = await prisma.order.findUnique({ where: { id: Number(id) } });
+        const order = await prisma.order.findUnique({ where: { id: Number(id) }, include: { payment: true } });
         if (!order) return NextResponse.json({ message: "Захиалга олдсонгүй" }, { status: 404 });
 
         const data: any = {};
@@ -49,6 +47,13 @@ export async function PATCH(
         if (note !== undefined) data.note = note;
 
         const updated = await prisma.order.update({ where: { id: Number(id) }, data });
+
+        if (paymentStatus !== undefined && order.payment) {
+            await prisma.payment.update({
+                where: { orderId: Number(id) },
+                data: { status: paymentStatus },
+            });
+        }
 
         // Send notification to the order owner when status changes
         if (status && status !== order.status) {

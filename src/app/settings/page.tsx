@@ -5,7 +5,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { useAuth } from "@/app/context/auth_context";
 import Header from "@/app/components/Header";
 import toast from "react-hot-toast";
-import { ArrowLeft, Lock, Eye, EyeOff } from "lucide-react";
+import { ArrowLeft, Lock, Eye, EyeOff, User as UserIcon, Phone } from "lucide-react";
 import { Input } from "../../ui/Input";
 
 const inputCls = "w-full bg-slate-50 dark:bg-zinc-800/60 border border-slate-200 dark:border-zinc-700 rounded-2xl px-4 py-3 text-sm text-slate-900 dark:text-white outline-none focus:ring-2 focus:ring-teal-500/40 transition-all placeholder:text-slate-400 dark:placeholder:text-zinc-600";
@@ -28,14 +28,20 @@ function UserSettingsContent() {
     const router = useRouter();
     const searchParams = useSearchParams();
 
+    const [savingProfile, setSavingProfile] = useState(false);
     const [savingPassword, setSavingPassword] = useState(false);
     const [disconnecting, setDisconnecting] = useState(false);
     const [showCurrent, setShowCurrent] = useState(false);
     const [showNew, setShowNew] = useState(false);
     const [passwords, setPasswords] = useState({ current: "", next: "", confirm: "" });
+    const [profile, setProfile] = useState({ name: "", email: "", phone: "" });
 
     const hasPassword = !!user?.password;
     const isGoogleConnected = !!user?.googleId;
+
+    useEffect(() => {
+        if (user) setProfile({ name: user.name, email: user.email, phone: user.phone });
+    }, [user]);
 
     useEffect(() => {
         const success = searchParams.get("success");
@@ -48,18 +54,38 @@ function UserSettingsContent() {
         if (error === "google_failed") toast.error("Google холболт амжилтгүй боллоо");
     }, []);
 
+    const saveProfile = async () => {
+        if (!profile.name.trim()) { toast.error("Нэр хоосон байна"); return; }
+        setSavingProfile(true);
+        try {
+            const res = await fetch("/api/auth/profile", {
+                method: "PATCH",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ name: profile.name.trim(), email: profile.email.trim(), phone: profile.phone.trim() }),
+            });
+            if (res.ok) { toast.success("Профайл шинэчлэгдлээ"); await checkUser(); }
+            else { const d = await res.json(); toast.error(d.error ?? "Алдаа гарлаа"); }
+        } catch { toast.error("Алдаа гарлаа"); }
+        finally { setSavingProfile(false); }
+    };
+
     const savePassword = async () => {
         if (passwords.next !== passwords.confirm) { toast.error("Нууц үг таарахгүй байна"); return; }
         if (passwords.next.length < 6) { toast.error("Хамгийн багадаа 6 тэмдэгт байх ёстой"); return; }
         setSavingPassword(true);
         try {
+            const body: any = { newPassword: passwords.next };
+            if (hasPassword) body.currentPassword = passwords.current;
             const res = await fetch("/api/auth/profile", {
                 method: "PATCH",
                 headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ currentPassword: passwords.current, newPassword: passwords.next }),
+                body: JSON.stringify(body),
             });
-            if (res.ok) { toast.success("Нууц үг солигдлоо"); setPasswords({ current: "", next: "", confirm: "" }); }
-            else { const d = await res.json(); toast.error(d.error ?? "Алдаа гарлаа"); }
+            if (res.ok) {
+                toast.success(hasPassword ? "Нууц үг солигдлоо" : "Нууц үг амжилттай үүслээ");
+                setPasswords({ current: "", next: "", confirm: "" });
+                await checkUser();
+            } else { const d = await res.json(); toast.error(d.error ?? "Алдаа гарлаа"); }
         } catch { toast.error("Алдаа гарлаа"); }
         finally { setSavingPassword(false); }
     };
@@ -100,11 +126,70 @@ function UserSettingsContent() {
                     </button>
                 </div>
 
+                {/* ── Profile ── */}
+                <Card title="Профайл" desc="Нэр, и-мэйл, утасны дугаараа засах">
+                    <div className="space-y-4">
+                        <div>
+                            <label className={labelCls}>Нэр</label>
+                            <div className="relative">
+                                <UserIcon className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 dark:text-zinc-500 pointer-events-none" />
+                                <input
+                                    type="text"
+                                    value={profile.name}
+                                    onChange={e => setProfile(p => ({ ...p, name: e.target.value }))}
+                                    placeholder="Нэрээ оруулна уу"
+                                    className={`${inputCls} pl-10`}
+                                />
+                            </div>
+                        </div>
+                        <div className="grid grid-cols-2 gap-4">
+                            <div>
+                                <label className={labelCls}>И-мэйл</label>
+                                <input
+                                    type="email"
+                                    value={profile.email}
+                                    onChange={e => setProfile(p => ({ ...p, email: e.target.value }))}
+                                    placeholder="И-мэйл хаяг"
+                                    className={inputCls}
+                                />
+                            </div>
+                            <div>
+                                <label className={labelCls}>Утасны дугаар</label>
+                                <div className="relative">
+                                    <Phone className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 dark:text-zinc-500 pointer-events-none" />
+                                    <input
+                                        type="tel"
+                                        value={profile.phone}
+                                        onChange={e => setProfile(p => ({ ...p, phone: e.target.value }))}
+                                        placeholder="99xxxxxx"
+                                        className={`${inputCls} pl-10`}
+                                    />
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div className="flex justify-end mt-5">
+                        <button onClick={saveProfile} disabled={savingProfile}
+                            className="flex items-center gap-2 px-5 py-2.5 bg-teal-500 hover:bg-teal-400 disabled:opacity-60 text-white text-sm font-bold rounded-2xl transition-all shadow-lg shadow-teal-500/20">
+                            <UserIcon className="w-4 h-4" />
+                            {savingProfile ? "Хадгалж байна..." : "Хадгалах"}
+                        </button>
+                    </div>
+                </Card>
+
+                <div className="h-8"></div>
+
                 {/* ── Password ── */}
                 <Card
-                    title="Нууц үг солих"
-                    desc={hasPassword ? "Одоогийн нууц үгээ оруулна уу" : "Google-ээр нэвтэрсэн бүртгэлд нууц үг тохируулах"}
+                    title={hasPassword ? "Нууц үг солих" : "Нууц үг үүсгэх"}
+                    desc={hasPassword ? "Одоогийн нууц үгээ оруулна уу" : "Бүртгэлдээ нууц үг тохируулснаар и-мэйлээр нэвтрэх боломжтой болно"}
                 >
+                    {!hasPassword && (
+                        <div className="mb-4 flex items-start gap-2 text-xs text-amber-600 dark:text-amber-400 bg-amber-50 dark:bg-amber-900/10 border border-amber-200 dark:border-amber-800/40 rounded-xl px-4 py-3">
+                            <Lock className="w-3.5 h-3.5 mt-0.5 flex-shrink-0" />
+                            Одоогоор нууц үггүй байна. Доорх маягтыг бөглөж нууц үг үүсгэнэ үү.
+                        </div>
+                    )}
                     <div className="space-y-4">
                         {hasPassword && (
                             <div>
@@ -125,7 +210,7 @@ function UserSettingsContent() {
                         )}
                         <div className="grid grid-cols-2 gap-4">
                             <div>
-                                <label className={labelCls}>Шинэ нууц үг</label>
+                                <label className={labelCls}>{hasPassword ? "Шинэ нууц үг" : "Нууц үг"}</label>
                                 <div className="relative">
                                     <input
                                         type={showNew ? "text" : "password"}
@@ -156,7 +241,7 @@ function UserSettingsContent() {
                         <button onClick={savePassword} disabled={savingPassword}
                             className="flex items-center gap-2 px-5 py-2.5 bg-teal-500 hover:bg-teal-400 disabled:opacity-60 text-white text-sm font-bold rounded-2xl transition-all shadow-lg shadow-teal-500/20">
                             <Lock className="w-4 h-4" />
-                            {savingPassword ? "Хадгалж байна..." : "Нууц үг солих"}
+                            {savingPassword ? "Хадгалж байна..." : hasPassword ? "Нууц үг солих" : "Нууц үг үүсгэх"}
                         </button>
                     </div>
                 </Card>
