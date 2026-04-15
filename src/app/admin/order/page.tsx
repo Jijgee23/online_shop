@@ -7,26 +7,7 @@ import toast from "react-hot-toast";
 import Pagination from "@/ui/Pagination";
 import { usePersistedPage } from "@/app/hooks/usePersistedPage";
 import DateRangePicker from "@/ui/DateRangePicker";
-
-// ─── Constants ────────────────────────────────────────────────────────────────
-
-const PAGE_SIZE = 20;
-
-const SORT_OPTIONS = [
-    { value: "newest",     label: "Шинэ эхэлж" },
-    { value: "oldest",     label: "Хуучин эхэлж" },
-    { value: "total_desc", label: "Дүн: Их → Бага" },
-    { value: "total_asc",  label: "Дүн: Бага → Их" },
-];
-
-const STATUS_OPTIONS = [
-    { value: "all",                 label: "Бүгд" },
-    { value: OrderStatus.PENDING,   label: "Хүлээгдэж буй" },
-    { value: OrderStatus.PAID,      label: "Баталгаажсан" },
-    { value: OrderStatus.SHIPPED,   label: "Хүргэлтэнд гарсан" },
-    { value: OrderStatus.DELIVERED, label: "Хүргэгдсэн" },
-    { value: OrderStatus.CANCELLED, label: "Цуцлагдсан" },
-];
+import { PAGE_SIZE, ORDER_SORT_OPTIONS as SORT_OPTIONS, ORDER_STATUS_OPTIONS as STATUS_OPTIONS } from "@/app/product/constants";
 
 // ─── Customer picker ──────────────────────────────────────────────────────────
 

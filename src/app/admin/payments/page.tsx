@@ -5,8 +5,7 @@ import Pagination from "@/ui/Pagination";
 import { usePersistedPage } from "@/app/hooks/usePersistedPage";
 import DropdownSelect from "@/ui/DropdownSelect";
 import DateRangePicker from "@/ui/DateRangePicker";
-
-const PAGE_SIZE = 20;
+import { PAGE_SIZE } from "@/app/product/constants";
 
 const STATUS_OPTIONS = [
     { id: "",        label: "Бүх төлөв" },
@@ -15,15 +14,15 @@ const STATUS_OPTIONS = [
     { id: "FAILED",  label: "Амжилтгүй" },
 ];
 
-function statusBadge(status: string) {
-    if (status === "PAID")    return "bg-teal-500/10 text-teal-400 border border-teal-500/20";
-    if (status === "FAILED")  return "bg-red-500/10 text-red-400 border border-red-500/20";
+function paymentStatusCls(status: string) {
+    if (status === "PAID")   return "bg-teal-500/10 text-teal-400 border border-teal-500/20";
+    if (status === "FAILED") return "bg-red-500/10 text-red-400 border border-red-500/20";
     return "bg-amber-500/10 text-amber-400 border border-amber-500/20";
 }
 
-function statusLabel(status: string) {
-    if (status === "PAID")    return "Төлөгдсөн";
-    if (status === "FAILED")  return "Амжилтгүй";
+function paymentStatusLabel(status: string) {
+    if (status === "PAID")   return "Төлөгдсөн";
+    if (status === "FAILED") return "Амжилтгүй";
     return "Хүлээгдэж байна";
 }
 
@@ -150,8 +149,8 @@ export default function AdminPaymentsPage() {
                                             ₮{Number(p.amount).toLocaleString()}
                                         </td>
                                         <td className="px-6 py-4">
-                                            <span className={`px-2.5 py-1 rounded-full text-xs font-bold ${statusBadge(p.status)}`}>
-                                                {statusLabel(p.status)}
+                                            <span className={`inline-flex items-center px-3 py-1.5 rounded-full text-xs font-bold whitespace-nowrap ${paymentStatusCls(p.status)}`}>
+                                                {paymentStatusLabel(p.status)}
                                             </span>
                                         </td>
                                         <td className="px-6 py-4 text-xs text-slate-400 dark:text-zinc-500">

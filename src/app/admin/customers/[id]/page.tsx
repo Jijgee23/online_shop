@@ -108,7 +108,7 @@ export default function CustomerDetailPage() {
                             <p className="text-slate-400 dark:text-zinc-500 text-xs font-mono mb-4">ID: #USR-{customer.id + 1000}</p>
 
                             {/* Status badge */}
-                            <span className={`px-3 py-1 text-[10px] font-bold rounded-full border ${statusCfg.cls} mb-5`}>
+                            <span className={`inline-flex items-center px-3 py-1.5 rounded-full text-xs font-bold whitespace-nowrap border ${statusCfg.cls} mb-5`}>
                                 {statusCfg.label}
                             </span>
 
@@ -217,7 +217,7 @@ export default function CustomerDetailPage() {
                                                         <p className="text-slate-900 dark:text-white font-bold text-sm hidden sm:block font-mono">
                                                             ₮{order.totalPrice?.toLocaleString()}
                                                         </p>
-                                                        <span className={`px-2.5 py-1 text-[10px] font-bold rounded-lg border ${statusCls}`}>
+                                                        <span className={`inline-flex items-center px-3 py-1.5 rounded-full text-xs font-bold whitespace-nowrap border ${statusCls}`}>
                                                             {statusLabel}
                                                         </span>
                                                         <button

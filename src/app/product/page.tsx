@@ -10,15 +10,7 @@ import { Category } from "@/interface/category";
 import Pagination from "../../ui/Pagination";
 import DropdownSelect from "../../ui/DropdownSelect";
 import { ChevronDown, ChevronRight } from "lucide-react";
-
-// ─── Constants ────────────────────────────────────────────────────────────────
-
-const SORT_OPTIONS = [
-    { value: "newest", label: "Шинэ эхэлж" },
-    { value: "popular", label: "Эрэлттэй" },
-    { value: "price_asc", label: "Хямд эхэлж" },
-    { value: "price_desc", label: "Үнэтэй эхэлж" },
-];
+import { PAGE_SIZE, SORT_OPTIONS } from "./constants";
 
 // ─── Category tree node ───────────────────────────────────────────────────────
 
@@ -116,7 +108,6 @@ function ProductListContent() {
     const [mobileFiltersOpen, setMobileFiltersOpen] = useState(false);
     const [expandedCats, setExpandedCats] = useState<Set<number>>(new Set());
     const [page, setPage] = useState(1);
-    const pageSize = 20;
     const [total, setTotal] = useState(0);
 
     const toggleExpand = (id: number) =>

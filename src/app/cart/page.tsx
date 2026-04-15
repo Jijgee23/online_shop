@@ -171,22 +171,28 @@ export default function CartPage() {
                 </div>
             )}
 
-            {/* Mobile checkout sheet */}
+            {/* Mobile fullscreen checkout */}
             {sheetOpen && (
-                <>
-                    <div
-                        className="lg:hidden fixed inset-0 z-40 bg-black/50 backdrop-blur-sm"
-                        onClick={() => step !== "done" && setSheetOpen(false)}
-                    />
-                    <div className="lg:hidden fixed bottom-0 left-0 right-0 z-50 bg-white dark:bg-zinc-900 border-t border-slate-100 dark:border-zinc-800 rounded-t-3xl shadow-2xl max-h-[92dvh] flex flex-col">
-                        <div className="flex justify-center pt-3 pb-1 flex-shrink-0">
-                            <div className="w-10 h-1 rounded-full bg-slate-200 dark:bg-zinc-700" />
-                        </div>
-                        <div className="overflow-y-auto flex-1">
-                            <CheckoutPanel {...sharedProps} />
-                        </div>
+                <div className="lg:hidden fixed inset-0 z-50 bg-white dark:bg-zinc-950 flex flex-col">
+                    {/* Header */}
+                    <div className="flex items-center justify-between px-5 py-4 border-b border-slate-100 dark:border-zinc-800 flex-shrink-0">
+                        <h2 className="text-base font-bold text-slate-900 dark:text-white">Захиалга хийх</h2>
+                        {step !== "done" && (
+                            <button
+                                onClick={() => setSheetOpen(false)}
+                                className="w-8 h-8 flex items-center justify-center rounded-full bg-slate-100 dark:bg-zinc-800 text-slate-500 dark:text-zinc-400 hover:bg-slate-200 dark:hover:bg-zinc-700 transition"
+                            >
+                                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12" />
+                                </svg>
+                            </button>
+                        )}
                     </div>
-                </>
+                    {/* Content */}
+                    <div className="overflow-y-auto flex-1">
+                        <CheckoutPanel {...sharedProps} />
+                    </div>
+                </div>
             )}
         </div>
     );

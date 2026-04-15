@@ -54,7 +54,7 @@ export default function DropdownSelect({
             <button
                 type="button"
                 onClick={() => { setOpen(o => !o); setSearch(""); }}
-                className={`w-full flex items-center justify-between px-3 py-2.5 rounded-xl border text-sm transition-all
+                className={`w-full flex items-center justify-between px-4 py-2.5 rounded-xl border text-sm transition-all
                     ${open
                         ? "bg-white dark:bg-slate-900 border-teal-500/50 ring-2 ring-teal-500/20"
                         : "bg-slate-50 dark:bg-slate-800 border-slate-200 dark:border-slate-700 hover:border-slate-300 dark:hover:border-slate-600"

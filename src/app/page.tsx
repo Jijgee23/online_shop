@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
 import { useAuth } from "./context/auth_context";
 import { Product } from "@/interface/product";
 import { useCategory } from "./context/category_context";
@@ -15,7 +16,8 @@ import { TopProducts } from "./main/components/TopProducts";
 
 export default function HomePage() {
   const [searchQuery, setSearchQuery] = useState("");
-  const { user } = useAuth();
+  const { user, loading } = useAuth();
+  const router = useRouter();
   const { fetchCart } = useCart();
   const { fetchCategories } = useCategory();
   const loggedIn = user !== null;
@@ -35,6 +37,12 @@ export default function HomePage() {
       product.category?.name.toLowerCase().includes(searchLower)
     );
   });
+
+  useEffect(() => {
+    if (!loading && user?.role === "ADMIN") {
+      router.replace("/admin");
+    }
+  }, [user, loading]);
 
   useEffect(() => {
     fetchProducts();

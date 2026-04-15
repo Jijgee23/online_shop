@@ -9,26 +9,7 @@ import { useProducts } from "@/app/context/product_context";
 import { Product } from "@/interface/product";
 import Pagination from "@/ui/Pagination";
 import { usePersistedPage } from "@/app/hooks/usePersistedPage";
-
-// ─── Constants ────────────────────────────────────────────────────────────────
-
-const PAGE_SIZE = 20;
-
-const SORT_OPTIONS = [
-    { value: "newest",     label: "Шинэ эхэлж" },
-    { value: "oldest",     label: "Хуучин эхэлж" },
-    { value: "price_asc",  label: "Үнэ: Бага → Их" },
-    { value: "price_desc", label: "Үнэ: Их → Бага" },
-    { value: "stock_asc",  label: "Нөөц: Бага → Их" },
-    { value: "stock_desc", label: "Нөөц: Их → Бага" },
-];
-
-const STOCK_OPTIONS = [
-    { value: "all",       label: "Бүгд" },
-    { value: "in_stock",  label: "Нөөцтэй" },
-    { value: "low_stock", label: "Бага нөөц (≤5)" },
-    { value: "out",       label: "Дууссан" },
-];
+import { PAGE_SIZE, ADMIN_PRODUCT_SORT_OPTIONS as SORT_OPTIONS, STOCK_OPTIONS } from "@/app/product/constants";
 
 // ─── Page ─────────────────────────────────────────────────────────────────────
 

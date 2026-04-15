@@ -5,8 +5,7 @@ import { Customer } from "@/interface/user";
 import CustomerTable from "./components/table/CustomerTable";
 import Pagination from "@/ui/Pagination";
 import { usePersistedPage } from "@/app/hooks/usePersistedPage";
-
-const PAGE_SIZE = 20;
+import { PAGE_SIZE } from "@/app/product/constants";
 
 const STATUS_OPTIONS = [
     { value: "",         label: "Бүх төлөв" },

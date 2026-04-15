@@ -355,16 +355,16 @@ export default function OrderDetailPage() {
                                 </div>
                                 <div className="flex justify-between items-center text-sm">
                                     <span className="text-slate-400">Төлбөрийн төлөв</span>
-                                    <span className={`font-bold text-xs px-2.5 py-1 rounded-full ${
+                                    <span className={`inline-flex items-center px-3 py-1.5 rounded-full text-xs font-bold whitespace-nowrap ${
                                         order.payment.status === "PAID"
-                                            ? "bg-teal-100 text-teal-700 dark:bg-teal-900/30 dark:text-teal-400"
+                                            ? "bg-teal-500/10 text-teal-400 border border-teal-500/20"
                                             : order.payment.status === "FAILED"
-                                            ? "bg-red-100 text-red-600 dark:bg-red-900/30 dark:text-red-400"
-                                            : "bg-amber-100 text-amber-600 dark:bg-amber-900/30 dark:text-amber-400"
+                                            ? "bg-red-500/10 text-red-400 border border-red-500/20"
+                                            : "bg-amber-500/10 text-amber-400 border border-amber-500/20"
                                     }`}>
-                                        {order.payment.status === "PAID"    && "✓ Төлөгдсөн"}
-                                        {order.payment.status === "PENDING" && "⏳ Хүлээгдэж буй"}
-                                        {order.payment.status === "FAILED"  && "✕ Амжилтгүй"}
+                                        {order.payment.status === "PAID"    && "Төлөгдсөн"}
+                                        {order.payment.status === "PENDING" && "Хүлээгдэж буй"}
+                                        {order.payment.status === "FAILED"  && "Амжилтгүй"}
                                     </span>
                                 </div>
                                 <div className="flex justify-between items-center pt-3 border-t border-slate-100 dark:border-slate-800">

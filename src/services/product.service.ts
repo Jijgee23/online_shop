@@ -140,7 +140,9 @@ export const ProductService = {
         const imageFiles = formData.getAll("images") as File[];
         if (imageFiles.length > 0) {
             const uploadDir = path.join(process.cwd(), "public/uploads");
-            try { await mkdir(uploadDir, { recursive: true }); } catch { }
+            try { await mkdir(uploadDir, { recursive: true }); } catch (err) {
+                console.error("Хавтас үүсгэхэд алдаа гарлаа:", err);
+            }
 
             const imageUrls = await Promise.all(
                 imageFiles.map(async (file) => {

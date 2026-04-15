@@ -5,32 +5,32 @@ import ProfileSection from "../components/ProfileSection";
 import { useEffect, useState } from "react";
 import { ChevronDown, LayoutDashboard, ShoppingCart, Package, Users, Settings, Bell, CreditCard, Receipt } from "lucide-react";
 import AdminNotificationBell from "../components/AdminNotificationBell";
-import AdminDashboardPage       from "./dashboard/page";
-import AdminOrdersPage          from "./order/page";
-import AdminProductsPage        from "./products/page";
-import NewProductPage           from "./products/newProduct/page";
-import FeaturedProductsPage     from "./products/featured/page";
-import AdminCategoryPage        from "./category/page";
-import AdminCustomersPage       from "./customers/page";
-import AdminPaymentsPage        from "./payments/page";
-import AdminInvoicesPage        from "./invoices/page";
-import AdminSettingsPage        from "./settings/page";
-import AdminNotificationsPage   from "./notifications/page";
+import AdminDashboardPage from "./dashboard/page";
+import AdminOrdersPage from "./order/page";
+import AdminProductsPage from "./products/page";
+import NewProductPage from "./products/newProduct/page";
+import FeaturedProductsPage from "./products/featured/page";
+import AdminCategoryPage from "./category/page";
+import AdminCustomersPage from "./customers/page";
+import AdminPaymentsPage from "./payments/page";
+import AdminInvoicesPage from "./invoices/page";
+import AdminSettingsPage from "./settings/page";
+import AdminNotificationsPage from "./notifications/page";
 
 function ActivePage({ page }: { page: PageKey }) {
-    switch (page) {
-        case "Хянах самбар":          return <AdminDashboardPage />;
-        case "Захиалгууд":            return <AdminOrdersPage />;
-        case "Бүтээгдэхүүнүүд":       return <AdminProductsPage />;
-        case "Шинэ бүтээгдэхүүнүүд": return <NewProductPage />;
-        case "Онцлох бүтээгдэхүүн":  return <FeaturedProductsPage />;
-        case "Ангилал":               return <AdminCategoryPage />;
-        case "Харилцагчид":           return <AdminCustomersPage />;
-        case "Төлбөрүүд":             return <AdminPaymentsPage />;
-        case "Invoices":              return <AdminInvoicesPage />;
-        case "Тохиргоо":              return <AdminSettingsPage />;
-        case "Мэдэгдэл":              return <AdminNotificationsPage />;
-    }
+  switch (page) {
+    case "Хянах самбар": return <AdminDashboardPage />;
+    case "Захиалгууд": return <AdminOrdersPage />;
+    case "Бүтээгдэхүүнүүд": return <AdminProductsPage />;
+    case "Шинэ бүтээгдэхүүнүүд": return <NewProductPage />;
+    case "Онцлох бүтээгдэхүүн": return <FeaturedProductsPage />;
+    case "Ангилал": return <AdminCategoryPage />;
+    case "Харилцагчид": return <AdminCustomersPage />;
+    case "Төлбөрүүд": return <AdminPaymentsPage />;
+    case "Invoices": return <AdminInvoicesPage />;
+    case "Тохиргоо": return <AdminSettingsPage />;
+    case "Мэдэгдэл": return <AdminNotificationsPage />;
+  }
 }
 
 type NavItem =
@@ -43,10 +43,10 @@ const NAV: NavItem[] = [
   {
     type: "group", label: "Бүтээгдэхүүн", icon: <Package className="w-4 h-4" />,
     children: [
-      { label: "Жагсаалт",   page: "Бүтээгдэхүүнүүд" },
+      { label: "Жагсаалт", page: "Бүтээгдэхүүнүүд" },
       { label: "Шинэ нэмэх", page: "Шинэ бүтээгдэхүүнүүд" },
-      { label: "⭐ Онцлох",  page: "Онцлох бүтээгдэхүүн" },
-      { label: "Ангилал",    page: "Ангилал" },
+      { label: "⭐ Онцлох", page: "Онцлох бүтээгдэхүүн" },
+      { label: "Ангилал", page: "Ангилал" },
     ],
   },
   { type: "link", label: "Харилцагчид", page: "Харилцагчид", icon: <Users className="w-4 h-4" /> },
@@ -78,7 +78,7 @@ export default function AdminDashboard() {
   };
 
   useEffect(() => {
-    if(activePage === "Хянах самбар") {
+    if (activePage === "Хянах самбар") {
       fetchDashboardData();
     }
     fetchDashboardData()
@@ -99,7 +99,7 @@ export default function AdminDashboard() {
       )}
 
       {/* Sidebar */}
-      <aside className={`w-64 border-r border-slate-200 dark:border-zinc-800 flex flex-col p-6 space-y-8 bg-slate-50 dark:bg-zinc-900/20 fixed lg:static inset-y-0 left-0 z-50 transform transition-transform duration-300 ease-in-out ${isMobileSidebarOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'} ${isMobileSidebarOpen ? 'lg:flex' : 'hidden lg:flex'}`}>
+      <aside className={`w-64 border-r border-slate-200 dark:border-zinc-800 flex flex-col p-6 space-y-8 bg-slate-50 dark:bg-zinc-900 fixed lg:static inset-y-0 left-0 z-50 transform transition-transform duration-300 ease-in-out ${isMobileSidebarOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'} ${isMobileSidebarOpen ? 'lg:flex' : 'hidden lg:flex'}`}>
 
         <button onClick={() => setIsMobileSidebarOpen(false)}
           className="lg:hidden self-end mb-4 p-2 hover:bg-slate-100 dark:hover:bg-zinc-800 rounded-lg transition-colors">
