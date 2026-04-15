@@ -34,24 +34,25 @@ export default function ProductTile(product: Product) {
         restoreProduct(product.id)
     }
 
-    const isDeleted  = !!product.deletedAt;
+    const isDeleted = !!product.deletedAt;
     const isInactive = !isDeleted && product.state !== "ACTIVE";
 
-    const imageUrl = product.images?.[0]?.url || "/uploads/placeholder.png";
+    const realUrl = `${process.env.NEXT_PUBLIC_IMAGE_URL}${product.images?.[0]?.url ||
+        "/uploads/placeholder.png"}`;
 
     return (
         <tr
             onClick={handleTap}
-            className={`transition-all group ${
-                isDeleted
+            className={`transition-all group ${isDeleted
                     ? "opacity-50 bg-red-500/5 cursor-default"
                     : "hover:bg-slate-100 dark:hover:bg-zinc-800/30 cursor-pointer"
-            }`}
+                }`}
         >
             <td className="px-8 py-5">
                 <div className="flex items-center gap-4">
+
                     <div className="w-12 h-12 rounded-xl bg-slate-100 dark:bg-zinc-800 border border-slate-300 dark:border-zinc-700 flex items-center justify-center overflow-hidden">
-                        <img src={imageUrl} alt={product.name} className={`w-full h-full object-cover ${isDeleted ? "grayscale" : ""}`} />
+                        <img src={realUrl} alt={product.name} className={`w-full h-full object-cover ${isDeleted ? "grayscale" : ""}`} />
                     </div>
                     <div>
                         <p className={`font-bold text-sm ${isDeleted ? "line-through text-slate-400 dark:text-zinc-500" : "text-slate-900 dark:text-white"}`}>

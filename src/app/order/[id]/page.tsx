@@ -292,7 +292,7 @@ export default function OrderDetailPage() {
                                 <div key={item.id} className="flex items-center gap-4 px-6 py-4 hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors">
                                     <div className="w-14 h-14 rounded-2xl bg-slate-100 dark:bg-slate-800 overflow-hidden flex-shrink-0 ring-1 ring-slate-200 dark:ring-slate-700">
                                         {item.product?.images?.[0]?.url
-                                            ? <img src={item.product.images[0].url} alt={item.product.name} className="w-full h-full object-cover" />
+                                            ? <img src={`${process.env.NEXT_PUBLIC_IMAGE_URL}${item.product.images[0].url}`} alt={item.product.name} className="w-full h-full object-cover" />
                                             : <div className="w-full h-full flex items-center justify-center text-2xl">📦</div>}
                                     </div>
                                     <div className="flex-1 min-w-0">

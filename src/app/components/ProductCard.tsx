@@ -19,7 +19,7 @@ export default function ProductCard(product: Product) {
 
     const images = product.images || [];
     const hasMultipleImages = images.length > 1;
-    const currentImageUrl = images[currentIndex]?.url || "/uploads/placeholder.png";
+    const realUrl = `${process.env.NEXT_PUBLIC_IMAGE_URL}${images[currentIndex]?.url ?? "/uploads/placeholder.png"}`
 
     const { wishIds, toggleWish } = useWishlist();
     const isWished = wishIds.includes(product.id);
@@ -67,7 +67,7 @@ export default function ProductCard(product: Product) {
                 onMouseMove={handleImageMouseMove}
             >
                 <Image
-                    src={currentImageUrl}
+                    src={realUrl}
                     alt={product.name}
                     fill
                     className="object-cover group-hover:scale-105 transition-transform duration-500"

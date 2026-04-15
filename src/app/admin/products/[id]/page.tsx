@@ -270,7 +270,7 @@ export default function EditProductPage() {
                                     {/* Өмнө нь байсан зургууд */}
                                     {existingImages.map((img, idx) => (
                                         <div key={`existing-${idx}`} className="relative aspect-square rounded-xl overflow-hidden border border-slate-300 dark:border-zinc-700 group">
-                                            <img src={img.url} className="w-full h-full object-cover opacity-60" />
+                                            <img src={`${process.env.NEXT_PUBLIC_IMAGE_URL}${img.url}`} className="w-full h-full object-cover opacity-60" />
                                             <button
                                                 type="button"
                                                 onClick={() => setExistingImages(existingImages.filter((_, i) => i !== idx))}

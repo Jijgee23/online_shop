@@ -14,7 +14,7 @@ export default function SummaryStep({ cart, onNext }: SummaryStepProps) {
                 {cart.items?.slice(0, 3).map((item: any) => (
                     <div key={item.id} className="flex items-center gap-3">
                         <div className="w-10 h-10 rounded-xl bg-slate-100 dark:bg-slate-800 overflow-hidden flex-shrink-0">
-                            {item.product?.images?.[0]?.url && <img src={item.product.images[0].url} className="w-full h-full object-cover" />}
+                            {item.product?.images?.[0]?.url && <img src={`${process.env.NEXT_PUBLIC_IMAGE_URL}${item.product.images[0].url}`} className="w-full h-full object-cover" />}
                         </div>
                         <div className="flex-1 min-w-0">
                             <p className="text-xs font-semibold text-slate-800 dark:text-slate-200 truncate">{item.product?.name}</p>

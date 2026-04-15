@@ -16,7 +16,6 @@ export const ProductService = {
         const featured = formData.get("featured") === "true";
         const discountPrice = formData.get("discountPrice") ? Number(formData.get("discountPrice")) : null;
         const imageFiles = formData.getAll("images") as File[];
-        const uploadDir = path.join(process.cwd(), "public/uploads");
         const state = formData.get("state") as ProductState;
         const colorsRaw = formData.get("colors") as string | null;
         const sizesRaw = formData.get("sizes") as string | null;
@@ -47,6 +46,7 @@ export const ProductService = {
             }
             slug = `${slug}-${suffix}`;
         }
+        const uploadDir = path.join(process.cwd(), "public/uploads");
         try {
             await mkdir(uploadDir, { recursive: true });
         } catch (e) {
@@ -57,10 +57,8 @@ export const ProductService = {
             imageFiles.map(async (file) => {
                 const bytes = await file.arrayBuffer();
                 const buffer = Buffer.from(bytes);
-
                 const fileName = `${Date.now()}-${file.name}`;
                 const filePath = path.join(uploadDir, fileName);
-
                 await writeFile(filePath, buffer);
                 return `/uploads/${fileName}`;
             })

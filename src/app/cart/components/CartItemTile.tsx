@@ -35,7 +35,7 @@ export default function CartItemTile(item: CartItem) {
             {/* Image */}
             <div className="relative w-20 h-20 sm:w-24 sm:h-24 rounded-2xl overflow-hidden bg-slate-100 dark:bg-zinc-800 flex-shrink-0">
                 <img
-                    src={item.product.images?.[0]?.url || "/uploads/placeholder.png"}
+                    src={`${process.env.NEXT_PUBLIC_IMAGE_URL}${item.product.images?.[0]?.url || "/uploads/placeholder.png"}`}
                     alt={item.product.name || "Product"}
                     className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
                 />
