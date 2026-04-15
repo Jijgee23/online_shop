@@ -139,7 +139,7 @@ function ProductListContent() {
         if (priceMin !== undefined) q.set("priceMin", String(priceMin));
         if (priceMax !== undefined) q.set("priceMax", String(priceMax));
         q.set("page", String(page));
-        q.set("pageSize", String(pageSize));
+        q.set("pageSize", String(PAGE_SIZE));
 
         const res = await fetch(`/api/product?${q.toString()}`);
         const body = await res.json();
@@ -378,7 +378,7 @@ function ProductListContent() {
                             </div>
                         )}
 
-                        <Pagination currentPage={page} totalItems={total} pageSize={pageSize} onPageChange={setPage} />
+                        <Pagination currentPage={page} totalItems={total} pageSize={PAGE_SIZE} onPageChange={setPage} />
 
                     </div>
                 </div>
