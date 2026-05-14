@@ -8,6 +8,7 @@ import Image from "next/image";
 import { useState } from "react";
 import { Heart, ShoppingCart } from "lucide-react";
 import { useWishlist } from "../context/wishlist_context";
+import { imgUrl } from "@/utils/imgUrl";
 
 export default function ProductCard(product: Product) {
     const { cart, loading: cartLoading, add } = useCart();
@@ -19,7 +20,7 @@ export default function ProductCard(product: Product) {
 
     const images = product.images || [];
     const hasMultipleImages = images.length > 1;
-    const realUrl = `${process.env.NEXT_PUBLIC_IMAGE_URL}${images[currentIndex]?.url ?? "/uploads/placeholder.png"}`
+    const realUrl = imgUrl(images[currentIndex]?.url)
 
     const { wishIds, toggleWish } = useWishlist();
     const isWished = wishIds.includes(product.id);
@@ -70,6 +71,7 @@ export default function ProductCard(product: Product) {
                     src={realUrl}
                     alt={product.name}
                     fill
+                    unoptimized
                     className="object-cover group-hover:scale-105 transition-transform duration-500"
                     sizes="(max-width: 640px) 50vw, (max-width: 1024px) 33vw, 25vw"
                 />

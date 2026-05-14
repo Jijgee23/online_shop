@@ -6,8 +6,8 @@ import ImageCropper from "@/app/components/ImageCropper";
 import { useImageCrop } from "@/utils/useImageCrop";
 import { ProductImage } from "@/interface/product";
 import toast from "react-hot-toast";
+import { imgUrl } from "@/utils/imgUrl";
 import { useEffect, useState } from "react";
-import { useRouter } from "next/navigation";
 import DropdownSelect from "@/ui/DropdownSelect";
 import { ProductBulk } from "./ProductBulk";
 import DividerLine from "./DividerLine";
@@ -48,7 +48,6 @@ function SectionTitle({ number, title }: { number: number; title: string }) {
 export default function ProductForm({ mode, productId }: Props) {
     const { setActivePage } = useAdmin();
     const { categories, fetchCategories } = useCategory();
-    const router = useRouter();
 
     const isEdit = mode === "edit";
 
@@ -148,7 +147,7 @@ export default function ProductForm({ mode, productId }: Props) {
             if (!res.ok) { toast.error(data.message ?? "Алдаа гарлаа", { id: tid }); return; }
 
             toast.success(isEdit ? "Амжилттай шинэчлэгдлээ" : "Амжилттай нийтлэгдлээ", { id: tid });
-            isEdit ? router.back() : setActivePage("Бүтээгдэхүүнүүд");
+            setActivePage("Бүтээгдэхүүнүүд");
         } catch {
             toast.error("Алдаа гарлаа", { id: tid });
         } finally {
@@ -156,7 +155,7 @@ export default function ProductForm({ mode, productId }: Props) {
         }
     };
 
-    const goBack = () => isEdit ? router.back() : setActivePage("Бүтээгдэхүүнүүд");
+    const goBack = () => setActivePage("Бүтээгдэхүүнүүд");
 
     if (loadingData) return (
         <div className="flex items-center justify-center py-32">
@@ -301,7 +300,7 @@ export default function ProductForm({ mode, productId }: Props) {
                                             {/* Existing images (edit mode) */}
                                             {existingImages.map((img, idx) => (
                                                 <div key={`ex-${idx}`} className="relative aspect-square rounded-xl overflow-hidden border border-slate-300 dark:border-zinc-700 group">
-                                                    <img src={`${process.env.NEXT_PUBLIC_IMAGE_URL}${img.url}`} className="w-full h-full object-cover opacity-70" />
+                                                    <img src={imgUrl(img.url)} className="w-full h-full object-cover opacity-70" />
                                                     <button type="button"
                                                         onClick={() => setExistingImages(p => p.filter((_, i) => i !== idx))}
                                                         className="absolute inset-0 bg-red-500/80 text-white opacity-0 group-hover:opacity-100 flex items-center justify-center transition-opacity text-xs font-bold">

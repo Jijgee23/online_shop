@@ -9,6 +9,7 @@ import { useAuth } from "@/app/context/auth_context";
 import Header from "@/app/components/Header";
 import { ArrowLeft, Loader2, Heart, CheckCircle2 } from "lucide-react";
 import toast from "react-hot-toast";
+import { imgUrl } from "@/utils/imgUrl";
 
 export default function ProductDetail() {
     const params = useParams<{ id: string }>();
@@ -147,7 +148,7 @@ export default function ProductDetail() {
                 <div className="flex-1 w-full relative overflow-hidden group">
                     <img
                         key={activeImgIndex}
-                        src={`${process.env.NEXT_PUBLIC_IMAGE_URL}${productImages[activeImgIndex].url}`}
+                        src={imgUrl(productImages[activeImgIndex].url)}
                         alt={product.name}
                         className="w-full h-full object-contain transition-all duration-500"
                     />
@@ -161,7 +162,7 @@ export default function ProductDetail() {
                                 onClick={() => setActiveImgIndex(idx)}
                                 className={`relative w-14 h-14 rounded-xl overflow-hidden cursor-pointer transition-all border-2 ${activeImgIndex === idx ? "border-teal-500 scale-105" : "border-transparent opacity-60"}`}
                             >
-                                <img src={`${process.env.NEXT_PUBLIC_IMAGE_URL}${img.url}`} className="w-full h-full object-cover" alt="thumb" />
+                                <img src={imgUrl(img.url)} className="w-full h-full object-cover" alt="thumb" />
                             </div>
                         ))}
                     </div>

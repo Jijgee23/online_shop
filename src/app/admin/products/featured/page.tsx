@@ -3,6 +3,7 @@
 import { Product } from "@/interface/product";
 import { useCallback, useEffect, useState } from "react";
 import toast from "react-hot-toast";
+import { imgUrl } from "@/utils/imgUrl";
 
 export default function FeaturedProductsPage() {
     const [products, setProducts] = useState<Product[]>([]);
@@ -84,7 +85,7 @@ export default function FeaturedProductsPage() {
                         {featured.map(p => (
                             <div key={p.id} className="flex items-center gap-2 bg-teal-500/10 border border-teal-500/30 rounded-2xl px-3 py-2">
                                 <img
-                                    src={`${process.env.NEXT_PUBLIC_IMAGE_URL}${p.images?.[0]?.url ?? "/uploads/placeholder.png"}`}
+                                    src={imgUrl(p.images?.[0]?.url)}
                                     className="w-7 h-7 rounded-lg object-cover"
                                     alt={p.name}
                                 />
@@ -144,7 +145,7 @@ export default function FeaturedProductsPage() {
                                 <div className="flex items-center gap-4 min-w-0">
                                     <div className="w-12 h-12 rounded-2xl overflow-hidden bg-slate-100 dark:bg-zinc-800 flex-shrink-0">
                                         <img
-                                            src={`${process.env.NEXT_PUBLIC_IMAGE_URL}${product.images?.[0]?.url ?? "/uploads/placeholder.png"}`}
+                                            src={imgUrl(product.images?.[0]?.url)}
                                             alt={product.name}
                                             className="w-full h-full object-cover"
                                         />

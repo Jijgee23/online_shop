@@ -6,6 +6,8 @@ interface AdminContextType {
     loading: boolean;
     activePage: PageKey;
     setActivePage: (page: PageKey) => void;
+    editingProductId: number | null;
+    setEditingProductId: (id: number | null) => void;
     isMobileSidebarOpen: boolean;
     setIsMobileSidebarOpen: (value: boolean) => void;
     dashboardData: DashboardResponse | null;
@@ -20,6 +22,7 @@ export type PageKey =
     | "Бүтээгдэхүүнүүд"
     | "Шинэ бүтээгдэхүүнүүд"
     | "Онцлох бүтээгдэхүүн"
+    | "Бүтээгдэхүүн засах"
     | "Ангилал"
     | "Харилцагчид"
     | "Төлбөрүүд"
@@ -31,6 +34,7 @@ export type PageKey =
 export const AdminProvider = ({ children }: { children: ReactNode }) => {
     const [loading, setLoading] = useState(false);
     const [activePage, setActivePage] = useState<PageKey>("Хянах самбар");
+    const [editingProductId, setEditingProductId] = useState<number | null>(null);
     const [isMobileSidebarOpen, setIsMobileSidebarOpen] = useState(false);
     const [dashboardData, setData] = useState<DashboardResponse | null>(null);
 
@@ -63,6 +67,7 @@ export const AdminProvider = ({ children }: { children: ReactNode }) => {
     return (
         <AdminContext.Provider value={{
             loading, activePage, setActivePage,
+            editingProductId, setEditingProductId,
             isMobileSidebarOpen, setIsMobileSidebarOpen,
             dashboardData, fetchDashboardData,
         }}>

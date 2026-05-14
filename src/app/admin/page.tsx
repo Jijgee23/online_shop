@@ -17,14 +17,17 @@ import AdminInvoicesPage from "./invoices/page";
 import AdminSettingsPage from "./settings/page";
 import AdminNotificationsPage from "./notifications/page";
 import AdminReportPage from "./reports/page";
+import EditProductPage from "./products/[id]/page";
 
 function ActivePage({ page }: { page: PageKey }) {
+  const { editingProductId } = useAdmin();
   switch (page) {
     case "Хянах самбар": return <AdminDashboardPage />;
     case "Захиалгууд": return <AdminOrdersPage />;
     case "Бүтээгдэхүүнүүд": return <AdminProductsPage />;
     case "Шинэ бүтээгдэхүүнүүд": return <NewProductPage />;
     case "Онцлох бүтээгдэхүүн": return <FeaturedProductsPage />;
+    case "Бүтээгдэхүүн засах": return <EditProductPage key={editingProductId} />;
     case "Ангилал": return <AdminCategoryPage />;
     case "Харилцагчид": return <AdminCustomersPage />;
     case "Төлбөрүүд": return <AdminPaymentsPage />;

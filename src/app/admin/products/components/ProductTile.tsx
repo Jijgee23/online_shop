@@ -1,10 +1,12 @@
 "use client";
 import { useProducts } from "@/app/context/product_context";
+import { useAdmin } from "@/app/context/admin_context";
 import { Product } from "@/interface/product"
 import { getProductStatusColor, getProductStatusName } from '@/utils/utils'
 import { useRouter } from "next/navigation";
 import { Trash2, LucideArchiveRestore, Eye, SquarePen, AlertTriangle } from "lucide-react";
 import { useState } from "react";
+import { imgUrl } from "@/utils/imgUrl";
 
 
 type Props = Product & { selected: boolean; onToggle: (id: number) => void }
@@ -20,11 +22,13 @@ export default function ProductTile({ selected, onToggle, ...product }: Props) {
     const iconStyle = "p-2 hover:bg-slate-200 dark:hover:bg-zinc-700 rounded-lg transition-colors text-slate-500 dark:text-zinc-400 hover:text-slate-900 dark:hover:text-white";
 
     const router = useRouter()
+    const { setActivePage, setEditingProductId } = useAdmin();
     const [showDeleteDialog, setShowDeleteDialog] = useState(false)
 
     const handleTap = () => {
         if (isDeleted) return;
-        router.push(`/admin/products/${product.id}`)
+        setEditingProductId(product.id);
+        setActivePage("Бүтээгдэхүүн засах");
     }
     const handleView = (e: React.MouseEvent) => {
         e.stopPropagation()
@@ -52,8 +56,7 @@ export default function ProductTile({ selected, onToggle, ...product }: Props) {
     const isDeleted = !!product.deletedAt;
     const isInactive = !isDeleted && product.state !== "ACTIVE";
 
-    const realUrl = `${process.env.NEXT_PUBLIC_IMAGE_URL}${product.images?.[0]?.url ||
-        "/uploads/placeholder.png"}`;
+    const realUrl = imgUrl(product.images?.[0]?.url);
 
     return (
         <>
@@ -171,7 +174,7 @@ export default function ProductTile({ selected, onToggle, ...product }: Props) {
                     )}
                     {!isDeleted && (
                         <button
-                            onClick={handleTap}
+                            onClick={(e) => { e.stopPropagation(); handleTap(); }}
                             title="Засварлах"
                             className={iconStyle}>
                             <SquarePen className="w-4 h-4"/>
