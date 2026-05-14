@@ -3,7 +3,7 @@
 import { useAdmin, PageKey } from "../context/admin_context";
 import ProfileSection from "../components/ProfileSection";
 import { useEffect, useState } from "react";
-import { ChevronDown, LayoutDashboard, ShoppingCart, Package, Users, Settings, Bell, CreditCard, Receipt } from "lucide-react";
+import { ChevronDown, LayoutDashboard, ShoppingCart, Package, Users, Settings, Bell, CreditCard, Receipt, BarChart3 } from "lucide-react";
 import AdminNotificationBell from "../components/AdminNotificationBell";
 import AdminDashboardPage from "./dashboard/page";
 import AdminOrdersPage from "./order/page";
@@ -16,6 +16,7 @@ import AdminPaymentsPage from "./payments/page";
 import AdminInvoicesPage from "./invoices/page";
 import AdminSettingsPage from "./settings/page";
 import AdminNotificationsPage from "./notifications/page";
+import AdminReportPage from "./reports/page";
 
 function ActivePage({ page }: { page: PageKey }) {
   switch (page) {
@@ -28,6 +29,7 @@ function ActivePage({ page }: { page: PageKey }) {
     case "Харилцагчид": return <AdminCustomersPage />;
     case "Төлбөрүүд": return <AdminPaymentsPage />;
     case "Invoices": return <AdminInvoicesPage />;
+    case "Тайлан":   return <AdminReportPage />;
     case "Тохиргоо": return <AdminSettingsPage />;
     case "Мэдэгдэл": return <AdminNotificationsPage />;
   }
@@ -53,8 +55,9 @@ const NAV: NavItem[] = [
   {
     type: "group", label: "Санхүү", icon: <CreditCard className="w-4 h-4" />,
     children: [
-      { label: "Төлбөрүүд", page: "Төлбөрүүд" },
+      { label: "Төлбөрүүд",   page: "Төлбөрүүд" },
       { label: "QPay Invoice", page: "Invoices" },
+      { label: "Тайлан",      page: "Тайлан" },
     ],
   },
   { type: "link", label: "Тохиргоо", page: "Тохиргоо", icon: <Settings className="w-4 h-4" /> },

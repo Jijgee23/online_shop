@@ -30,11 +30,11 @@ export default function HomePage() {
   };
 
   const filteredProds = products.filter((product) => {
-    const searchLower = searchQuery.toLowerCase();
+    const q = searchQuery.toLowerCase();
     return (
-      product.name.toLowerCase().includes(searchLower) ||
-      product.description?.toLowerCase().includes(searchLower) ||
-      product.category?.name.toLowerCase().includes(searchLower)
+      product.name.toLowerCase().includes(q) ||
+      product.description?.toLowerCase().includes(q) ||
+      product.category?.name.toLowerCase().includes(q)
     );
   });
 
@@ -51,8 +51,7 @@ export default function HomePage() {
   }, []);
 
   return (
-
-    <div className="min-h-screen bg-slate-50 dark:bg-slate-950 font-sans selection:bg-teal-200 selection:text-teal-900">
+    <div className="min-h-screen bg-white dark:bg-slate-950 font-sans selection:bg-teal-200 selection:text-teal-900">
       <Header />
 
       <FeaturedSearchProduct
@@ -60,16 +59,15 @@ export default function HomePage() {
         setSearchQuery={setSearchQuery}
       />
 
-      <StatsStrip />
-
       <TopCateGories />
 
       <TopProducts products={filteredProds} />
 
+      <StatsStrip />
+
       {user === null && <Features />}
 
       <MainFooter />
-
     </div>
   );
 }

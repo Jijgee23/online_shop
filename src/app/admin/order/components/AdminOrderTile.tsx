@@ -4,9 +4,11 @@ import { useRouter } from "next/navigation";
 
 interface AdminOrderTileProps extends Order {
     onStatusChange?: (id: number, status: OrderStatus) => void;
+    selected: boolean;
+    onToggle: (id: number) => void;
 }
 
-export default function AdminOrderTile({ onStatusChange, ...order }: AdminOrderTileProps) {
+export default function AdminOrderTile({ onStatusChange, selected, onToggle, ...order }: AdminOrderTileProps) {
     const router = useRouter()
     const handleTap = () => {
         router.push(`/admin/order/${order.id}`)
@@ -18,6 +20,14 @@ export default function AdminOrderTile({ onStatusChange, ...order }: AdminOrderT
     return (
         <tr
             key={order.id} onClick={handleTap} className="hover:bg-slate-100 dark:hover:bg-zinc-800/30 transition-all group">
+            <td className="pl-6 pr-2 py-5" onClick={e => e.stopPropagation()}>
+                <input
+                    type="checkbox"
+                    checked={selected}
+                    onChange={() => onToggle(order.id)}
+                    className="w-4 h-4 rounded accent-teal-500 cursor-pointer"
+                />
+            </td>
             <td className="px-8 py-5">
                 <p className="font-mono text-slate-500 dark:text-zinc-400 text-sm">{order.orderNumber}</p>
             </td>
@@ -119,7 +129,7 @@ export const getOrderStatusInfo = (status: OrderStatus | string): StatusInfo => 
     };
 };
 
-const STATUS_LIST = [
+export const STATUS_LIST = [
     OrderStatus.PENDING,
     OrderStatus.PAID,
     OrderStatus.SHIPPED,

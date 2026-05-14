@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
-import AdminOrderTile from "./components/AdminOrderTile";
+import AdminOrderTile, { STATUS_LIST, getOrderStatusInfo } from "./components/AdminOrderTile";
 import { Order, OrderStatus } from "@/interface/order";
 import toast from "react-hot-toast";
 import Pagination from "@/ui/Pagination";
@@ -137,6 +137,9 @@ export default function AdminOrdersPage() {
     const [customer,     setCustomer]     = useState<{ id: number; name: string } | null>(null);
     const [showFilters,  setShowFilters]  = useState(false);
 
+    const [selectedIds,         setSelectedIds]         = useState<number[]>([]);
+    const [showBulkStatusDialog, setShowBulkStatusDialog] = useState(false);
+
     const [page, setPage] = usePersistedPage("admin:orders:page", [searchTerm, statusFilter, sortBy, priceMin, priceMax, dateFrom, dateTo, customer?.id]);
 
     const fetchOrders = useCallback(async () => {
@@ -167,6 +170,36 @@ export default function AdminOrdersPage() {
     const activeFilterCount = [
         statusFilter !== "all", !!priceMin, !!priceMax, !!(dateFrom || dateTo), sortBy !== "newest", !!customer,
     ].filter(Boolean).length;
+
+    // Clear selection on filter/page change
+    useEffect(() => { setSelectedIds([]); }, [page, searchTerm, statusFilter, sortBy, priceMin, priceMax, dateFrom, dateTo, customer]);
+
+    const toggleSelect = useCallback((id: number) => {
+        setSelectedIds(prev => prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id]);
+    }, []);
+
+    const isAllSelected = orders.length > 0 && orders.every(o => selectedIds.includes(o.id));
+    const isPartial     = selectedIds.length > 0 && !isAllSelected;
+    const toggleSelectAll = () => setSelectedIds(isAllSelected ? [] : orders.map(o => o.id));
+
+    const handleBulkStatusChange = async (status: OrderStatus) => {
+        setShowBulkStatusDialog(false);
+        // Optimistic update
+        setOrders(cur => cur.map(o => selectedIds.includes(o.id) ? { ...o, status } : o));
+        try {
+            const res = await fetch("/api/admin/order/bulk", {
+                method: "PATCH",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ ids: selectedIds, status }),
+            });
+            if (!res.ok) throw new Error();
+            toast.success(`${selectedIds.length} захиалгын төлөв шинэчлэгдлээ`);
+            setSelectedIds([]);
+        } catch {
+            toast.error("Төлөв шинэчлэхэд алдаа гарлаа");
+            fetchOrders(); // revert
+        }
+    };
 
     const handleStatusChange = async (id: number, status: OrderStatus) => {
         const prev = orders.find(o => o.id === id)?.status;
@@ -303,6 +336,15 @@ export default function AdminOrdersPage() {
                     <table className="w-full text-left">
                         <thead className="bg-slate-100 dark:bg-zinc-950/50 text-slate-400 dark:text-zinc-500 text-[10px] uppercase tracking-[0.2em]">
                             <tr>
+                                <th className="pl-6 pr-2 py-5">
+                                    <input
+                                        type="checkbox"
+                                        checked={isAllSelected}
+                                        ref={el => { if (el) el.indeterminate = isPartial; }}
+                                        onChange={toggleSelectAll}
+                                        className="w-4 h-4 rounded accent-teal-500 cursor-pointer"
+                                    />
+                                </th>
                                 <th className="px-8 py-5">Захиалгын дугаар</th>
                                 <th className="px-8 py-5">Хэрэглэгч</th>
                                 <th className="px-8 py-5">Огноо</th>
@@ -315,7 +357,7 @@ export default function AdminOrdersPage() {
                         <tbody className="divide-y divide-slate-200 dark:divide-zinc-800">
                             {loading ? (
                                 <tr>
-                                    <td colSpan={7} className="px-8 py-16 text-center">
+                                    <td colSpan={8} className="px-8 py-16 text-center">
                                         <div className="flex justify-center">
                                             <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-teal-500" />
                                         </div>
@@ -323,7 +365,7 @@ export default function AdminOrdersPage() {
                                 </tr>
                             ) : orders.length === 0 ? (
                                 <tr>
-                                    <td colSpan={7} className="px-8 py-16 text-center text-slate-400 dark:text-zinc-600">
+                                    <td colSpan={8} className="px-8 py-16 text-center text-slate-400 dark:text-zinc-600">
                                         <div className="text-3xl mb-3">📋</div>
                                         <p className="font-semibold">Захиалга олдсонгүй</p>
                                         {activeFilterCount > 0 && (
@@ -334,7 +376,15 @@ export default function AdminOrdersPage() {
                                     </td>
                                 </tr>
                             ) : (
-                                orders.map(order => <AdminOrderTile key={order.id} {...order} onStatusChange={handleStatusChange} />)
+                                orders.map(order => (
+                                    <AdminOrderTile
+                                        key={order.id}
+                                        {...order}
+                                        onStatusChange={handleStatusChange}
+                                        selected={selectedIds.includes(order.id)}
+                                        onToggle={toggleSelect}
+                                    />
+                                ))
                             )}
                         </tbody>
                     </table>
@@ -360,6 +410,68 @@ export default function AdminOrdersPage() {
                 pageSize={PAGE_SIZE}
                 onPageChange={setPage}
             />
+
+            {/* ── Bulk action bar ── */}
+            {selectedIds.length > 0 && (
+                <div className="fixed bottom-8 left-1/2 -translate-x-1/2 z-40 flex items-center gap-3 px-6 py-3.5 bg-zinc-900 border border-zinc-700 rounded-2xl shadow-2xl">
+                    <span className="text-sm font-semibold text-white whitespace-nowrap">
+                        {selectedIds.length} захиалга сонгогдсон
+                    </span>
+                    <div className="w-px h-5 bg-zinc-700" />
+                    <button
+                        onClick={() => setSelectedIds([])}
+                        className="text-xs text-zinc-400 hover:text-white transition-colors"
+                    >
+                        Болих
+                    </button>
+                    <button
+                        onClick={() => setShowBulkStatusDialog(true)}
+                        className="px-4 py-1.5 rounded-xl bg-teal-500/20 text-teal-400 hover:bg-teal-500/30 text-xs font-bold transition-colors"
+                    >
+                        Төлөв солих
+                    </button>
+                </div>
+            )}
+
+            {/* ── Bulk status picker modal ── */}
+            {showBulkStatusDialog && (
+                <div
+                    className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm"
+                    onClick={() => setShowBulkStatusDialog(false)}
+                >
+                    <div
+                        className="bg-white dark:bg-zinc-900 border border-slate-200 dark:border-zinc-700 rounded-3xl shadow-2xl p-8 w-full max-w-sm mx-4 flex flex-col gap-5"
+                        onClick={e => e.stopPropagation()}
+                    >
+                        <div>
+                            <h2 className="text-lg font-bold text-slate-900 dark:text-white">Төлөв солих</h2>
+                            <p className="text-sm text-slate-500 dark:text-zinc-400 mt-0.5">
+                                {selectedIds.length} захиалгад дараах төлөвийг тохируулна
+                            </p>
+                        </div>
+                        <div className="flex flex-col gap-2">
+                            {STATUS_LIST.map(s => {
+                                const info = getOrderStatusInfo(s);
+                                return (
+                                    <button
+                                        key={s}
+                                        onClick={() => handleBulkStatusChange(s)}
+                                        className={`flex items-center gap-3 px-4 py-3 rounded-2xl border transition-all hover:scale-[1.01] ${info.color}`}
+                                    >
+                                        <span className="text-sm font-bold">{info.name}</span>
+                                    </button>
+                                );
+                            })}
+                        </div>
+                        <button
+                            onClick={() => setShowBulkStatusDialog(false)}
+                            className="py-2.5 rounded-2xl border border-slate-200 dark:border-zinc-700 text-sm font-semibold text-slate-600 dark:text-zinc-300 hover:bg-slate-100 dark:hover:bg-zinc-800 transition-colors"
+                        >
+                            Болих
+                        </button>
+                    </div>
+                </div>
+            )}
         </>
     );
 }

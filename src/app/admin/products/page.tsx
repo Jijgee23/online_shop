@@ -10,13 +10,14 @@ import { Product } from "@/interface/product";
 import Pagination from "@/ui/Pagination";
 import { usePersistedPage } from "@/app/hooks/usePersistedPage";
 import { PAGE_SIZE, ADMIN_PRODUCT_SORT_OPTIONS as SORT_OPTIONS, STOCK_OPTIONS } from "@/app/product/constants";
+import { AlertTriangle } from "lucide-react";
 
 // ─── Page ─────────────────────────────────────────────────────────────────────
 
 export default function AdminProductsPage() {
     const { categories, fetchCategories } = useCategory();
     const { setActivePage } = useAdmin();
-    const { refetchSignal } = useProducts();
+    const { refetchSignal, bulkDeactivate, bulkPermanentDelete, bulkSetCategory } = useProducts();
 
     const [products, setProducts] = useState<Product[]>([]);
     const [total,    setTotal]    = useState(0);
@@ -26,12 +27,16 @@ export default function AdminProductsPage() {
     const [selectedCatId, setSelectedCatId] = useState(0);
     const [sortBy,        setSortBy]        = useState("newest");
     const [stockFilter,   setStockFilter]   = useState("all");
-    const [stateFilter,   setStateFilter]   = useState("all");
+    const [stateFilter,   setStateFilter]   = useState("ACTIVE");
     const [priceMin,      setPriceMin]      = useState("");
     const [priceMax,      setPriceMax]      = useState("");
 
     const [page, setPage] = usePersistedPage("admin:products:page", [searchTerm, selectedCatId, sortBy, stockFilter, stateFilter, priceMin, priceMax]);
-    const [showFilters,   setShowFilters]   = useState(false);
+    const [showFilters,        setShowFilters]        = useState(false);
+    const [selectedIds,        setSelectedIds]        = useState<number[]>([]);
+    const [showBulkDelDialog,  setShowBulkDelDialog]  = useState(false);
+    const [showBulkCatDialog,  setShowBulkCatDialog]  = useState(false);
+    const [bulkCatId,          setBulkCatId]          = useState(0);
 
     const allCategories = [{ id: 0, name: "Бүгд" }, ...categories];
 
@@ -64,14 +69,44 @@ export default function AdminProductsPage() {
 
     useEffect(() => { fetchCategories(); }, []);
 
+    // Clear selection when page or filter changes
+    useEffect(() => { setSelectedIds([]); }, [page, searchTerm, selectedCatId, sortBy, stockFilter, stateFilter, priceMin, priceMax]);
+
+    const toggleSelect = useCallback((id: number) => {
+        setSelectedIds(prev => prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id]);
+    }, []);
+
+    const isAllSelected   = products.length > 0 && products.every(p => selectedIds.includes(p.id));
+    const isPartial       = selectedIds.length > 0 && !isAllSelected;
+    const toggleSelectAll = () => setSelectedIds(isAllSelected ? [] : products.map(p => p.id));
+
+    const handleBulkDisable = async () => {
+        await bulkDeactivate(selectedIds);
+        setSelectedIds([]);
+    };
+
+    const handleBulkDelete = async () => {
+        await bulkPermanentDelete(selectedIds);
+        setSelectedIds([]);
+        setShowBulkDelDialog(false);
+    };
+
+    const handleBulkSetCategory = async () => {
+        if (!bulkCatId) return;
+        await bulkSetCategory(selectedIds, bulkCatId);
+        setSelectedIds([]);
+        setShowBulkCatDialog(false);
+        setBulkCatId(0);
+    };
+
     const activeFilterCount = [
         selectedCatId !== 0, !!priceMin, !!priceMax,
-        stockFilter !== "all", stateFilter !== "all", sortBy !== "newest",
+        stockFilter !== "all", stateFilter !== "ACTIVE", sortBy !== "newest",
     ].filter(Boolean).length;
 
     const resetFilters = () => {
         setSelectedCatId(0); setSortBy("newest");
-        setStockFilter("all"); setStateFilter("all");
+        setStockFilter("all"); setStateFilter("ACTIVE");
         setPriceMin(""); setPriceMax("");
     };
 
@@ -203,6 +238,15 @@ export default function AdminProductsPage() {
                     <table className="w-full text-left">
                         <thead className="bg-slate-100 dark:bg-zinc-950/50 text-slate-400 dark:text-zinc-500 text-[10px] uppercase tracking-[0.2em]">
                             <tr>
+                                <th className="pl-6 pr-2 py-5">
+                                    <input
+                                        type="checkbox"
+                                        checked={isAllSelected}
+                                        ref={el => { if (el) el.indeterminate = isPartial; }}
+                                        onChange={toggleSelectAll}
+                                        className="w-4 h-4 rounded accent-teal-500 cursor-pointer"
+                                    />
+                                </th>
                                 <th className="px-8 py-5">Бүтээгдэхүүн</th>
                                 <th className="px-8 py-5">Ангилал</th>
                                 <th className="px-8 py-5 text-right">Үнэ</th>
@@ -214,7 +258,7 @@ export default function AdminProductsPage() {
                         <tbody className="divide-y divide-slate-200 dark:divide-zinc-800">
                             {loading ? (
                                 <tr>
-                                    <td colSpan={6} className="px-8 py-16 text-center">
+                                    <td colSpan={7} className="px-8 py-16 text-center">
                                         <div className="flex justify-center">
                                             <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-teal-500" />
                                         </div>
@@ -222,7 +266,7 @@ export default function AdminProductsPage() {
                                 </tr>
                             ) : products.length === 0 ? (
                                 <tr>
-                                    <td colSpan={6} className="px-8 py-16 text-center text-slate-400 dark:text-zinc-600">
+                                    <td colSpan={7} className="px-8 py-16 text-center text-slate-400 dark:text-zinc-600">
                                         <div className="text-3xl mb-3">📦</div>
                                         <p className="font-semibold">Бүтээгдэхүүн олдсонгүй</p>
                                         {activeFilterCount > 0 && (
@@ -233,7 +277,14 @@ export default function AdminProductsPage() {
                                     </td>
                                 </tr>
                             ) : (
-                                products.map(product => <ProductTile key={product.id} {...product} />)
+                                products.map(product => (
+                                    <ProductTile
+                                        key={product.id}
+                                        {...product}
+                                        selected={selectedIds.includes(product.id)}
+                                        onToggle={toggleSelect}
+                                    />
+                                ))
                             )}
                         </tbody>
                     </table>
@@ -253,6 +304,124 @@ export default function AdminProductsPage() {
                 pageSize={PAGE_SIZE}
                 onPageChange={setPage}
             />
+
+            {/* ── Bulk action bar ── */}
+            {selectedIds.length > 0 && (
+                <div className="fixed bottom-8 left-1/2 -translate-x-1/2 z-40 flex items-center gap-3 px-6 py-3.5 bg-zinc-900 border border-zinc-700 rounded-2xl shadow-2xl">
+                    <span className="text-sm font-semibold text-white whitespace-nowrap">
+                        {selectedIds.length} бараа сонгогдсон
+                    </span>
+                    <div className="w-px h-5 bg-zinc-700" />
+                    <button
+                        onClick={() => setSelectedIds([])}
+                        className="text-xs text-zinc-400 hover:text-white transition-colors"
+                    >
+                        Болих
+                    </button>
+                    <button
+                        onClick={() => { setBulkCatId(0); setShowBulkCatDialog(true); }}
+                        className="px-4 py-1.5 rounded-xl bg-teal-500/20 text-teal-400 hover:bg-teal-500/30 text-xs font-bold transition-colors"
+                    >
+                        Ангилал солих
+                    </button>
+                    <button
+                        onClick={handleBulkDisable}
+                        className="px-4 py-1.5 rounded-xl bg-yellow-500/20 text-yellow-400 hover:bg-yellow-500/30 text-xs font-bold transition-colors"
+                    >
+                        Идэвхгүй болгох
+                    </button>
+                    <button
+                        onClick={() => setShowBulkDelDialog(true)}
+                        className="px-4 py-1.5 rounded-xl bg-red-500/20 text-red-400 hover:bg-red-500/30 text-xs font-bold transition-colors"
+                    >
+                        Бүр мөсөн устгах
+                    </button>
+                </div>
+            )}
+
+            {/* ── Bulk category change dialog ── */}
+            {showBulkCatDialog && (
+                <div
+                    className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm"
+                    onClick={() => setShowBulkCatDialog(false)}
+                >
+                    <div
+                        className="bg-white dark:bg-zinc-900 border border-slate-200 dark:border-zinc-700 rounded-3xl shadow-2xl p-8 w-full max-w-sm mx-4 flex flex-col gap-5"
+                        onClick={e => e.stopPropagation()}
+                    >
+                        <div className="flex flex-col gap-1">
+                            <h2 className="text-lg font-bold text-slate-900 dark:text-white">Ангилал солих</h2>
+                            <p className="text-sm text-slate-500 dark:text-zinc-400">
+                                {selectedIds.length} барааны ангилалыг солих
+                            </p>
+                        </div>
+                        <select
+                            value={bulkCatId}
+                            onChange={e => setBulkCatId(Number(e.target.value))}
+                            className="bg-slate-50 dark:bg-zinc-800 border border-slate-200 dark:border-zinc-700 rounded-2xl px-4 py-3 text-sm text-slate-900 dark:text-white focus:outline-none focus:ring-1 focus:ring-teal-500"
+                        >
+                            <option value={0} disabled>Ангилал сонгоно уу</option>
+                            {categories.map(cat => (
+                                <option key={cat.id} value={cat.id}>{cat.name}</option>
+                            ))}
+                        </select>
+                        <div className="flex gap-3">
+                            <button
+                                onClick={() => setShowBulkCatDialog(false)}
+                                className="flex-1 py-2.5 rounded-2xl border border-slate-200 dark:border-zinc-700 text-sm font-semibold text-slate-600 dark:text-zinc-300 hover:bg-slate-100 dark:hover:bg-zinc-800 transition-colors"
+                            >
+                                Болих
+                            </button>
+                            <button
+                                onClick={handleBulkSetCategory}
+                                disabled={!bulkCatId}
+                                className="flex-1 py-2.5 rounded-2xl bg-teal-500 hover:bg-teal-400 disabled:opacity-40 disabled:cursor-not-allowed text-sm font-semibold text-white transition-colors"
+                            >
+                                Хадгалах
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {/* ── Bulk delete confirm dialog ── */}
+            {showBulkDelDialog && (
+                <div
+                    className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm"
+                    onClick={() => setShowBulkDelDialog(false)}
+                >
+                    <div
+                        className="bg-white dark:bg-zinc-900 border border-slate-200 dark:border-zinc-700 rounded-3xl shadow-2xl p-8 w-full max-w-sm mx-4 flex flex-col gap-5"
+                        onClick={e => e.stopPropagation()}
+                    >
+                        <div className="flex flex-col items-center gap-3 text-center">
+                            <div className="w-14 h-14 rounded-2xl bg-red-500/10 flex items-center justify-center">
+                                <AlertTriangle className="w-7 h-7 text-red-500" />
+                            </div>
+                            <h2 className="text-lg font-bold text-slate-900 dark:text-white">
+                                {selectedIds.length} барааг устгах уу?
+                            </h2>
+                            <p className="text-sm text-slate-500 dark:text-zinc-400">
+                                Энэ үйлдлийг буцаах боломжгүй.
+                            </p>
+                        </div>
+                        <div className="flex gap-3">
+                            <button
+                                onClick={() => setShowBulkDelDialog(false)}
+                                className="flex-1 py-2.5 rounded-2xl border border-slate-200 dark:border-zinc-700 text-sm font-semibold text-slate-600 dark:text-zinc-300 hover:bg-slate-100 dark:hover:bg-zinc-800 transition-colors"
+                            >
+                                Болих
+                            </button>
+                            <button
+                                onClick={handleBulkDelete}
+                                className="flex-1 py-2.5 rounded-2xl bg-red-500 hover:bg-red-600 text-sm font-semibold text-white transition-colors"
+                            >
+                                Устгах
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
         </>
     );
 }

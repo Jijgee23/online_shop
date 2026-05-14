@@ -1,67 +1,67 @@
-import { useCategory } from "@/app/context/category_context"
+"use client";
+
+import { useCategory } from "@/app/context/category_context";
 import { Category } from "@/interface/category";
 import Image from "next/image";
 import Link from "next/link";
 
 export function TopCateGories() {
-    const categories = useCategory().categories;
+    const { categories } = useCategory();
+    if (categories.length === 0) return null;
+
     return (
-        <section className="py-10 bg-slate-50 dark:bg-slate-950">
+        <section className="py-8 bg-white dark:bg-slate-950 border-y border-slate-100 dark:border-slate-800/60">
             <div className="max-w-7xl mx-auto px-6">
-                <div className="flex justify-between items-end mb-6">
-                    <div>
-                        <div className="flex items-center gap-2 mb-1">
-                            <span className="w-1 h-5 bg-teal-500 rounded-full inline-block"></span>
-                            <p className="text-xs font-semibold text-teal-600 dark:text-teal-400 uppercase tracking-widest">Ангилал</p>
-                        </div>
-                        <h3 className="text-xl font-bold text-slate-900 dark:text-white">Хамгийн их эрэлттэй төрлүүд</h3>
-                    </div>
+                <div className="flex items-center gap-2 mb-5">
+                    <span className="w-1 h-5 bg-teal-500 rounded-full" />
+                    <h3 className="text-xs font-extrabold text-slate-900 dark:text-white tracking-[0.15em] uppercase">
+                        Ангилал
+                    </h3>
                 </div>
 
-                <div className="grid grid-cols-3 md:grid-cols-6 gap-3">
-                    {categories.length !== 0 &&
-                        categories.map((category) => (
-                            <CategoryCard key={category.id} {...category} />
-                        ))}
+                <div className="flex gap-2.5 overflow-x-auto pb-1 scrollbar-hide">
+                    {categories.map((cat) => (
+                        <CategoryChip key={cat.id} {...cat} />
+                    ))}
                 </div>
             </div>
         </section>
-    )
+    );
 }
 
-
-export default function CategoryCard(category: Category) {
+function CategoryChip(cat: Category) {
     return (
         <Link
-            href={`/product?category=${category.id}`}
-            className="group bg-white dark:bg-slate-900 rounded-xl overflow-hidden border border-slate-300 dark:border-slate-800 transition-all duration-300 hover:shadow-lg hover:shadow-slate-200/50 dark:hover:shadow-none hover:border-teal-200 dark:hover:border-teal-800 hover:-translate-y-1 flex flex-col"
+            href={`/product?category=${cat.id}`}
+            className="group flex-shrink-0 flex items-center gap-2.5 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl px-3.5 py-2 hover:border-teal-400 hover:bg-teal-50 dark:hover:bg-teal-900/20 dark:hover:border-teal-700 transition-all duration-200"
         >
-            {/* Cover */}
-            <div className="relative w-full aspect-square bg-gradient-to-br from-slate-100 to-slate-200 dark:from-slate-800 dark:to-slate-700 overflow-hidden">
-                {category.image ? (
+            <div className="relative w-7 h-7 rounded-lg overflow-hidden bg-slate-200 dark:bg-slate-700 flex-shrink-0">
+                {cat.image ? (
                     <Image
-                        src={category.image}
-                        alt={category.name}
+                        src={cat.image}
+                        alt={cat.name}
                         fill
-                        className="object-cover transition-transform duration-300 group-hover:scale-105"
+                        className="object-cover"
                         unoptimized
                     />
                 ) : (
-                    <div className="absolute inset-0 flex items-center justify-center">
-                        <span className="text-3xl font-black text-slate-300 dark:text-slate-600 select-none uppercase">
-                            {category.name.charAt(0)}
-                        </span>
-                    </div>
+                    <span className="absolute inset-0 flex items-center justify-center text-xs font-black text-slate-400 dark:text-slate-500 uppercase">
+                        {cat.name.charAt(0)}
+                    </span>
                 )}
             </div>
 
-            {/* Info */}
-            <div className="px-2.5 py-2 flex items-center justify-between gap-1">
-                <h4 className="font-semibold text-xs text-slate-900 dark:text-white truncate">{category.name}</h4>
-                <span className="flex-shrink-0 text-[10px] text-slate-400 dark:text-slate-500 font-medium bg-slate-50 dark:bg-slate-800 px-2 py-0.5 rounded-full">
-                    {category._count?.products ?? 0}
+            <span className="text-sm font-semibold text-slate-700 dark:text-slate-300 group-hover:text-teal-600 dark:group-hover:text-teal-400 whitespace-nowrap transition-colors">
+                {cat.name}
+            </span>
+
+            {cat._count?.products !== undefined && (
+                <span className="text-[11px] font-medium text-slate-400 dark:text-slate-500 bg-slate-100 dark:bg-slate-800 px-1.5 py-0.5 rounded-full leading-none">
+                    {cat._count.products}
                 </span>
-            </div>
+            )}
         </Link>
     );
 }
+
+export default CategoryChip;

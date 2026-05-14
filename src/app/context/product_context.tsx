@@ -10,6 +10,10 @@ interface ProductContextType {
     fetchProducts: () => Promise<void>;
     deleteProduct: (id: number) => Promise<void>;
     restoreProduct: (id: number) => Promise<void>;
+    permantentDelete: (id: number) => Promise<void>;
+    bulkDeactivate: (ids: number[]) => Promise<void>;
+    bulkPermanentDelete: (ids: number[]) => Promise<void>;
+    bulkSetCategory: (ids: number[], categoryId: number) => Promise<void>;
     refetchSignal: number;
 }
 
@@ -55,6 +59,57 @@ export const ProductProvider = ({ children }: { children: ReactNode }) => {
             }
         } catch (err) { }
     };
+    const permantentDelete = async (id: number) => {
+        try {
+            const res = await fetch(`/api/admin/product/${id}/permant_delete`, { method: 'DELETE' });
+            if (res.ok) {
+                toast.success('Бараа амжилттай устгагдлаа');
+                setRefetchSignal(s => s + 1);
+            }
+        } catch (err) { }
+    }
+
+    const bulkDeactivate = async (ids: number[]) => {
+        try {   
+            const res = await fetch('/api/admin/product/bulk', {
+                method: 'PATCH',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ ids, action: 'deactivate' }),
+            });
+            if (res.ok) {
+                toast.success(`${ids.length} бараа идэвхгүй болгогдлоо`);
+                setRefetchSignal(s => s + 1);
+            }
+        } catch (err) { }
+    };
+
+    const bulkPermanentDelete = async (ids: number[]) => {
+        try {
+            const res = await fetch('/api/admin/product/bulk', {
+                method: 'DELETE',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ ids }),
+            });
+            if (res.ok) {
+                toast.success(`${ids.length} бараа бүр мөсөн устгагдлаа`);
+                setRefetchSignal(s => s + 1);
+            }
+        } catch (err) { }
+    };
+
+    const bulkSetCategory = async (ids: number[], categoryId: number) => {
+        try {
+            const res = await fetch('/api/admin/product/bulk', {
+                method: 'PATCH',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ ids, action: 'setCategory', categoryId }),
+            });
+            if (res.ok) {
+                toast.success(`${ids.length} барааны ангилал шинэчлэгдлээ`);
+                setRefetchSignal(s => s + 1);
+            }
+        } catch (err) { }
+    };
 
     useEffect(() => { fetchProducts() }, [])
 
@@ -63,6 +118,10 @@ export const ProductProvider = ({ children }: { children: ReactNode }) => {
         fetchProducts,
         deleteProduct,
         restoreProduct,
+        permantentDelete,
+        bulkDeactivate,
+        bulkPermanentDelete,
+        bulkSetCategory,
         refetchSignal,
     }
     return <ProductContext.Provider value={value}>{children}</ProductContext.Provider>;

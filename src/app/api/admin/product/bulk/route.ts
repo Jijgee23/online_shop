@@ -2,6 +2,62 @@ import { ProductState } from "@/generated/prisma";
 import { prisma } from "@/lib/prisma";
 import { NextRequest, NextResponse } from "next/server";
 
+// PATCH /api/admin/product/bulk
+// body: { ids, action: "deactivate" | "setCategory", categoryId? }
+export async function PATCH(req: NextRequest) {
+    try {
+        const { ids, action, categoryId } = await req.json();
+        if (!Array.isArray(ids) || ids.length === 0)
+            return NextResponse.json({ error: "Барааны жагсаалт хоосон байна" }, { status: 400 });
+
+        if (action === "deactivate") {
+            await prisma.product.updateMany({
+                where: { id: { in: ids } },
+                data: { state: ProductState.INACTIVE, isPublished: false, deletedAt: new Date() },
+            });
+            return NextResponse.json({ message: `${ids.length} бараа идэвхгүй болгогдлоо` });
+        }
+
+        if (action === "setCategory") {
+            if (!categoryId)
+                return NextResponse.json({ error: "Ангилал сонгоогүй байна" }, { status: 400 });
+            await prisma.product.updateMany({
+                where: { id: { in: ids } },
+                data: { categoryId },
+            });
+            return NextResponse.json({ message: `${ids.length} барааны ангилал шинэчлэгдлээ` });
+        }
+
+        return NextResponse.json({ error: "Буруу action" }, { status: 400 });
+    } catch (error) {
+        console.error(error);
+        return NextResponse.json({ error: "Алдаа гарлаа" }, { status: 500 });
+    }
+}
+
+// DELETE /api/admin/product/bulk
+// body: { ids }
+export async function DELETE(req: NextRequest) {
+    try {
+        const { ids } = await req.json();
+        if (!Array.isArray(ids) || ids.length === 0)
+            return NextResponse.json({ error: "Барааны жагсаалт хоосон байна" }, { status: 400 });
+
+        await prisma.$transaction(async (tx) => {
+            await tx.productImage.deleteMany({ where: { productId: { in: ids } } });
+            await tx.cartItem.deleteMany({   where: { productId: { in: ids } } });
+            await tx.review.deleteMany({     where: { productId: { in: ids } } });
+            await tx.orderItem.deleteMany({  where: { productId: { in: ids } } });
+            await tx.product.deleteMany({    where: { id:        { in: ids } } });
+        });
+
+        return NextResponse.json({ message: `${ids.length} бараа бүр мөсөн устгагдлаа` });
+    } catch (error) {
+        console.error(error);
+        return NextResponse.json({ error: "Алдаа гарлаа" }, { status: 500 });
+    }
+}
+
 export async function POST(req: NextRequest) {
     try {
         const { products } = await req.json();

@@ -1,28 +1,42 @@
 "use client";
 
-import { useProducts } from "@/app/context/product_context";
 import { Product } from "@/interface/product";
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import toast from "react-hot-toast";
 
 export default function FeaturedProductsPage() {
-    const { products, fetchProducts } = useProducts();
-    const [search, setSearch] = useState("");
+    const [products, setProducts] = useState<Product[]>([]);
+    const [loading,  setLoading]  = useState(true);
+    const [search,   setSearch]   = useState("");
     const [toggling, setToggling] = useState<number | null>(null);
 
-    useEffect(() => { fetchProducts(); }, []);
+    const reload = useCallback(async () => {
+        setLoading(true);
+        try {
+            const res  = await fetch("/api/admin/product?pageSize=500&state=all");
+            const data = await res.json();
+            if (res.ok) setProducts(data.data ?? []);
+        } finally {
+            setLoading(false);
+        }
+    }, []);
+
+    useEffect(() => { reload(); }, [reload]);
 
     const toggle = async (product: Product) => {
         setToggling(product.id);
         const next = !product.featured;
+        // Optimistic update — no full reload needed
+        setProducts(prev => prev.map(p => p.id === product.id ? { ...p, featured: next } : p));
         try {
             const fd = new FormData();
             fd.append("featured", String(next));
             const res = await fetch(`/api/admin/product/${product.id}`, { method: "PATCH", body: fd });
             if (!res.ok) throw new Error();
             toast.success(next ? "Онцлох бүтээгдэхүүнд нэмэгдлээ" : "Онцлохоос хасагдлаа");
-            await fetchProducts();
         } catch {
+            // Revert on failure
+            setProducts(prev => prev.map(p => p.id === product.id ? { ...p, featured: !next } : p));
             toast.error("Алдаа гарлаа");
         } finally {
             setToggling(null);
@@ -49,9 +63,9 @@ export default function FeaturedProductsPage() {
             {/* Stats */}
             <div className="grid grid-cols-3 gap-4 mb-8">
                 {[
-                    { label: "Нийт бүтээгдэхүүн", value: active.length,   color: "text-slate-900 dark:text-white" },
-                    { label: "Онцлох",              value: featured.length, color: "text-teal-500" },
-                    { label: "Онцлохгүй",           value: active.length - featured.length, color: "text-slate-400 dark:text-zinc-500" },
+                    { label: "Нийт бүтээгдэхүүн", value: active.length,                    color: "text-slate-900 dark:text-white" },
+                    { label: "Онцлох",              value: featured.length,                  color: "text-teal-500" },
+                    { label: "Онцлохгүй",           value: active.length - featured.length,  color: "text-slate-400 dark:text-zinc-500" },
                 ].map(s => (
                     <div key={s.label} className="bg-white dark:bg-zinc-900 border border-slate-200 dark:border-zinc-800 rounded-3xl p-5">
                         <p className="text-xs font-bold text-slate-400 dark:text-zinc-500 uppercase tracking-wider mb-1">{s.label}</p>
@@ -108,7 +122,11 @@ export default function FeaturedProductsPage() {
             {/* Product list */}
             <div className="bg-white dark:bg-zinc-900 border border-slate-200 dark:border-zinc-800 rounded-[2rem] overflow-hidden">
                 <div className="divide-y divide-slate-100 dark:divide-zinc-800">
-                    {filtered.length === 0 ? (
+                    {loading ? (
+                        <div className="py-16 text-center">
+                            <div className="inline-block animate-spin rounded-full h-8 w-8 border-t-2 border-teal-500" />
+                        </div>
+                    ) : filtered.length === 0 ? (
                         <div className="py-16 text-center text-slate-400 dark:text-zinc-600">
                             <p className="text-3xl mb-3">📦</p>
                             <p className="font-semibold">Бүтээгдэхүүн олдсонгүй</p>

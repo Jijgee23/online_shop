@@ -262,6 +262,18 @@ export const ProductService = {
         if (!deactivatedProduct) return { message: 'Өгөгдөл шинэчилж чадсангүй' }
         return
     },
+    async permanentDelete(id: number) {
+        const product = await prisma.product.findUnique({ where: { id: Number(id) } })
+        if (!product) return { message: 'Бараа олдсонгүй' }
+        await prisma.$transaction(async (tx) => {
+            await tx.productImage.deleteMany({ where: { productId: id } });
+            await tx.cartItem.deleteMany({   where: { productId: id } });
+            await tx.review.deleteMany({     where: { productId: id } });
+            await tx.orderItem.deleteMany({  where: { productId: id } });
+            await tx.product.delete({        where: { id } });
+        });
+        return product
+    },
     async productDetail(id: number) {
         const product = await prisma.product.findUnique({
             where: { id: id },
