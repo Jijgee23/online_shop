@@ -244,7 +244,7 @@ export default function AdminProductsPage() {
                                         checked={isAllSelected}
                                         ref={el => { if (el) el.indeterminate = isPartial; }}
                                         onChange={toggleSelectAll}
-                                        className="w-4 h-4 rounded accent-teal-500 cursor-pointer"
+                                        className="w-6 h-6 rounded accent-teal-500 cursor-pointer"
                                     />
                                 </th>
                                 <th className="px-8 py-5">Бүтээгдэхүүн</th>

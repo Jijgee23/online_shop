@@ -33,7 +33,9 @@
       "Bash(ngrok version:*)",
       "Bash(curl -s -X PATCH http://localhost:3000/api/admin/settings -H 'Content-Type: application/json' -d '{\"payOnDelivery\": true}')",
       "Read(//tmp/**)",
-      "Bash(curl -s http://localhost:3000/api/admin/settings -H \"Cookie: accessToken=$\\(cat /tmp/admin_token || echo 'none'\\)\")"
+      "Bash(curl -s http://localhost:3000/api/admin/settings -H \"Cookie: accessToken=$\\(cat /tmp/admin_token || echo 'none'\\)\")",
+      "Bash(git commit *)",
+      "WebFetch(domain:mongolz.shop)"
     ]
   }
 }

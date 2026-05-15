@@ -52,6 +52,7 @@ export default function HomePage() {
 
   return (
     <div className="min-h-screen bg-white dark:bg-slate-950 font-sans selection:bg-teal-200 selection:text-teal-900">
+  
       <Header />
 
       <FeaturedSearchProduct
@@ -68,6 +69,7 @@ export default function HomePage() {
       {user === null && <Features />}
 
       <MainFooter />
+      
     </div>
   );
 }

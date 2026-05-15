@@ -111,13 +111,13 @@ export default function ProductTile({ selected, onToggle, ...product }: Props) {
                     type="checkbox"
                     checked={selected}
                     onChange={() => onToggle(product.id)}
-                    className="w-4 h-4 rounded accent-teal-500 cursor-pointer"
+                    className="w-6 h-6 rounded accent-teal-500 cursor-pointer"
                 />
             </td>
-            <td className="px-8 py-5">
+            <td className="px-2 py-5">
                 <div className="flex items-center gap-4">
 
-                    <div className="w-12 h-12 rounded-xl bg-slate-100 dark:bg-zinc-800 border border-slate-300 dark:border-zinc-700 flex items-center justify-center overflow-hidden">
+                    <div className="w-20 h-20 rounded-xl bg-slate-100 dark:bg-zinc-800 border border-slate-300 dark:border-zinc-700 flex items-center justify-center overflow-hidden">
                         <img src={realUrl} alt={product.name} className={`w-full h-full object-cover ${isDeleted ? "grayscale" : ""}`} />
                     </div>
                     <div>

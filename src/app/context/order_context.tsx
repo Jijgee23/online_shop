@@ -57,6 +57,7 @@ export const OrderProvider = ({ children }: { children: ReactNode }) => {
                 await fetchCart();
                 return true;
             }
+            console.log("Create order error:", data);
             toast.error(data.message ?? 'Захиалга үүсэхэд алдаа гарлаа', { id: t });
             return false;
         } catch {

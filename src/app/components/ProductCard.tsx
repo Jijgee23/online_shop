@@ -27,6 +27,7 @@ export default function ProductCard(product: Product) {
 
     const handleWishClick = async (e: React.MouseEvent) => {
         e.stopPropagation();
+        if (!isAuthenticated) { router.push("/auth/login"); return; }
         await toggleWish(product.id);
     };
 
@@ -89,12 +90,15 @@ export default function ProductCard(product: Product) {
                 {/* Wishlist */}
                 <button
                     onClick={handleWishClick}
+                    title={isAuthenticated ? undefined : "Нэвтэрч орно уу"}
                     className={`absolute top-3 right-3 z-20 w-8 h-8 flex items-center justify-center rounded-full backdrop-blur-sm shadow-md transition-all duration-200 active:scale-90
-                        ${isWished
-                            ? "bg-red-500 text-white scale-110"
-                            : "bg-white/80 dark:bg-slate-900/80 text-slate-400 hover:text-red-500 hover:scale-110"}`}
+                        ${!isAuthenticated
+                            ? "bg-white/80 dark:bg-slate-900/80 text-slate-300 dark:text-slate-600 opacity-40 cursor-not-allowed"
+                            : isWished
+                                ? "bg-red-500 text-white scale-110"
+                                : "bg-white/80 dark:bg-slate-900/80 text-slate-400 hover:text-red-500 hover:scale-110"}`}
                 >
-                    <Heart className={`w-4 h-4 transition-all ${isWished ? "fill-white" : ""}`} />
+                    <Heart className={`w-4 h-4 transition-all ${isAuthenticated && isWished ? "fill-white" : ""}`} />
                 </button>
 
                 {/* Quick add overlay — desktop hover only */}

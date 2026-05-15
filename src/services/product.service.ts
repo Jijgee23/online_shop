@@ -136,7 +136,18 @@ export const ProductService = {
             data.productSizes = { deleteMany: {}, create: sizesData.map((s: any) => ({ sizeName: s.sizeName, value: s.value })) };
         }
 
-        // Images — only upload if files were sent
+        // Images — sync existing (delete removed) + upload new
+        const existingImagesRaw = formData.get("existingImages");
+        const keptUrls: string[] = existingImagesRaw
+            ? (JSON.parse(existingImagesRaw as string) as { url: string }[]).map(i => i.url)
+            : [];
+
+        // Delete images that the user removed in the UI
+        await prisma.productImage.deleteMany({
+            where: { productId: id, url: { notIn: keptUrls } },
+        });
+
+        // Upload and create new images
         const imageFiles = formData.getAll("images") as File[];
         if (imageFiles.length > 0) {
             const uploadDir = path.join(process.cwd(), "public/uploads");

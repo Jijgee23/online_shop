@@ -24,9 +24,8 @@ export const getProductStatusName = (status: ProductState) => {
         default: return "Идэвхгүй";
     }
 };
+
 export const generateSlug = (name: string) => {
-
-
     const cyrillicToLatin: { [key: string]: string } = {
         'а': 'a', 'б': 'b', 'в': 'v', 'г': 'g', 'д': 'd', 'е': 'e', 'ё': 'yo', 'ж': 'j', 'з': 'z',
         'и': 'i', 'й': 'i', 'к': 'k', 'л': 'l', 'м': 'm', 'н': 'n', 'о': 'o', 'ө': 'o', 'п': 'p',

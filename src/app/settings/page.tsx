@@ -27,7 +27,6 @@ function UserSettingsContent() {
     const { user, checkUser } = useAuth();
     const router = useRouter();
     const searchParams = useSearchParams();
-
     const [savingProfile, setSavingProfile] = useState(false);
     const [savingPassword, setSavingPassword] = useState(false);
     const [disconnecting, setDisconnecting] = useState(false);
@@ -304,3 +303,6 @@ export default function UserSettingsPage() {
         </Suspense>
     );
 }
+
+
+

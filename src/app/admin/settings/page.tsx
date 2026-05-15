@@ -44,14 +44,32 @@ export default function AdminSettingsPage() {
     };
 
     return (
-        <div className="max-lg mx-auto pb-20">
-            <header className="mb-8 pt-2">
-                <h2 className="text-3xl font-bold text-slate-900 dark:text-white tracking-tight">Тохиргоо</h2>
+        <div className="pb-20">
+            <header className="mb-6 pt-2">
+                <h2 className="text-2xl sm:text-3xl font-bold text-slate-900 dark:text-white tracking-tight">Тохиргоо</h2>
                 <p className="text-slate-400 dark:text-zinc-500 text-sm mt-1">Системийн ерөнхий тохиргоонууд</p>
             </header>
 
+            {/* Mobile: horizontal scroll tabs */}
+            <div className="lg:hidden mb-5 -mx-1">
+                <div className="flex gap-2 overflow-x-auto scrollbar-hide px-1 pb-1">
+                    {TABS.map(tab => (
+                        <button key={tab.id} onClick={() => handleTabChange(tab.id)}
+                            className={`flex-shrink-0 flex items-center gap-2 px-4 py-2.5 rounded-2xl text-sm font-medium transition-all ${
+                                activeTab === tab.id
+                                    ? "bg-teal-500/10 text-teal-500 border border-teal-500/30"
+                                    : "text-slate-500 dark:text-zinc-400 bg-slate-100 dark:bg-zinc-800 border border-transparent"
+                            }`}>
+                            <span className={activeTab === tab.id ? "text-teal-500" : ""}>{tab.icon}</span>
+                            {tab.label}
+                        </button>
+                    ))}
+                </div>
+            </div>
+
+            {/* Desktop: sidebar + content */}
             <div className="flex gap-6">
-                <aside className="w-48 flex-shrink-0">
+                <aside className="hidden lg:block w-48 flex-shrink-0">
                     <nav className="space-y-1 sticky top-6">
                         {TABS.map(tab => (
                             <button key={tab.id} onClick={() => handleTabChange(tab.id)}

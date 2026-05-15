@@ -19,10 +19,17 @@ export function TopCateGories() {
                     </h3>
                 </div>
 
-                <div className="flex gap-2.5 overflow-x-auto pb-1 scrollbar-hide">
-                    {categories.map((cat) => (
-                        <CategoryChip key={cat.id} {...cat} />
-                    ))}
+                <div className="relative">
+                    {/* left fade */}
+                    <div className="pointer-events-none absolute left-0 top-0 bottom-0 w-8 bg-gradient-to-r from-white dark:from-slate-950 to-transparent z-10" />
+                    {/* right fade */}
+                    <div className="pointer-events-none absolute right-0 top-0 bottom-0 w-12 bg-gradient-to-l from-white dark:from-slate-950 to-transparent z-10" />
+
+                    <div className="flex gap-2.5 overflow-x-auto pb-1 scrollbar-hide px-1">
+                        {categories.map((cat) => (
+                            <CategoryChip key={cat.id} {...cat} />
+                        ))}
+                    </div>
                 </div>
             </div>
         </section>
@@ -33,9 +40,9 @@ function CategoryChip(cat: Category) {
     return (
         <Link
             href={`/product?category=${cat.id}`}
-            className="group flex-shrink-0 flex items-center gap-2.5 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl px-3.5 py-2 hover:border-teal-400 hover:bg-teal-50 dark:hover:bg-teal-900/20 dark:hover:border-teal-700 transition-all duration-200"
+            className="group flex-shrink-0 flex items-center gap-5 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl px-3.5 py-2 hover:border-teal-400 hover:bg-teal-50 dark:hover:bg-teal-900/20 dark:hover:border-teal-700 transition-all duration-200"
         >
-            <div className="relative w-7 h-7 rounded-lg overflow-hidden bg-slate-200 dark:bg-slate-700 flex-shrink-0">
+            <div className="relative w-14 h-14 rounded-lg overflow-hidden bg-slate-200 dark:bg-slate-700 flex-shrink-0">
                 {cat.image ? (
                     <Image
                         src={cat.image}

@@ -113,7 +113,7 @@ function TreeNode({ node, depth, onEdit, onDelete, onAddChild, onToggleFeatured 
                 </button>
 
                 {/* Icon / image */}
-                <span className="flex-shrink-0 w-6 h-6 rounded-lg overflow-hidden flex items-center justify-center">
+                <span className="flex-shrink-0 w-16 h-16 rounded-lg overflow-hidden flex items-center justify-center">
                     {node.image ? (
                         <Image src={node.image} alt={node.name} width={24} height={24} className="object-cover w-full h-full" unoptimized />
                     ) : (
@@ -124,7 +124,7 @@ function TreeNode({ node, depth, onEdit, onDelete, onAddChild, onToggleFeatured 
                 </span>
 
                 {/* Name */}
-                <span className={`flex-1 font-semibold truncate text-sm
+                <span className={`flex-1 px-4 font-semibold truncate text-sm
                     ${depth === 0
                         ? "text-slate-800 dark:text-white"
                         : "text-slate-600 dark:text-zinc-300"}`}>
