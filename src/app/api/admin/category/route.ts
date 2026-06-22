@@ -3,9 +3,10 @@ import { prisma } from "@/lib/prisma";
 import { NextRequest, NextResponse } from "next/server";
 import { writeFile, mkdir } from "fs/promises";
 import path from "path";
+import { getUploadDir } from "@/utils/uploadDir";
 
 async function saveImage(file: File): Promise<string> {
-    const uploadDir = path.join(process.cwd(), "public/uploads");
+    const uploadDir = getUploadDir();
     await mkdir(uploadDir, { recursive: true });
     const fileName = `cat-${Date.now()}-${file.name.replace(/\s+/g, "_")}`;
     const buffer = Buffer.from(await file.arrayBuffer());

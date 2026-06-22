@@ -1,6 +1,7 @@
 import { ProductState, AttributeType } from "@/generated/prisma";
 import { prisma } from "@/lib/prisma";
 import { generateSlug } from "@/utils/utils";
+import { getUploadDir } from "@/utils/uploadDir";
 import { mkdir, writeFile } from "fs/promises";
 import path from "path";
 
@@ -128,7 +129,7 @@ function buildStockRows(
 
 // Нэг файлыг public/uploads-д хадгалж, public URL буцаана
 async function saveUpload(file: File): Promise<string> {
-    const uploadDir = path.join(process.cwd(), "public/uploads");
+    const uploadDir = getUploadDir();
     try { await mkdir(uploadDir, { recursive: true }); } catch { /* хавтас байвал алгасна */ }
     const buffer = Buffer.from(await file.arrayBuffer());
     const fileName = `${Date.now()}-${file.name}`;
@@ -202,7 +203,7 @@ export const ProductService = {
             }
             slug = `${slug}-${suffix}`;
         }
-        const uploadDir = path.join(process.cwd(), "public/uploads");
+        const uploadDir = getUploadDir();
         try {
             await mkdir(uploadDir, { recursive: true });
         } catch (e) {
@@ -350,7 +351,7 @@ export const ProductService = {
         // Шинэ зургийн url-ууд (формын index дарааллаар) — холбоос үүсгэхэд хэрэгтэй
         let newImageUrls: string[] = [];
         if (imageFiles.length > 0) {
-            const uploadDir = path.join(process.cwd(), "public/uploads");
+            const uploadDir = getUploadDir();
             try { await mkdir(uploadDir, { recursive: true }); } catch (err) {
                 console.error("Хавтас үүсгэхэд алдаа гарлаа:", err);
             }

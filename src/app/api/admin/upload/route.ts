@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { mkdir, writeFile } from "fs/promises";
 import path from "path";
+import { getUploadDir } from "@/utils/uploadDir";
 
 export const dynamic = "force-dynamic";
 
@@ -16,7 +17,7 @@ export async function POST(req: NextRequest) {
             return NextResponse.json({ error: "Зөвхөн зураг оруулна уу" }, { status: 400 });
         }
 
-        const uploadDir = path.join(process.cwd(), "public/uploads");
+        const uploadDir = getUploadDir();
         try { await mkdir(uploadDir, { recursive: true }); } catch { /* хавтас байвал алгасна */ }
 
         const buffer = Buffer.from(await file.arrayBuffer());
