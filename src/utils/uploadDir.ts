@@ -7,5 +7,7 @@ import path from "path";
  * Public URL нь файл хаана ч хадгалагдсан үргэлж /uploads/<filename> хэвээр.
  */
 export function getUploadDir(): string {
-    return process.env.UPLOAD_DIR || path.join(process.cwd(), "public/uploads");
+    // .env-д санамсаргүй орсон хашилт/зайг арилгана (UPLOAD_DIR="..." → /...)
+    const dir = process.env.UPLOAD_DIR?.trim().replace(/^["']|["']$/g, "");
+    return dir || path.join(process.cwd(), "public/uploads");
 }
