@@ -1,7 +1,9 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { BarChart3, Package, MapPin, CreditCard, Tag, TrendingUp, ShoppingCart, Coins } from "lucide-react";
+import { BarChart3, Package, MapPin, CreditCard, Tag, TrendingUp, ShoppingCart, Coins, Download } from "lucide-react";
+import { exportReportToExcel } from "@/utils/exportExcel";
+import DatePicker from "@/ui/DatePicker";
 
 type ReportType = "products" | "districts" | "payment_method" | "category";
 
@@ -309,8 +311,6 @@ export default function AdminReportPage() {
         }
     };
 
-    const inputCls = "h-11 bg-white dark:bg-zinc-900 border border-slate-200 dark:border-zinc-700 rounded-2xl px-4 text-sm text-slate-900 dark:text-white focus:outline-none focus:ring-1 focus:ring-teal-500 transition-all";
-
     return (
         <>
             {/* ── Header ── */}
@@ -328,23 +328,11 @@ export default function AdminReportPage() {
                 <div className="flex flex-wrap items-end gap-4">
                     <div className="flex flex-col gap-1.5">
                         <label className="text-[10px] font-bold text-slate-400 dark:text-zinc-500 uppercase tracking-wider">Эхлэх огноо</label>
-                        <input
-                            type="date"
-                            value={dateFrom}
-                            max={dateTo}
-                            onChange={e => setDateFrom(e.target.value)}
-                            className={inputCls}
-                        />
+                        <DatePicker value={dateFrom} max={dateTo || undefined} onChange={setDateFrom} placeholder="Эхлэх огноо" />
                     </div>
                     <div className="flex flex-col gap-1.5">
                         <label className="text-[10px] font-bold text-slate-400 dark:text-zinc-500 uppercase tracking-wider">Дуусах огноо</label>
-                        <input
-                            type="date"
-                            value={dateTo}
-                            min={dateFrom}
-                            onChange={e => setDateTo(e.target.value)}
-                            className={inputCls}
-                        />
+                        <DatePicker value={dateTo} min={dateFrom || undefined} onChange={setDateTo} placeholder="Дуусах огноо" />
                     </div>
                     <div className="flex flex-col gap-1.5">
                         <label className="text-[10px] font-bold text-slate-400 dark:text-zinc-500 uppercase tracking-wider">Хэрэглэгч (заавал биш)</label>
@@ -440,7 +428,7 @@ export default function AdminReportPage() {
 
                     {/* Table card */}
                     <div className="bg-white dark:bg-zinc-900 border border-slate-200 dark:border-zinc-800 rounded-[2rem] overflow-hidden">
-                        <div className="px-8 py-5 border-b border-slate-100 dark:border-zinc-800 flex items-center justify-between">
+                        <div className="px-8 py-5 border-b border-slate-100 dark:border-zinc-800 flex items-center justify-between gap-4 flex-wrap">
                             <div className="flex items-center gap-2">
                                 <span className="text-teal-400">{REPORT_TYPES.find(r => r.type === result.type)?.icon}</span>
                                 <h3 className="font-bold text-slate-900 dark:text-white">
@@ -451,6 +439,15 @@ export default function AdminReportPage() {
                                 {result.meta.userId && <span className="px-2 py-1 rounded-lg bg-teal-500/10 text-teal-400 font-semibold">1 хэрэглэгч</span>}
                                 <span>{result.meta.dateFrom} → {result.meta.dateTo}</span>
                                 <span className="font-bold">{result.items.length} мөр</span>
+                                <button
+                                    onClick={() => exportReportToExcel(result, user?.name)}
+                                    disabled={result.items.length === 0}
+                                    className="flex items-center gap-1.5 px-3 py-1.5 bg-teal-500 hover:bg-teal-400 disabled:opacity-50 disabled:cursor-not-allowed text-white text-xs font-bold rounded-xl transition-colors shadow-md shadow-teal-500/20"
+                                    title="Excel татах"
+                                >
+                                    <Download className="w-3.5 h-3.5" />
+                                    Excel татах
+                                </button>
                             </div>
                         </div>
 

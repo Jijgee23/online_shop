@@ -70,21 +70,45 @@ export function ProductBulk() {
     };
 
     const downloadTemplate = () => {
+        // Багана бүр импортын API-тай яг таарна (англи түлхүүрүүд хэвээр байх ёстой).
         const templateData = [
             {
                 name: "iPhone 15 Pro",
                 price: 4200000,
+                discountPrice: 3990000,
                 stock: 10,
                 categoryId: 1,
-                slug: "iphone-15-pro-blue",
-                description: "128GB, Titanium Blue өнгөтэй"
-            }
+                slug: "iphone-15-pro",
+                description: "128GB, Titanium Blue өнгөтэй",
+            },
+            {
+                name: "AirPods Pro 2",
+                price: 850000,
+                discountPrice: "",
+                stock: 25,
+                categoryId: 1,
+                slug: "airpods-pro-2",
+                description: "USB-C хувилбар",
+            },
         ];
         const worksheet = XLSX.utils.json_to_sheet(templateData);
+        worksheet["!cols"] = [
+            { wch: 24 }, { wch: 12 }, { wch: 14 }, { wch: 8 }, { wch: 12 }, { wch: 22 }, { wch: 34 },
+        ];
         const workbook = XLSX.utils.book_new();
-        XLSX.utils.book_append_sheet(workbook, worksheet, "Products");
-        XLSX.writeFile(workbook, "product_template.xlsx");
+        XLSX.utils.book_append_sheet(workbook, worksheet, "Бараа");
+        XLSX.writeFile(workbook, "products-sample.xlsx");
     };
+
+    const COLUMN_HELP: { col: string; label: string; req: boolean }[] = [
+        { col: "name",          label: "Барааны нэр",                          req: true  },
+        { col: "price",         label: "Үнэ (₮)",                              req: true  },
+        { col: "discountPrice", label: "Хямдралтай үнэ (хоосон байж болно)",   req: false },
+        { col: "stock",         label: "Нөөц (ширхэг)",                        req: true  },
+        { col: "categoryId",    label: "Ангиллын ID (буруу бол «Бусад» руу)",  req: false },
+        { col: "slug",          label: "Холбоос (хоосон бол нэрнээс үүснэ)",   req: false },
+        { col: "description",   label: "Тайлбар",                              req: false },
+    ];
 
     return (
         <>
@@ -95,6 +119,33 @@ export function ProductBulk() {
             </header>
 
             <div className="max-w-6xl mb-10">
+                {/* Заавар */}
+                <div className="mb-6 rounded-2xl border border-teal-500/30 bg-teal-500/5 p-5">
+                    <p className="text-sm text-slate-700 dark:text-zinc-200 leading-relaxed">
+                        Та бүтээгдэхүүнээ импорт хийж оруулахын өмнө доорх жишээ файл{" "}
+                        <button
+                            type="button"
+                            onClick={downloadTemplate}
+                            className="font-bold text-teal-600 dark:text-teal-400 underline decoration-teal-400/50 underline-offset-2 hover:decoration-teal-400"
+                        >
+                            products-sample.xlsx
+                        </button>
+                        -г татаж аван харгалзах багануудын дагуу мэдээллийг бөглөөд файлаа upload хийж оруулаарай.
+                    </p>
+
+                    <div className="mt-4 grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-1.5">
+                        {COLUMN_HELP.map(({ col, label, req }) => (
+                            <div key={col} className="flex items-baseline gap-2 text-xs">
+                                <code className="font-mono font-bold text-slate-700 dark:text-zinc-200 bg-slate-100 dark:bg-zinc-800 px-1.5 py-0.5 rounded">
+                                    {col}
+                                </code>
+                                <span className="text-slate-500 dark:text-zinc-400">{label}</span>
+                                {req && <span className="text-[10px] font-bold text-teal-500">заавал</span>}
+                            </div>
+                        ))}
+                    </div>
+                </div>
+
                 <div className={`bg-white dark:bg-zinc-900/50 border-2 border-dashed rounded-[2rem] p-8 text-center transition-all group ${selectedData ? 'border-teal-500/50' : 'border-slate-200 dark:border-zinc-800'}`}>
                     <div className="flex flex-col items-center">
                         <div className={`w-12 h-12 rounded-full flex items-center justify-center mb-4 transition-transform ${selectedData ? 'bg-teal-500 text-white animate-bounce' : 'bg-teal-500/10 text-teal-500'}`}>
@@ -144,7 +195,7 @@ export function ProductBulk() {
                             onClick={downloadTemplate}
                             className="mt-8 text-slate-400 dark:text-zinc-500 hover:text-slate-600 dark:hover:text-zinc-300 text-xs font-bold underline decoration-slate-300 dark:decoration-zinc-700 underline-offset-4 transition-colors"
                         >
-                            Загвар файл татах
+                            products-sample.xlsx татах
                         </button>
                     </div>
                 </div>

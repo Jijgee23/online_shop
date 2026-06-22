@@ -7,6 +7,8 @@ import { useRouter } from "next/navigation";
 import { Trash2, LucideArchiveRestore, Eye, SquarePen, AlertTriangle } from "lucide-react";
 import { useState } from "react";
 import { imgUrl } from "@/utils/imgUrl";
+import { Badge } from "@/ui/Badge";
+import { Modal } from "@/ui/Modal";
 
 
 type Props = Product & { selected: boolean; onToggle: (id: number) => void }
@@ -60,45 +62,31 @@ export default function ProductTile({ selected, onToggle, ...product }: Props) {
 
     return (
         <>
-        {showDeleteDialog && (
-            <tr>
-                <td colSpan={7} className="p-0">
-                    <div
-                        className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm"
-                        onClick={() => setShowDeleteDialog(false)}
-                    >
-                        <div
-                            className="bg-white dark:bg-zinc-900 border border-slate-200 dark:border-zinc-700 rounded-3xl shadow-2xl p-8 w-full max-w-sm mx-4 flex flex-col gap-5"
-                            onClick={e => e.stopPropagation()}
-                        >
-                            <div className="flex flex-col items-center gap-3 text-center">
-                                <div className="w-14 h-14 rounded-2xl bg-red-500/10 flex items-center justify-center">
-                                    <AlertTriangle className="w-7 h-7 text-red-500" />
-                                </div>
-                                <h2 className="text-lg font-bold text-slate-900 dark:text-white">Бүр мөсөн устгах уу?</h2>
-                                <p className="text-sm text-slate-500 dark:text-zinc-400">
-                                    Та энэ барааг бүр мөсөн устгах гэж байна. Үүнийг буцаах боломжгүй.
-                                </p>
-                            </div>
-                            <div className="flex gap-3">
-                                <button
-                                    onClick={() => setShowDeleteDialog(false)}
-                                    className="flex-1 py-2.5 rounded-2xl border border-slate-200 dark:border-zinc-700 text-sm font-semibold text-slate-600 dark:text-zinc-300 hover:bg-slate-100 dark:hover:bg-zinc-800 transition-colors"
-                                >
-                                    Болих
-                                </button>
-                                <button
-                                    onClick={confirmPermanentDelete}
-                                    className="flex-1 py-2.5 rounded-2xl bg-red-500 hover:bg-red-600 text-sm font-semibold text-white transition-colors"
-                                >
-                                    Устгах
-                                </button>
-                            </div>
-                        </div>
-                    </div>
-                </td>
-            </tr>
-        )}
+        <Modal open={showDeleteDialog} onClose={() => setShowDeleteDialog(false)}>
+            <div className="flex flex-col items-center gap-3 text-center mb-5">
+                <div className="w-14 h-14 rounded-2xl bg-red-500/10 flex items-center justify-center">
+                    <AlertTriangle className="w-7 h-7 text-red-500" />
+                </div>
+                <h2 className="text-lg font-bold text-slate-900 dark:text-white">Бүр мөсөн устгах уу?</h2>
+                <p className="text-sm text-slate-500 dark:text-zinc-400">
+                    Та энэ барааг бүр мөсөн устгах гэж байна. Үүнийг буцаах боломжгүй.
+                </p>
+            </div>
+            <div className="flex gap-3">
+                <button
+                    onClick={() => setShowDeleteDialog(false)}
+                    className="flex-1 py-2.5 rounded-2xl border border-slate-200 dark:border-zinc-700 text-sm font-semibold text-slate-600 dark:text-zinc-300 hover:bg-slate-100 dark:hover:bg-zinc-800 transition-colors"
+                >
+                    Болих
+                </button>
+                <button
+                    onClick={confirmPermanentDelete}
+                    className="flex-1 py-2.5 rounded-2xl bg-red-500 hover:bg-red-600 text-sm font-semibold text-white transition-colors"
+                >
+                    Устгах
+                </button>
+            </div>
+        </Modal>
         <tr
             onClick={handleTap}
             className={`transition-all group ${isDeleted
@@ -153,13 +141,9 @@ export default function ProductTile({ selected, onToggle, ...product }: Props) {
             </td>
             <td className="px-8 py-5">
                 {isDeleted ? (
-                    <span className="px-3 py-1 text-[10px] font-bold rounded-full border border-red-800 text-red-400 bg-red-500/10">
-                        Устгагдсан
-                    </span>
+                    <Badge color="red">Устгагдсан</Badge>
                 ) : (
-                    <span className={`px-3 py-1 text-[10px] font-bold rounded-full border ${getProductStatusColor(product.state)}`}>
-                        {getProductStatusName(product.state)}
-                    </span>
+                    <Badge cls={getProductStatusColor(product.state)}>{getProductStatusName(product.state)}</Badge>
                 )}
             </td>
             <td className="px-8 py-5 text-right">

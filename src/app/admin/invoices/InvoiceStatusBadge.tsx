@@ -1,3 +1,13 @@
+import { Badge } from "@/ui/Badge";
+
+type BadgeCls = "teal" | "red" | "amber";
+
+const STATUS_MAP: Record<string, { color: BadgeCls; label: string }> = {
+    confirmed: { color: "teal",  label: "Баталгаажсан" },
+    expired:   { color: "red",   label: "Хугацаа дууссан" },
+    pending:   { color: "amber", label: "Хүлээгдэж байна" },
+};
+
 export function getInvoiceStatus(inv: any): { cls: string; label: string } {
     if (inv.orderId) return { cls: "bg-teal-500/10 text-teal-400 border border-teal-500/20",   label: "Баталгаажсан" };
     const expired = inv.expiryDate && new Date(inv.expiryDate) < new Date();
@@ -6,10 +16,7 @@ export function getInvoiceStatus(inv: any): { cls: string; label: string } {
 }
 
 export default function InvoiceStatusBadge({ inv }: { inv: any }) {
-    const { cls, label } = getInvoiceStatus(inv);
-    return (
-        <span className={`inline-flex items-center px-3 py-1.5 rounded-full text-xs font-bold whitespace-nowrap ${cls}`}>
-            {label}
-        </span>
-    );
+    const key = inv.orderId ? "confirmed" : (inv.expiryDate && new Date(inv.expiryDate) < new Date()) ? "expired" : "pending";
+    const { color, label } = STATUS_MAP[key];
+    return <Badge color={color}>{label}</Badge>;
 }

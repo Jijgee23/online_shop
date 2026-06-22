@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { Order, OrderStatus } from "@/interface/order";
 import { useOrder } from "@/app/context/order_context";
+import { useSettings } from "@/app/context/settings_context";
 import { getOrderStatusInfo } from "../components/AdminOrderTile";
 import toast from "react-hot-toast";
 import dynamic from "next/dynamic";
@@ -41,6 +42,7 @@ export default function AdminOrderDetailPage() {
     const { id } = useParams();
     const router  = useRouter();
     const { updateOrderStatus } = useOrder();
+    const { settings } = useSettings();
 
     const [order,         setOrder]         = useState<Order | null>(null);
     const [loading,       setLoading]       = useState(true);
@@ -163,7 +165,7 @@ export default function AdminOrderDetailPage() {
             {/* Admin top bar */}
             <div className="border-b border-slate-200 dark:border-zinc-800 bg-white dark:bg-zinc-900/50 px-6 py-4 flex items-center gap-4">
                 <span className="font-bold text-slate-900 dark:text-white text-lg tracking-tighter">
-                    ISHOP <span className="text-teal-500">ADMIN</span>
+                    {settings.storeName || "Дэлгүүр"} <span className="text-teal-500">ADMIN</span>
                 </span>
                 <span className="text-slate-500 dark:text-zinc-700">/</span>
                 <button onClick={() => router.back()} className="text-slate-400 dark:text-zinc-500 hover:text-teal-400 text-sm transition-colors">

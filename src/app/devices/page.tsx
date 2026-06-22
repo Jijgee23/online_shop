@@ -28,14 +28,14 @@ function platformColor(platform: string | null) {
 }
 
 export default function DevicesPage() {
-    const { user } = useAuth();
+    const { user, openLogin } = useAuth();
     const router = useRouter();
     const [devices, setDevices] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);
     const [removing, setRemoving] = useState<number | null>(null);
 
     useEffect(() => {
-        if (!user) { router.push("/auth/login"); return; }
+        if (!user) { router.push("/"); openLogin(); return; }
         fetch("/api/devices")
             .then(r => r.json())
             .then(d => setDevices(d.devices ?? []))

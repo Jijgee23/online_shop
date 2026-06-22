@@ -7,7 +7,11 @@ import { recalculateCart } from "./controller";
 
 const CART_INCLUDE = {
     items: {
-        include: { product: { include: { images: true } } },
+        include: {
+            product: { include: { images: { include: { links: { include: { attributeValue: { select: { attributeId: true } } } } } } } },
+            productStock: { include: { color: true, size: true } },
+            productVariant: { include: { values: { include: { attributeValue: { include: { attribute: true } } } } } },
+        },
         orderBy: { createdAt: "asc" as const },
     },
 };
@@ -57,7 +61,7 @@ export async function PATCH(req: NextRequest) {
     try {
         const body = await req.json();
 
-        const { productId, productQty, cartId } = body;
+        const { productId, productQty, cartId, productStockId, productVariantId } = body;
 
         const cart = await prisma.cart.findUnique({ where: { id: cartId }, include: { items: true } });
 
@@ -67,11 +71,31 @@ export async function PATCH(req: NextRequest) {
 
         if (!product) return NextResponse.json({ error: "Бараа олдсонгүй" }, { status: 400 });
 
-        const existingItem = cart.items.find(e => e.productId === productId);
+        // Сонгосон хувилбар: шинэ ProductVariant эсвэл хуучин ProductStock-оор үлдэгдэл шалгана
+        const stockId:   string | null = productStockId ?? null;
+        const variantId: string | null = productVariantId ?? null;
+        let availableStock = product.stock;
+        if (variantId) {
+            const pv = await prisma.productVariant.findUnique({ where: { id: variantId } });
+            if (!pv || pv.productId !== productId) {
+                return NextResponse.json({ error: "Сонгосон хувилбар олдсонгүй" }, { status: 400 });
+            }
+            availableStock = pv.stock;
+        } else if (stockId) {
+            const ps = await prisma.productStock.findUnique({ where: { id: stockId } });
+            if (!ps || ps.productId !== productId) {
+                return NextResponse.json({ error: "Сонгосон хослол олдсонгүй" }, { status: 400 });
+            }
+            availableStock = ps.stock;
+        }
+
+        // Ижил бараа + ижил хувилбар(variant/stock)-ыг л нэг мөр болгож нэгтгэнэ
+        const existingItem = cart.items.find(e =>
+            e.productId === productId && e.productStockId === stockId && e.productVariantId === variantId);
 
         if (existingItem) {
             const newQty = existingItem.quantity + (productQty ?? 1);
-            if (newQty > product.stock) {
+            if (newQty > availableStock) {
                 return NextResponse.json({ error: "Барааны үлдэгдэл хүрэлцэхгүй байна!" }, { status: 400 });
             }
             await prisma.cartItem.update({
@@ -82,7 +106,7 @@ export async function PATCH(req: NextRequest) {
             return NextResponse.json({ success: true, message: product.name + " тоо шинэчлэгдлээ" }, { status: 200 });
         }
 
-        if (product.stock < (productQty ?? 1)) {
+        if (availableStock < (productQty ?? 1)) {
             return NextResponse.json({ error: "Барааны үлдэгдэл хүрэлцэхгүй байна!" }, { status: 400 });
         }
 
@@ -90,6 +114,8 @@ export async function PATCH(req: NextRequest) {
             data: {
                 cartId: cart.id,
                 productId: productId,
+                productStockId: stockId,
+                productVariantId: variantId,
                 quantity: productQty ?? 1,
             }
         });
@@ -130,12 +156,17 @@ export async function DELETE(req: NextRequest) {
 
         const remainingItems = await prisma.cartItem.findMany({
             where: { cartId },
-            include: { product: true }
+            include: { product: true, productStock: true, productVariant: true }
         });
 
         const newTotalCount = remainingItems.reduce((sum, item) => sum + item.quantity, 0);
         const newTotalPrice = remainingItems.reduce((sum, item) => {
-            return sum + (item.quantity * Number(item.product?.price || 0));
+            const unit = item.productVariant?.price != null
+                ? Number(item.productVariant.price)
+                : item.productStock?.price != null
+                    ? Number(item.productStock.price)
+                    : Number(item.product?.price || 0);
+            return sum + (item.quantity * unit);
         }, 0);
 
         await prisma.cart.update({

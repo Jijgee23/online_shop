@@ -1,9 +1,10 @@
 "use client"
 
 import { useAdmin, PageKey } from "../context/admin_context";
-import ProfileSection from "../components/ProfileSection";
-import { useEffect, useState } from "react";
-import { ChevronDown, LayoutDashboard, ShoppingCart, Package, Users, Settings, Bell, CreditCard, Receipt, BarChart3 } from "lucide-react";
+import { useAuth } from "../context/auth_context";
+import { useSettings } from "../context/settings_context";
+import { useEffect, useState, Suspense } from "react";
+import { ChevronDown, LayoutDashboard, ShoppingCart, Package, Users, Settings, Bell, CreditCard, Receipt, BarChart3, LogOut, User, Store } from "lucide-react";
 import AdminNotificationBell from "../components/AdminNotificationBell";
 import AdminDashboardPage from "./dashboard/page";
 import AdminOrdersPage from "./order/page";
@@ -18,6 +19,8 @@ import AdminSettingsPage from "./settings/page";
 import AdminNotificationsPage from "./notifications/page";
 import AdminReportPage from "./reports/page";
 import EditProductPage from "./products/[id]/page";
+import ProfileTab from "./settings/tabs/ProfileTab";
+import BranchesTab from "./settings/tabs/BranchesTab";
 
 function ActivePage({ page }: { page: PageKey }) {
   const { editingProductId } = useAdmin();
@@ -32,10 +35,24 @@ function ActivePage({ page }: { page: PageKey }) {
     case "Харилцагчид": return <AdminCustomersPage />;
     case "Төлбөрүүд": return <AdminPaymentsPage />;
     case "Invoices": return <AdminInvoicesPage />;
-    case "Тайлан":   return <AdminReportPage />;
+    case "Тайлан": return <AdminReportPage />;
+    case "Салбарууд": return <AdminSubPage title="Салбарууд" desc="Дэлгүүрийн салбар, байршил, ажлын цаг"><BranchesTab /></AdminSubPage>;
     case "Тохиргоо": return <AdminSettingsPage />;
+    case "Профайл": return <AdminSubPage title="Профайл" desc="Админ хэрэглэгчийн мэдээлэл, нууц үг"><Suspense fallback={null}><ProfileTab /></Suspense></AdminSubPage>;
     case "Мэдэгдэл": return <AdminNotificationsPage />;
   }
+}
+
+function AdminSubPage({ title, desc, children }: { title: string; desc: string; children: React.ReactNode }) {
+  return (
+    <div className="pb-20">
+      <header className="mb-6 pt-2">
+        <h2 className="text-2xl sm:text-3xl font-bold text-slate-900 dark:text-white tracking-tight">{title}</h2>
+        <p className="text-slate-400 dark:text-zinc-500 text-sm mt-1">{desc}</p>
+      </header>
+      <div className="space-y-5">{children}</div>
+    </div>
+  );
 }
 
 type NavItem =
@@ -44,6 +61,7 @@ type NavItem =
 
 const NAV: NavItem[] = [
   { type: "link", label: "Хянах самбар", page: "Хянах самбар", icon: <LayoutDashboard className="w-4 h-4" /> },
+  { type: "link", label: "Салбарууд", page: "Салбарууд", icon: <Store className="w-4 h-4" /> },
   { type: "link", label: "Захиалгууд", page: "Захиалгууд", icon: <ShoppingCart className="w-4 h-4" /> },
   {
     type: "group", label: "Бүтээгдэхүүн", icon: <Package className="w-4 h-4" />,
@@ -58,12 +76,14 @@ const NAV: NavItem[] = [
   {
     type: "group", label: "Санхүү", icon: <CreditCard className="w-4 h-4" />,
     children: [
-      { label: "Төлбөрүүд",   page: "Төлбөрүүд" },
+      { label: "Төлбөрүүд", page: "Төлбөрүүд" },
       { label: "QPay Invoice", page: "Invoices" },
-      { label: "Тайлан",      page: "Тайлан" },
+      { label: "Тайлан", page: "Тайлан" },
     ],
   },
+
   { type: "link", label: "Тохиргоо", page: "Тохиргоо", icon: <Settings className="w-4 h-4" /> },
+  { type: "link", label: "Профайл", page: "Профайл", icon: <User className="w-4 h-4" /> },
   { type: "link", label: "Мэдэгдэл", page: "Мэдэгдэл", icon: <Bell className="w-4 h-4" /> },
 ];
 
@@ -75,6 +95,9 @@ export default function AdminDashboard() {
   );
 
   const { fetchDashboardData } = useAdmin();
+  const { logout } = useAuth();
+  const { settings } = useSettings();
+  const brand = settings.storeName || "Дэлгүүр";
 
   useEffect(() => { setMounted(true); }, []);
 
@@ -105,7 +128,7 @@ export default function AdminDashboard() {
       )}
 
       {/* Sidebar */}
-      <aside className={`w-64 border-r border-slate-200 dark:border-zinc-800 flex flex-col p-6 space-y-8 bg-slate-50 dark:bg-zinc-900 fixed lg:static inset-y-0 left-0 z-50 transform transition-transform duration-300 ease-in-out ${isMobileSidebarOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'} ${isMobileSidebarOpen ? 'lg:flex' : 'hidden lg:flex'}`}>
+      <aside className={`w-64 border-r border-slate-200 dark:border-zinc-800 flex flex-col p-6 space-y-8 bg-slate-50 dark:bg-zinc-900 fixed lg:sticky lg:top-0 lg:self-start lg:h-screen lg:overflow-y-auto inset-y-0 left-0 z-50 transform transition-transform duration-300 ease-in-out ${isMobileSidebarOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'} ${isMobileSidebarOpen ? 'lg:flex' : 'hidden lg:flex'}`}>
 
         <button onClick={() => setIsMobileSidebarOpen(false)}
           className="lg:hidden self-end mb-4 p-2 hover:bg-slate-100 dark:hover:bg-zinc-800 rounded-lg transition-colors">
@@ -116,12 +139,10 @@ export default function AdminDashboard() {
 
         <div className="flex items-center justify-between">
           <div className="font-bold text-slate-900 dark:text-white text-xl tracking-tighter">
-            ISHOP <span className="text-teal-500">ADMIN</span>
+            {brand} <span className="text-teal-500">ADMIN</span>
           </div>
           <AdminNotificationBell onNavigate={() => handlePageChange("Мэдэгдэл")} />
         </div>
-
-        <ProfileSection onAdminSettings={() => handlePageChange("Тохиргоо")} />
 
         <nav className="space-y-1">
           {NAV.map(item => {
@@ -169,6 +190,15 @@ export default function AdminDashboard() {
           })}
         </nav>
 
+        {/* Logout */}
+        <button
+          onClick={logout}
+          className="mt-auto flex items-center gap-3 w-full text-left px-3 py-2.5 rounded-xl text-sm font-medium text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors"
+        >
+          <LogOut className="w-4 h-4" />
+          Системээс гарах
+        </button>
+
       </aside>
 
       {/* Main Content */}
@@ -183,7 +213,7 @@ export default function AdminDashboard() {
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 6h16M4 12h16M4 18h16" />
             </svg>
           </button>
-          <div className="font-bold text-slate-900 dark:text-white text-lg tracking-tighter">ISHOP <span className="text-teal-500">ADMIN</span></div>
+          <div className="font-bold text-slate-900 dark:text-white text-lg tracking-tighter">{brand} <span className="text-teal-500">ADMIN</span></div>
           <AdminNotificationBell onNavigate={() => handlePageChange("Мэдэгдэл")} />
         </div>
 

@@ -15,6 +15,7 @@ export interface OrderItem {
     id: number;
     orderId: number;
     productId: number;
+    productStockId?: string | null;
     price: number;
     quantity: number;
     updatedAt?: Date | string | null;
@@ -22,6 +23,17 @@ export interface OrderItem {
 
     // Relation: Product мэдээллийг хамт авах үед
     product?: Product;
+    // Relation: сонгосон өнгө/хэмжээний хослол (хуучин загвар)
+    productStock?: {
+        id: string;
+        color: { id: number; name: string; hex: string } | null;
+        size: { id: number; sizeName: string; value: string } | null;
+    } | null;
+    // Relation: сонгосон хувилбар (шинэ загвар)
+    productVariant?: {
+        id: string;
+        values?: { attributeValue?: { value: string; hex: string | null } | null }[];
+    } | null;
 }
 
 // 3. Үндсэн захиалгын бүтэц (Order)
@@ -33,6 +45,7 @@ export interface Order {
     totalPrice: number;
     totalCount: number;
     addressId?: number | null;
+    branchId?: number | null;
     createdAt: Date | string;
     updatedAt?: Date | string | null;
     deletedAt?: Date | string | null;
@@ -40,6 +53,7 @@ export interface Order {
     // Relations: include ашигласан үед орж ирнэ
     items?: OrderItem[];
     address?: Address; // Шаардлагатай бол Address интерфэйс нэмж болно
+    branch?: { id: number; name: string; phone: string | null; city: string; district: string | null; khoroo: string | null; address: string | null } | null;
     user?: User;
     payment?: Payment;
 }

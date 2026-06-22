@@ -8,10 +8,10 @@ export function TopProducts({ products }: { products: Product[] }) {
     const shown = products.slice(0, 8);
 
     return (
-        <section className="py-14 bg-slate-50 dark:bg-slate-900">
+        <section className="py-12 bg-slate-50 dark:bg-slate-900">
             <div className="max-w-7xl mx-auto px-6">
 
-                <div className="flex items-end justify-between mb-8">
+                <div className="flex items-end justify-between mb-7">
                     <div>
                         <div className="flex items-center gap-2 mb-1.5">
                             <span className="w-1 h-5 bg-teal-500 rounded-full" />

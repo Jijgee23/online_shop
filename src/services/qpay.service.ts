@@ -44,7 +44,6 @@ async function fetchNewToken(username: string, password: string): Promise<TokenR
         return { error: "QPay токен авах явцад алдаа гарлаа. Тохиргоо болон холболтоо шалгана уу." };
     }
     return saveTokens(await res.json());
-
 }
 
 async function refreshToken(refreshTkn: string): Promise<TokenResult> {

@@ -57,7 +57,8 @@ export async function POST(req: Request) {
 
         return NextResponse.json({ message: "OTP код амжилттай илгээгдлээ" }, { status: 200 });
 
-    } catch (e: any) {
-        return NextResponse.json({ error: e.message || "Дотоод алдаа гарлаа" }, { status: 500 });
+    } catch (e) {
+        const message = e instanceof Error ? e.message : "Дотоод алдаа гарлаа";
+        return NextResponse.json({ error: message }, { status: 500 });
     }
 }

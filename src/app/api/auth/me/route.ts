@@ -18,9 +18,14 @@ export async function GET(request: Request) {
       where: { id: decoded.userId }, include: { cart: true }
     })
 
-    // console.log("me", user)
+    if (!user) {
+      return NextResponse.json({ user: null });
+    }
+
+    // Never expose the password hash to the client; surface a boolean flag instead
+    const { password, ...safeUser } = user;
     return NextResponse.json({
-      user: user
+      user: { ...safeUser, hasPassword: !!password }
     });
 
   } catch (error) {

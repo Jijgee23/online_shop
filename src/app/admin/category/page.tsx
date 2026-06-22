@@ -278,6 +278,19 @@ export default function AdminCategoryPage() {
                 </div>
             )}
 
+            {/* Excel импортын заавар */}
+            <div className="mb-4 flex items-start gap-3 rounded-2xl border border-teal-500/30 bg-teal-500/5 px-4 py-3">
+                <svg className="w-5 h-5 text-teal-500 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+                <p className="text-sm text-slate-700 dark:text-zinc-200 leading-relaxed">
+                    Бүтээгдэхүүнээ <span className="font-semibold">Excel-ээр импортлох</span> үед доорх{" "}
+                    <code className="font-mono font-bold text-teal-600 dark:text-teal-400 bg-teal-500/10 px-1.5 py-0.5 rounded">ID</code>{" "}
+                    дугаарыг файлын <code className="font-mono font-bold text-teal-600 dark:text-teal-400 bg-teal-500/10 px-1.5 py-0.5 rounded">categoryId</code>{" "}
+                    баганад бичнэ. Буруу эсвэл хоосон бол бараа автоматаар «Бусад» ангилалд орно.
+                </p>
+            </div>
+
             {/* Search */}
             <div className="relative mb-4">
                 <svg className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 dark:text-zinc-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">

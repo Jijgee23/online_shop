@@ -23,6 +23,8 @@ interface PayStepProps {
     cart: any;
     myAddresses: any[];
     selectedAddressId: number | null;
+    branches: { id: number; name: string }[];
+    selectedBranchId: number | null;
     note: string;
     onBack: () => void;
     onDone: (orderNumber: string) => void;
@@ -30,7 +32,7 @@ interface PayStepProps {
 
 type PayMode = "loading" | "select" | "qpay" | "delivery";
 
-export default function PayStep({ cart, myAddresses, selectedAddressId, note, onBack, onDone }: PayStepProps) {
+export default function PayStep({ cart, myAddresses, selectedAddressId, branches, selectedBranchId, note, onBack, onDone }: PayStepProps) {
     const [mode, setMode] = useState<PayMode>("loading");
     const [payQpay, setPayQpay] = useState(false);
     const [payOnDelivery, setPayOnDelivery] = useState(false);
@@ -60,11 +62,13 @@ export default function PayStep({ cart, myAddresses, selectedAddressId, note, on
     };
 
     const selectedAddress = myAddresses.find((a: any) => a.id === selectedAddressId);
+    const selectedBranch = branches.find(b => b.id === selectedBranchId);
 
     const summaryRow = (
         <div className="bg-slate-50 dark:bg-slate-800/50 rounded-2xl p-4 mt-4 space-y-1.5 text-sm">
             <Row label="Дүн" value={`₮${Number(cart.totalPrice).toLocaleString()}`} />
-            <Row label="Хаяг" value={selectedAddressId ? (selectedAddress?.district?.name ?? "—") : "Өөрөө авна"} />
+            <Row label={selectedBranchId ? "Очиж авах" : "Хаяг"}
+                value={selectedBranchId ? (selectedBranch?.name ?? "Салбар") : selectedAddressId ? (selectedAddress?.district?.name ?? "—") : "Өөрөө авна"} />
         </div>
     );
 
@@ -112,7 +116,7 @@ export default function PayStep({ cart, myAddresses, selectedAddressId, note, on
 
             {mode === "qpay" && (
                 <>
-                    <QPayScreen cart={cart} addressId={selectedAddressId} onDone={onDone} />
+                    <QPayScreen cart={cart} addressId={selectedAddressId} branchId={selectedBranchId} onDone={onDone} />
                     {summaryRow}
                 </>
             )}
@@ -121,6 +125,7 @@ export default function PayStep({ cart, myAddresses, selectedAddressId, note, on
                 <DeliveryScreen
                     cart={cart}
                     addressId={selectedAddressId}
+                    branchId={selectedBranchId}
                     note={note}
                     address={selectedAddress}
                     onDone={onDone}
@@ -132,7 +137,7 @@ export default function PayStep({ cart, myAddresses, selectedAddressId, note, on
 
 // ─── QPay QR screen ───────────────────────────────────────────────────────────
 
-function QPayScreen({ cart, addressId, onDone }: { cart: any; addressId: number | null; onDone: (orderNumber: string) => void }) {
+function QPayScreen({ cart, addressId, branchId, onDone }: { cart: any; addressId: number | null; branchId: number | null; onDone: (orderNumber: string) => void }) {
     const [phase, setPhase] = useState<"loading" | "ready" | "error">("loading");
     const [qrData, setQrData] = useState<QRData | null>(null);
     const [errMsg, setErrMsg] = useState<string | null>(null);
@@ -149,7 +154,7 @@ function QPayScreen({ cart, addressId, onDone }: { cart: any; addressId: number 
                 const res = await fetch("/api/invoice", {
                     method: "POST",
                     headers: { "Content-Type": "application/json" },
-                    body: JSON.stringify({ amount: Number(cart.totalPrice), cartId: cart.id, addressId }),
+                    body: JSON.stringify({ amount: Number(cart.totalPrice), cartId: cart.id, addressId, branchId }),
                 });
                 const data = await res.json();
                 if (cancelled) return;
@@ -257,9 +262,10 @@ function QPayScreen({ cart, addressId, onDone }: { cart: any; addressId: number 
 
 // ─── Pay-on-delivery confirmation screen ─────────────────────────────────────
 
-function DeliveryScreen({ cart, addressId, note, address, onDone }: {
+function DeliveryScreen({ cart, addressId, branchId, note, address, onDone }: {
     cart: any;
     addressId: number | null;
+    branchId: number | null;
     note: string;
     address: any;
     onDone: (orderNumber: string) => void;
@@ -275,6 +281,7 @@ function DeliveryScreen({ cart, addressId, note, address, onDone }: {
                 body: JSON.stringify({
                     cartId: cart.id,
                     addressId,
+                    branchId,
                     paymentMethod: "ON_DELIVERY",
                     note,
                     paymentConfirmed: false,

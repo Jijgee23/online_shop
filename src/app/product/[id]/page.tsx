@@ -1,30 +1,42 @@
 "use client";
 
 import { useParams, useRouter } from "next/navigation";
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Product, ProductReview } from "@/interface/product";
 import { useCart } from "@/app/context/cart_context";
 import { useWishlist } from "@/app/context/wishlist_context";
 import { useAuth } from "@/app/context/auth_context";
+import { useSettings } from "@/app/context/settings_context";
 import Header from "@/app/components/Header";
-import { ArrowLeft, Loader2, Heart, CheckCircle2, Truck, ShieldCheck } from "lucide-react";
+import { ArrowLeft, Loader2, Heart, CheckCircle2, Truck, Share2, ZoomIn, ShoppingCart } from "lucide-react";
 import toast from "react-hot-toast";
 import { imgUrl } from "@/utils/imgUrl";
+
+const ATTR_LABEL: Record<string, string> = {
+    COLOR: "Өнгө",
+    SIZE: "Хэмжээ",
+    MATERIAL: "Материал",
+    DESIGN: "Загвар",
+};
 
 export default function ProductDetail() {
     const params = useParams<{ id: string }>();
     const id = params.id;
     const { cart, add } = useCart();
     const { wishIds, toggleWish } = useWishlist();
-    const { user, isAuthenticated } = useAuth();
+    const { user, isAuthenticated, openLogin } = useAuth();
+    const { settings } = useSettings();
+    const showStock = settings.showStock;
     const router = useRouter();
 
     const [product, setProduct] = useState<Product>();
     const [fetching, setFetching] = useState(false);
     const [activeImgIndex, setActiveImgIndex] = useState(0);
     const [quantity, setQuantity] = useState(1);
-    const [selectedColor, setSelectedColor] = useState<string | null>(null);
-    const [selectedSize, setSelectedSize] = useState<string | null>(null);
+    const [selectedColorId, setSelectedColorId] = useState<number | null>(null);
+    const [selectedSizeId, setSelectedSizeId] = useState<number | null>(null);
+    // Шинэ attribute/variant систем: attributeId → сонгосон attributeValueId
+    const [selectedValues, setSelectedValues] = useState<Record<number, number>>({});
 
     const [reviews, setReviews] = useState<ProductReview[]>([]);
     const [reviewRating, setReviewRating] = useState(0);
@@ -44,14 +56,39 @@ export default function ProductDetail() {
             setReviews(prod.reviews ?? []);
             const mine = (prod.reviews ?? []).find((r: ProductReview) => String(r.userId) === String(user?.id));
             if (mine) { setReviewRating(mine.rating); setReviewComment(mine.comment ?? ""); }
-            if (prod.colors?.length > 0) setSelectedColor(String(prod.colors[0].hex));
+            if (prod.colors?.length > 0) setSelectedColorId(prod.colors[0].id);
             const sizes = prod.productSizes || prod.size;
-            if (sizes?.length > 0) setSelectedSize(String(sizes[0].value));
+            if (sizes?.length > 0) setSelectedSizeId(sizes[0].id);
+            // Шинэ загвар: эхний БОДИТ variant-ийн утгуудаар анхдагч сонголт хийнэ
+            // (variant байхгүй бол attribute бүрийн эхний утгаар fallback)
+            if (prod.attributes?.length > 0) {
+                const init: Record<number, number> = {};
+                const firstVariant = prod.variants?.[0];
+                if (firstVariant) {
+                    const attrOfValue = new Map<number, number>(); // valueId → attributeId
+                    prod.attributes.forEach((a: any) => (a.values ?? []).forEach((v: any) => attrOfValue.set(v.id, a.id)));
+                    (firstVariant.values ?? []).forEach((vv: any) => {
+                        const attrId = attrOfValue.get(vv.attributeValueId);
+                        if (attrId != null) init[attrId] = vv.attributeValueId;
+                    });
+                } else {
+                    for (const attr of prod.attributes) {
+                        if (attr.values?.length > 0) init[attr.id] = attr.values[0].id;
+                    }
+                }
+                setSelectedValues(init);
+            }
         }
         setFetching(false);
     };
 
     useEffect(() => { fetchDetail(); }, []);
+
+    // Сонголт солиход тоо хэмжээг эхлэл рүү буцаах
+    useEffect(() => { setQuantity(1); }, [selectedColorId, selectedSizeId, selectedValues]);
+
+    // Сонголт солих үед галерейг эхэнд (тухайн өнгөний зураг) буцаана
+    useEffect(() => { setActiveImgIndex(0); }, [selectedColorId, selectedValues]);
 
     const handleReviewSubmit = async () => {
         if (reviewRating === 0) { toast.error("Одны үнэлгээ өгнө үү"); return; }
@@ -86,10 +123,46 @@ export default function ProductDetail() {
         } catch { toast.error("Алдаа гарлаа", { id: t }); }
     };
 
-    const addCart = async () => {
-        if (!product) return;
-        if (!isAuthenticated) { router.push("/auth/login"); return; }
-        add({ productId: Number(id), productQty: quantity, cartId: cart?.id ?? null });
+    // Сонгосон өнгө/хэмжээнд тохирох ProductStock мөрийг олох (хослолгүй бол null → барааны нийт рүү fallback)
+    const activeStock = useMemo(() => {
+        const stocks = product?.productStocks ?? [];
+        if (stocks.length === 0) return null;
+        return stocks.find(ps =>
+            (ps.productColorId ?? null) === selectedColorId &&
+            (ps.productSizeId ?? null) === selectedSizeId
+        ) ?? null;
+    }, [product, selectedColorId, selectedSizeId]);
+
+    // Шинэ загвар: сонгосон attribute утгуудад тохирох variant (хослол)-ыг олох
+    const activeVariant = useMemo(() => {
+        const variants = product?.variants ?? [];
+        if (variants.length === 0) return null;
+        const selectedIds = Object.values(selectedValues);
+        if (selectedIds.length === 0) return null;
+        return variants.find(v => {
+            const vIds = v.values.map(x => x.attributeValueId);
+            return vIds.length === selectedIds.length && selectedIds.every(id => vIds.includes(id));
+        }) ?? null;
+    }, [product, selectedValues]);
+
+    const addCart = async (): Promise<boolean> => {
+        if (!product) return false;
+        if (!isAuthenticated) { openLogin(); return false; }
+        const useNewModel = (product.attributes?.length ?? 0) > 0;
+        await add({
+            productId: Number(id),
+            productQty: quantity,
+            cartId: cart?.id ?? null,
+            productStockId: useNewModel ? null : (activeStock?.id ?? null),
+            productVariantId: useNewModel ? (activeVariant?.id ?? null) : null,
+        });
+        return true;
+    };
+
+    // Захиалах — сагсанд нэмээд шууд сагс/төлбөр рүү
+    const buyNow = async () => {
+        const ok = await addCart();
+        if (ok) router.push("/cart");
     };
 
     if (fetching) return (
@@ -100,18 +173,139 @@ export default function ProductDetail() {
 
     if (!product) return <div className="p-20 text-center text-slate-500">Бараа олдсонгүй</div>;
 
-    const productImages = product.images?.length > 0 ? product.images : [{ url: "/uploads/placeholder.png" }];
     const sizes = product.productSizes || product.sizes || [];
-    const hasDiscount = product.discountPrice && product.discountPrice < product.price;
-    const discountPct = hasDiscount ? Math.round((1 - product.discountPrice! / product.price) * 100) : 0;
+    const hasColors = (product.colors?.length ?? 0) > 0;
+
+    // Шинэ attribute/variant загвар идэвхтэй эсэх
+    const attributes = product.attributes ?? [];
+    const useNewModel = attributes.length > 0;
+    const variants = product.variants ?? [];
+
+    // valueId → attributeId зураглал (snap хийхэд хэрэгтэй)
+    const attrOfValue = new Map<number, number>();
+    attributes.forEach(a => a.values.forEach(v => attrOfValue.set(v.id, a.id)));
+
+    // Тухайн утга ямар нэг variant-д орсон бол сонгох боломжтой (бусад сонголтоор түгжихгүй)
+    const isValueAvailable = (_attrId: number, valueId: number): boolean => {
+        if (variants.length === 0) return true;
+        return variants.some(v => v.values.some(x => x.attributeValueId === valueId));
+    };
+
+    // Утга сонгоход — хослол variant-тэй нийцэхгүй бол бусад attribute-ийг тохирох variant руу автоматаар тааруулна
+    const selectValue = (attrId: number, valueId: number) => {
+        setSelectedValues(prev => {
+            const next = { ...prev, [attrId]: valueId };
+            if (variants.length === 0) return next;
+
+            const selectedCount = Object.keys(next).length;
+            const comboExists = variants.some(v => {
+                const vIds = v.values.map(x => x.attributeValueId);
+                return vIds.length === selectedCount && Object.values(next).every(id => vIds.includes(id));
+            });
+            if (comboExists) return next;
+
+            // valueId-г агуулсан variant-уудаас өмнөх сонголттой хамгийн их давхцахыг сонгоно (нөөцтэйг нь эхэлж)
+            const candidates = variants.filter(v => v.values.some(x => x.attributeValueId === valueId));
+            if (candidates.length === 0) return next;
+
+            let best = candidates[0];
+            let bestScore = -1;
+            for (const v of candidates) {
+                const vIds = v.values.map(x => x.attributeValueId);
+                const overlap = Object.entries(prev)
+                    .filter(([aid, vid]) => Number(aid) !== attrId && vIds.includes(vid)).length;
+                const score = overlap + (v.stock > 0 ? 0.5 : 0);
+                if (score > bestScore) { bestScore = score; best = v; }
+            }
+
+            const snapped: Record<number, number> = {};
+            for (const vv of best.values) {
+                const aId = attrOfValue.get(vv.attributeValueId);
+                if (aId != null) snapped[aId] = vv.attributeValueId;
+            }
+            return snapped;
+        });
+    };
+
+    // Тухайн өнгө/хэмжээ хослолын нөөц (хуучин загвар)
+    const stockFor = (colorId: number | null, sizeId: number | null): number | null => {
+        const stocks = product.productStocks ?? [];
+        if (stocks.length === 0) return null;
+        const row = stocks.find(ps =>
+            (ps.productColorId ?? null) === colorId && (ps.productSizeId ?? null) === sizeId
+        );
+        return row ? row.stock : null;
+    };
+
+    // Галерей: шинэ загварт сонгосон хувилбарт ХОЛБОГДСОН зургийг эхэлж харуулна.
+    // Дүрэм: зураг холбогдсон ТӨРӨЛ бүрд (өнгө/хэмжээ/загвар/материал) сонгосон утга нь
+    // тухайн зургийн тэр төрлийн холбоосуудын аль нэгэнд багтаж байвал тохирно.
+    // (Нэг зураг нэг төрөлд олон утгатай холбогдож болно — ж: бүх материалд хамаарах.)
+    // Холбоогүй зураг бүх хувилбарт хамаарна.
+    let productImages: { url: string }[];
+    if (useNewModel) {
+        const imgs = product.images ?? [];
+        const tagged = imgs.filter(im => (im.links?.length ?? 0) > 0);
+        const untagged = imgs.filter(im => (im.links?.length ?? 0) === 0);
+        const matched = tagged.filter(im => {
+            // Зургийн холбоосыг attribute-аар бүлэглэх: attrId → {тэр төрлийн холбогдсон valueId-ууд}
+            const byAttr = new Map<number, Set<number>>();
+            for (const l of im.links!) {
+                const aId = attrOfValue.get(l.attributeValueId);
+                if (aId == null) continue;
+                if (!byAttr.has(aId)) byAttr.set(aId, new Set());
+                byAttr.get(aId)!.add(l.attributeValueId);
+            }
+            // Холбогдсон төрөл бүрд сонгосон утга нь холбоосуудад багтсан байх ёстой
+            for (const [aId, set] of byAttr) {
+                const sel = selectedValues[aId];
+                if (sel == null || !set.has(sel)) return false;
+            }
+            return true;
+        });
+        const combined = [...matched, ...untagged];
+        productImages = combined.length > 0
+            ? combined
+            : (imgs.length > 0 ? imgs : [{ url: "/uploads/placeholder.png" }]);
+    } else {
+        const selectedColor = product.colors?.find(c => c.id === selectedColorId);
+        const colorImage = selectedColor?.imageUrl ?? null;
+        const baseImages = product.images?.length > 0 ? product.images : [{ url: "/uploads/placeholder.png" }];
+        productImages = colorImage ? [{ url: colorImage }, ...baseImages] : baseImages;
+    }
+
+    // Сонгосон хувилбарын үнэ/үлдэгдэл — шинэ бол variant-аас, хуучин бол ProductStock-оос.
+    // Үнэ ба хямдрал нэг эх сурвалжаас (хувилбар өөрийн үнэтэй бол түүний л хямдрал).
+    let effectiveStock: number, effectivePrice: number, effectiveDiscount: number | null;
+    if (useNewModel) {
+        effectiveStock    = activeVariant ? activeVariant.stock : 0;
+        effectivePrice    = activeVariant?.price != null ? activeVariant.price : product.price;
+        effectiveDiscount = activeVariant?.price != null ? (activeVariant.discountPrice ?? null) : product.discountPrice;
+    } else {
+        const usingComboPrice = activeStock?.price != null;
+        effectiveStock    = activeStock ? activeStock.stock : product.stock;
+        effectivePrice    = usingComboPrice ? activeStock!.price! : product.price;
+        effectiveDiscount = usingComboPrice ? (activeStock!.discountPrice ?? null) : product.discountPrice;
+    }
+    const hasDiscount = effectiveDiscount != null && effectiveDiscount < effectivePrice;
+    const discountPct = hasDiscount ? Math.round((1 - effectiveDiscount! / effectivePrice) * 100) : 0;
     const avgRating = reviews.length > 0 ? reviews.reduce((s, r) => s + r.rating, 0) / reviews.length : 0;
     const isWished = wishIds.includes(product.id);
+
+    // Сонгосон хувилбарын шошго
+    const selectedVariantLabel = useNewModel
+        ? attributes.map(a => a.values.find(v => v.id === selectedValues[a.id])?.value).filter(Boolean).join(" / ")
+        : [
+            product.colors.find(c => c.id === selectedColorId)?.name,
+            sizes.find(s => s.id === selectedSizeId)?.sizeName,
+        ].filter(Boolean).join(" / ");
+    const hasVariants = useNewModel || hasColors || sizes.length > 0;
 
     return (
         <div className="min-h-screen bg-white dark:bg-slate-950">
             <Header />
 
-            <div className="max-w-7xl mx-auto px-4 sm:px-6 pt-24 pb-20">
+            <div className="w-full px-4 sm:px-6 lg:px-10 pt-24 pb-20">
 
                 {/* Breadcrumb */}
                 <nav className="flex items-center gap-1.5 text-xs text-slate-400 dark:text-slate-500 mb-8">
@@ -124,10 +318,10 @@ export default function ProductDetail() {
                 </nav>
 
                 {/* ── Main product grid ── */}
-                <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 xl:gap-16 mb-20">
+                <div className="grid grid-cols-1 lg:grid-cols-[1fr_2fr] gap-8 xl:gap-14 mb-20">
 
                     {/* LEFT: Gallery */}
-                    <div className="flex gap-3">
+                    <div className="flex gap-3 min-w-0">
                         {/* Vertical thumbnails */}
                         {productImages.length > 1 && (
                             <div className="flex flex-col gap-2 w-[72px] flex-shrink-0">
@@ -145,20 +339,24 @@ export default function ProductDetail() {
 
                         {/* Main image */}
                         <div className="flex-1 relative">
-                            <div className="aspect-square rounded-2xl overflow-hidden bg-slate-100 dark:bg-slate-900">
+                            <div className="aspect-square rounded-2xl overflow-hidden bg-zinc-200 dark:bg-zinc-300 flex items-center justify-center">
                                 <img
                                     key={activeImgIndex}
-                                    src={imgUrl(productImages[activeImgIndex].url)}
+                                    src={imgUrl((productImages[activeImgIndex] ?? productImages[0]).url)}
                                     alt={product.name}
                                     className="w-full h-full object-contain transition-opacity duration-300"
                                 />
                             </div>
                             <button
                                 onClick={() => router.back()}
-                                className="absolute top-4 left-4 bg-white/80 dark:bg-slate-800/80 backdrop-blur-sm p-2.5 rounded-full shadow-md hover:scale-105 transition-transform"
+                                className="absolute top-4 left-4 bg-white/80 backdrop-blur-sm p-2.5 rounded-full shadow-md hover:scale-105 transition-transform"
                             >
-                                <ArrowLeft className="w-4 h-4 text-slate-800 dark:text-white" />
+                                <ArrowLeft className="w-4 h-4 text-slate-800" />
                             </button>
+                            {/* Zoom icon */}
+                            <div className="absolute bottom-4 left-4 bg-white/80 backdrop-blur-sm p-2.5 rounded-full shadow-md">
+                                <ZoomIn className="w-4 h-4 text-slate-700" />
+                            </div>
                             {hasDiscount && (
                                 <div className="absolute top-4 right-4 bg-red-500 text-white text-xs font-black px-2.5 py-1 rounded-full shadow">
                                     -{discountPct}%
@@ -168,16 +366,43 @@ export default function ProductDetail() {
                     </div>
 
                     {/* RIGHT: Info */}
-                    <div className="flex flex-col">
+                    <div className="flex flex-col min-w-0">
                         {/* Category */}
                         <span className="text-[11px] font-bold text-teal-600 dark:text-teal-400 uppercase tracking-[0.15em] mb-2">
                             {product.category?.name || "Ангилалгүй"}
                         </span>
 
-                        {/* Name */}
-                        <h1 className="text-2xl sm:text-3xl font-extrabold text-slate-900 dark:text-white leading-snug mb-3">
-                            {product.name}
-                        </h1>
+                        {/* Name + actions */}
+                        <div className="flex items-start justify-between gap-4 mb-3">
+                            <h1 className="text-3xl sm:text-4xl font-extrabold text-slate-900 dark:text-white leading-snug">
+                                {product.name}
+                            </h1>
+                            <div className="flex items-center gap-2 flex-shrink-0 pt-1">
+                                <button
+                                    onClick={() => isAuthenticated ? toggleWish(product.id) : openLogin()}
+                                    title="Хадгалах"
+                                    className={`p-2 rounded-full border transition-all ${isAuthenticated && isWished
+                                        ? "border-red-300 bg-red-50 dark:bg-red-900/20 dark:border-red-700 text-red-500"
+                                        : "border-slate-200 dark:border-slate-700 text-slate-500 dark:text-slate-300 hover:border-slate-400"}`}
+                                >
+                                    <Heart className={`w-4 h-4 ${isAuthenticated && isWished ? "fill-red-500 text-red-500" : ""}`} />
+                                </button>
+                                <button
+                                    onClick={() => {
+                                        if (typeof navigator !== "undefined" && navigator.share) {
+                                            navigator.share({ title: product.name, url: window.location.href }).catch(() => {});
+                                        } else if (typeof navigator !== "undefined") {
+                                            navigator.clipboard?.writeText(window.location.href);
+                                            toast.success("Холбоос хуулагдлаа");
+                                        }
+                                    }}
+                                    title="Хуваалцах"
+                                    className="p-2 rounded-full border border-slate-200 dark:border-slate-700 text-slate-500 dark:text-slate-300 hover:border-slate-400 transition-all"
+                                >
+                                    <Share2 className="w-4 h-4" />
+                                </button>
+                            </div>
+                        </div>
 
                         {/* Rating row */}
                         {reviews.length > 0 && (
@@ -192,20 +417,20 @@ export default function ProductDetail() {
                         <div className="flex items-baseline gap-3 mb-3">
                             {hasDiscount ? (
                                 <>
-                                    <span className="text-3xl font-black text-slate-900 dark:text-white">₮{product.discountPrice!.toLocaleString()}</span>
-                                    <span className="text-lg text-slate-400 line-through">₮{product.price.toLocaleString()}</span>
+                                    <span className="text-4xl font-black text-slate-900 dark:text-white">₮{effectiveDiscount!.toLocaleString()}</span>
+                                    <span className="text-xl text-slate-400 line-through">₮{effectivePrice.toLocaleString()}</span>
                                 </>
                             ) : (
-                                <span className="text-3xl font-black text-slate-900 dark:text-white">₮{product.price.toLocaleString()}</span>
+                                <span className="text-4xl font-black text-slate-900 dark:text-white">₮{effectivePrice.toLocaleString()}</span>
                             )}
                         </div>
 
                         {/* Stock */}
                         <div className="mb-6">
-                            {product.stock > 0 ? (
+                            {effectiveStock > 0 ? (
                                 <span className="inline-flex items-center gap-1.5 text-xs font-semibold text-green-700 dark:text-green-400 bg-green-50 dark:bg-green-900/20 px-3 py-1.5 rounded-full">
                                     <span className="w-1.5 h-1.5 bg-green-500 rounded-full" />
-                                    Нөөцөд байна · {product.stock}ш
+                                    Нөөцөд байна{showStock ? ` · ${effectiveStock}ш` : ""}
                                 </span>
                             ) : (
                                 <span className="inline-flex items-center gap-1.5 text-xs font-semibold text-red-600 bg-red-50 dark:bg-red-900/20 px-3 py-1.5 rounded-full">
@@ -217,25 +442,88 @@ export default function ProductDetail() {
 
                         <div className="border-t border-slate-100 dark:border-slate-800 pt-6 space-y-5">
 
+                            {/* Шинэ загвар: динамик хувилбар сонголтууд (мөр болгон) */}
+                            {useNewModel && (
+                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-4">
+                            {attributes.map(attr => {
+                                const isColor = attr.type === "COLOR";
+                                const selVal = attr.values.find(v => v.id === selectedValues[attr.id]);
+                                return (
+                                    <div key={attr.id}>
+                                        <p className="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-2">
+                                            {ATTR_LABEL[attr.type] ?? attr.type}: <span className="text-slate-800 dark:text-white font-semibold">{selVal?.value}</span>
+                                        </p>
+                                        <div className="flex flex-wrap gap-2.5">
+                                            {attr.values.map(v => {
+                                                const active = selectedValues[attr.id] === v.id;
+                                                const available = isValueAvailable(attr.id, v.id);
+                                                if (isColor) {
+                                                    return (
+                                                        <button key={v.id}
+                                                            onClick={() => selectValue(attr.id, v.id)}
+                                                            disabled={!available}
+                                                            title={available ? v.value : `${v.value} (боломжгүй)`}
+                                                            style={{ backgroundColor: v.hex ?? "#cccccc" }}
+                                                            className={`relative w-8 h-8 rounded-full transition-all ${
+                                                                !available
+                                                                    ? "opacity-30 cursor-not-allowed ring-1 ring-slate-200 dark:ring-slate-700 after:absolute after:inset-x-0 after:top-1/2 after:h-px after:bg-slate-500 after:rotate-45"
+                                                                : active
+                                                                    ? "ring-2 ring-offset-2 ring-slate-900 dark:ring-white dark:ring-offset-slate-950 scale-110"
+                                                                    : "hover:scale-110 ring-1 ring-slate-200 dark:ring-slate-700"
+                                                            }`}
+                                                        />
+                                                    );
+                                                }
+                                                return (
+                                                    <button key={v.id}
+                                                        onClick={() => selectValue(attr.id, v.id)}
+                                                        disabled={!available}
+                                                        className={`h-10 min-w-[42px] px-3 rounded-lg text-sm font-semibold border transition-all ${
+                                                            !available
+                                                                ? "bg-slate-50 dark:bg-slate-900/50 text-slate-300 dark:text-slate-600 border-slate-100 dark:border-slate-800 line-through cursor-not-allowed"
+                                                            : active
+                                                                ? "bg-slate-900 dark:bg-white text-white dark:text-slate-900 border-slate-900 dark:border-white"
+                                                                : "bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-300 border-slate-200 dark:border-slate-700 hover:border-slate-900 dark:hover:border-white"}`}
+                                                    >
+                                                        {v.value}
+                                                    </button>
+                                                );
+                                            })}
+                                        </div>
+                                    </div>
+                                );
+                            })}
+                            </div>
+                            )}
+
                             {/* Color selector */}
-                            {product.colors?.length > 0 && (
+                            {!useNewModel && product.colors?.length > 0 && (
                                 <div>
                                     <p className="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-3">
                                         Өнгө: <span className="text-slate-800 dark:text-white font-semibold capitalize">
-                                            {product.colors.find(c => String(c.hex) === selectedColor)?.name}
+                                            {product.colors.find(c => c.id === selectedColorId)?.name}
                                         </span>
                                     </p>
                                     <div className="flex flex-wrap gap-2.5">
                                         {product.colors.map(color => {
-                                            const hex = String(color.hex);
-                                            const active = selectedColor === hex;
+                                            const active = selectedColorId === color.id;
+                                            // Зөвхөн өнгөтэй (размергүй) бараанд тухайн өнгөний нөөц дууссан эсэх
+                                            const colorStock = sizes.length === 0 ? stockFor(color.id, null) : null;
+                                            const soldOut = colorStock === 0;
                                             return (
                                                 <button
                                                     key={color.id}
-                                                    onClick={() => setSelectedColor(hex)}
-                                                    title={String(color.name)}
-                                                    style={{ backgroundColor: hex }}
-                                                    className={`w-8 h-8 rounded-full transition-all ${active ? "ring-2 ring-offset-2 ring-slate-900 dark:ring-white dark:ring-offset-slate-950 scale-110" : "hover:scale-110 ring-1 ring-slate-200 dark:ring-slate-700"}`}
+                                                    onClick={() => setSelectedColorId(color.id)}
+                                                    disabled={soldOut}
+                                                    title={colorStock != null ? `${color.name} · Үлдэгдэл: ${colorStock}ш` : String(color.name)}
+                                                    style={{ backgroundColor: String(color.hex) }}
+                                                    className={`relative w-8 h-8 rounded-full transition-all ${
+                                                        soldOut
+                                                            ? "opacity-30 cursor-not-allowed ring-1 ring-slate-200 dark:ring-slate-700 after:absolute after:inset-x-0 after:top-1/2 after:h-px after:bg-slate-500 after:rotate-45"
+                                                        : active
+                                                            ? "ring-2 ring-offset-2 ring-slate-900 dark:ring-white dark:ring-offset-slate-950 scale-110"
+                                                            : "hover:scale-110 ring-1 ring-slate-200 dark:ring-slate-700"
+                                                    }`}
                                                 />
                                             );
                                         })}
@@ -244,23 +532,39 @@ export default function ProductDetail() {
                             )}
 
                             {/* Size selector */}
-                            {sizes.length > 0 && (
+                            {!useNewModel && sizes.length > 0 && (
                                 <div>
-                                    <p className="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-3">Хэмжээ</p>
+                                    <p className="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-3">
+                                        Хэмжээ: <span className="text-slate-800 dark:text-white font-semibold">
+                                            {sizes.find(s => s.id === selectedSizeId)?.sizeName}
+                                        </span>
+                                    </p>
                                     <div className="flex flex-wrap gap-2">
-                                        {sizes.map((s, idx) => {
-                                            const val = String(s.value);
-                                            const active = selectedSize === val;
+                                        {sizes.map((s) => {
+                                            const active = selectedSizeId === s.id;
+                                            // Сонгосон өнгөтэй хослуулсан энэ хэмжээний нөөц
+                                            const sStock = stockFor(hasColors ? selectedColorId : null, s.id);
+                                            const soldOut = sStock === 0;
                                             return (
                                                 <button
-                                                    key={idx}
-                                                    onClick={() => setSelectedSize(val)}
-                                                    className={`h-10 min-w-[42px] px-3 rounded-lg text-sm font-semibold border transition-all ${active
-                                                        ? "bg-slate-900 dark:bg-white text-white dark:text-slate-900 border-slate-900 dark:border-white"
-                                                        : "bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-300 border-slate-200 dark:border-slate-700 hover:border-slate-900 dark:hover:border-white"
+                                                    key={s.id}
+                                                    onClick={() => setSelectedSizeId(s.id)}
+                                                    disabled={soldOut}
+                                                    title={sStock != null ? `Үлдэгдэл: ${sStock}ш` : undefined}
+                                                    className={`relative h-10 min-w-[42px] px-3 rounded-lg text-sm font-semibold border transition-all ${
+                                                        soldOut
+                                                            ? "bg-slate-50 dark:bg-slate-900/50 text-slate-300 dark:text-slate-600 border-slate-100 dark:border-slate-800 line-through cursor-not-allowed"
+                                                        : active
+                                                            ? "bg-slate-900 dark:bg-white text-white dark:text-slate-900 border-slate-900 dark:border-white"
+                                                            : "bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-300 border-slate-200 dark:border-slate-700 hover:border-slate-900 dark:hover:border-white"
                                                     }`}
                                                 >
-                                                    {val}
+                                                    {String(s.sizeName)}
+                                                    {showStock && sStock != null && sStock > 0 && (
+                                                        <span className={`ml-1.5 text-[10px] font-bold ${active ? "text-teal-300 dark:text-teal-600" : "text-slate-400 dark:text-slate-500"}`}>
+                                                            {sStock}
+                                                        </span>
+                                                    )}
                                                 </button>
                                             );
                                         })}
@@ -270,6 +574,29 @@ export default function ProductDetail() {
 
                             {/* Quantity + Add to cart */}
                             <div className="space-y-3 pt-1">
+                                {/* Сонгосон хослолын боломжит үлдэгдэл */}
+                                {hasVariants && (
+                                    <div className="flex items-center justify-between rounded-xl bg-slate-50 dark:bg-slate-900 border border-slate-100 dark:border-slate-800 px-4 py-2.5">
+                                        <span className="text-xs text-slate-500 dark:text-slate-400">
+                                            {selectedVariantLabel
+                                                ? <>Сонголт: <span className="font-semibold text-slate-700 dark:text-slate-200">{selectedVariantLabel}</span></>
+                                                : "Боломжит үлдэгдэл"}
+                                        </span>
+                                        <span className={`text-xs font-bold ${
+                                            effectiveStock === 0 ? "text-red-500"
+                                            : effectiveStock <= 5 ? "text-amber-500"
+                                            : "text-green-600 dark:text-green-400"
+                                        }`}>
+                                            {effectiveStock === 0
+                                                ? "Дууссан"
+                                                : !showStock
+                                                    ? "Нөөцөд байна"
+                                                    : effectiveStock <= 5
+                                                        ? `Зөвхөн ${effectiveStock}ш үлдсэн`
+                                                        : `${effectiveStock}ш бэлэн`}
+                                        </span>
+                                    </div>
+                                )}
                                 <div className="flex items-center gap-3">
                                     {/* Qty */}
                                     <div className="flex items-center border border-slate-200 dark:border-slate-700 rounded-xl overflow-hidden">
@@ -279,46 +606,37 @@ export default function ProductDetail() {
                                         >−</button>
                                         <span className="w-10 text-center font-bold text-slate-900 dark:text-white text-sm">{quantity}</span>
                                         <button
-                                            onClick={() => setQuantity(q => Math.min(product.stock, q + 1))}
-                                            disabled={quantity >= product.stock}
+                                            onClick={() => setQuantity(q => Math.min(effectiveStock, q + 1))}
+                                            disabled={quantity >= effectiveStock}
                                             className="w-10 h-11 flex items-center justify-center text-lg font-bold text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
                                         >+</button>
                                     </div>
-                                    <span className="text-xs text-slate-400">Нийт: <span className="font-bold text-slate-700 dark:text-slate-200">₮{(product.price * quantity).toLocaleString()}</span></span>
+                                    <span className="text-xs text-slate-400">Нийт: <span className="font-bold text-slate-700 dark:text-slate-200">₮{((hasDiscount ? effectiveDiscount! : effectivePrice) * quantity).toLocaleString()}</span></span>
                                 </div>
 
-                                {/* Add to cart */}
-                                <button
-                                    onClick={addCart}
-                                    disabled={product.stock === 0}
-                                    className="w-full h-13 py-3.5 bg-slate-900 hover:bg-slate-700 dark:bg-white dark:hover:bg-slate-100 dark:text-slate-900 text-white font-bold rounded-xl transition-colors disabled:opacity-40 disabled:cursor-not-allowed text-sm"
-                                >
-                                    {product.stock === 0 ? "Дууссан" : "Сагсанд нэмэх"}
-                                </button>
-
-                                {/* Wishlist */}
-                                <button
-                                    onClick={() => isAuthenticated ? toggleWish(product.id) : router.push("/auth/login")}
-                                    title={isAuthenticated ? undefined : "Нэвтэрч орно уу"}
-                                    className={`w-full h-11 py-3 rounded-xl border font-semibold text-sm flex items-center justify-center gap-2 transition-all
-                                        ${!isAuthenticated ? "border-slate-200 dark:border-slate-700 text-slate-400 opacity-50 cursor-not-allowed"
-                                            : isWished ? "border-red-300 bg-red-50 dark:bg-red-900/20 dark:border-red-700 text-red-500"
-                                            : "border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 hover:border-slate-400 dark:hover:border-slate-500"}`}
-                                >
-                                    <Heart className={`w-4 h-4 ${isAuthenticated && isWished ? "fill-red-500 text-red-500" : ""}`} />
-                                    {isAuthenticated && isWished ? "Хадгалсан" : "Хадгалах"}
-                                </button>
-                            </div>
-
-                            {/* Delivery + trust badges */}
-                            <div className="grid grid-cols-2 gap-2 pt-1">
-                                <div className="flex items-center gap-2 bg-slate-50 dark:bg-slate-900 rounded-xl px-3 py-2.5">
+                                {/* Delivery */}
+                                <div className="flex items-center gap-2 pt-1">
                                     <Truck className="w-4 h-4 text-teal-500 flex-shrink-0" />
-                                    <span className="text-xs text-slate-600 dark:text-slate-400 font-medium">Хүргэлттэй</span>
+                                    <span className="text-sm text-slate-600 dark:text-slate-300 font-medium">Хүргэлттэй</span>
                                 </div>
-                                <div className="flex items-center gap-2 bg-slate-50 dark:bg-slate-900 rounded-xl px-3 py-2.5">
-                                    <ShieldCheck className="w-4 h-4 text-teal-500 flex-shrink-0" />
-                                    <span className="text-xs text-slate-600 dark:text-slate-400 font-medium">Баталгаатай</span>
+
+                                {/* Сагслах + Захиалах */}
+                                <div className="grid grid-cols-2 gap-3 pt-1">
+                                    <button
+                                        onClick={addCart}
+                                        disabled={effectiveStock === 0}
+                                        className="flex items-center justify-center gap-2 h-13 py-3.5 rounded-xl border border-slate-300 dark:border-slate-600 text-slate-800 dark:text-white font-bold text-base hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+                                    >
+                                        <ShoppingCart className="w-5 h-5" />
+                                        Сагслах
+                                    </button>
+                                    <button
+                                        onClick={buyNow}
+                                        disabled={effectiveStock === 0}
+                                        className="flex items-center justify-center h-13 py-3.5 rounded-xl bg-sky-500 hover:bg-sky-400 text-white font-bold text-base transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+                                    >
+                                        {effectiveStock === 0 ? "Дууссан" : "Захиалах"}
+                                    </button>
                                 </div>
                             </div>
                         </div>
@@ -342,8 +660,8 @@ export default function ProductDetail() {
                                 <div key={idx} className="flex items-start gap-3 p-4 rounded-xl bg-slate-50 dark:bg-slate-900">
                                     <CheckCircle2 className="w-4 h-4 text-teal-500 mt-0.5 flex-shrink-0" />
                                     <div>
-                                        <p className="text-sm font-semibold text-slate-900 dark:text-white">{f.title}</p>
-                                        <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5 leading-relaxed">{f.description}</p>
+                                        {f.title && <p className="text-sm font-semibold text-slate-900 dark:text-white">{f.title}</p>}
+                                        <p className="text-sm text-slate-600 dark:text-slate-300 leading-relaxed">{f.description}</p>
                                     </div>
                                 </div>
                             ))}
@@ -407,7 +725,7 @@ export default function ProductDetail() {
                     ) : (
                         <div className="mb-8 px-5 py-4 rounded-2xl border border-dashed border-slate-200 dark:border-slate-700 text-sm text-slate-500 dark:text-slate-400 text-center max-w-lg">
                             Үнэлгээ өгөхийн тулд{" "}
-                            <a href="/auth/login" className="text-teal-500 font-semibold hover:underline">нэвтэрнэ үү</a>
+                            <button onClick={openLogin} className="text-teal-500 font-semibold hover:underline">нэвтэрнэ үү</button>
                         </div>
                     )}
 

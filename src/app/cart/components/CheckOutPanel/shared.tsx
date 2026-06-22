@@ -1,5 +1,6 @@
 import React from "react";
 import { AddressInput } from "@/app/context/address_context";
+import { Field } from "@/ui/Field";
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 
@@ -22,6 +23,8 @@ export interface CheckoutPanelProps {
     cart: any;
     step: Step; setStep: (s: Step) => void;
     selectedAddressId: number | null; setSelectedAddressId: (id: number | null) => void;
+    selectedBranchId: number | null; setSelectedBranchId: (id: number | null) => void;
+    branches: { id: number; name: string; city: string; district: string | null; khoroo: string | null; address: string | null }[];
     myAddresses: any[];
     note: string; setNote: (n: string) => void;
     showAddressForm: boolean; setShowAddressForm: (v: boolean) => void;
@@ -86,14 +89,4 @@ export function Row({ label, value, valueClass = "font-semibold text-slate-900 d
     );
 }
 
-export function AddrInput({ label, value, onChange, placeholder, type = "text", required }: {
-    label: string; value: string; onChange: (v: string) => void; placeholder?: string; type?: string; required?: boolean;
-}) {
-    return (
-        <div>
-            <label className="block text-[10px] font-bold text-slate-400 dark:text-zinc-500 uppercase tracking-wider mb-1">{label}</label>
-            <input type={type} value={value} onChange={e => onChange(e.target.value)} placeholder={placeholder} required={required}
-                className="w-full bg-slate-50 dark:bg-zinc-800 border border-slate-200 dark:border-zinc-700 rounded-xl px-3 py-2.5 text-sm text-slate-800 dark:text-white outline-none focus:ring-2 focus:ring-teal-500/30 placeholder:text-slate-400 dark:placeholder:text-zinc-600" />
-        </div>
-    );
-}
+export { Field as AddrInput };

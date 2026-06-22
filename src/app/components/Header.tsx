@@ -13,9 +13,9 @@ import Image from "next/image";
 import { useTheme } from "next-themes";
 
 export default function Header() {
-    const { isAuthenticated, user, logout } = useAuth();
+    const { isAuthenticated, user, logout, openLogin } = useAuth();
     const { toOrders } = useOrder();
-    const { settings , refresh } = useSettings();
+    const { settings, refresh } = useSettings();
     const router = useRouter();
     const { resolvedTheme, setTheme } = useTheme();
     const [isMenuOpen, setIsMenuOpen] = useState(false);
@@ -45,12 +45,24 @@ export default function Header() {
             >
                 <div className="max-w-7xl mx-auto px-6 py-3.5 flex justify-between items-center">
 
-                    {/* Logo */}
+                    {/* Logo + shop name */}
                     <div
                         onClick={() => { router.push('/'); close(); }}
-                        className="text-2xl font-extrabold bg-gradient-to-r from-teal-500 to-blue-500 bg-clip-text text-transparent cursor-pointer select-none"
+                        className="cursor-pointer select-none flex items-center gap-2.5"
                     >
-                        IShop
+                        {settings.logo && (
+                            <Image
+                                src={settings.logo}
+                                alt={settings.storeName || "Дэлгүүр"}
+                                width={40}
+                                height={40}
+                                priority
+                                className="h-9 w-9 object-contain flex-shrink-0"
+                            />
+                        )}
+                        <span className="text-2xl font-extrabold bg-gradient-to-r from-teal-500 to-blue-500 bg-clip-text text-transparent">
+                            {settings.storeName || "Дэлгүүр"}
+                        </span>
                     </div>
 
                     {/* Desktop Navigation */}
@@ -58,16 +70,16 @@ export default function Header() {
                         <Link href="/product" className="text-slate-600 dark:text-slate-300 hover:text-teal-500 dark:hover:text-teal-400 transition-colors text-sm">
                             Бүтээгдэхүүн
                         </Link>
+                        {settings.showBranches && (
+                            <Link href="/branches" className="text-slate-600 dark:text-slate-300 hover:text-teal-500 dark:hover:text-teal-400 transition-colors text-sm">
+                                Салбарууд
+                            </Link>
+                        )}
 
                         {!isAuthenticated ? (
-                            <>
-                                <Link href="/auth/login" className="text-slate-600 dark:text-slate-300 hover:text-teal-500 dark:hover:text-teal-400 transition-colors text-sm">
-                                    Нэвтрэх
-                                </Link>
-                                <Link href="/auth/register" className="bg-gradient-to-r from-teal-500 to-blue-500 text-white px-4 py-2 rounded-full text-sm hover:opacity-90 hover:shadow-lg transition-all">
-                                    Бүртгүүлэх
-                                </Link>
-                            </>
+                            <button onClick={openLogin} className="text-slate-600 dark:text-slate-300 hover:text-teal-500 dark:hover:text-teal-400 transition-colors text-sm">
+                                Нэвтрэх
+                            </button>
                         ) : null}
 
                         <CartIcon />
@@ -214,20 +226,12 @@ export default function Header() {
                         {/* Auth actions */}
                         {!isAuthenticated ? (
                             <div className="space-y-2 pt-1">
-                                <Link
-                                    href="/auth/login"
-                                    onClick={close}
-                                    className="flex items-center justify-center w-full py-3 rounded-xl border border-slate-200 dark:border-slate-700 text-slate-800 dark:text-slate-100 font-semibold hover:border-teal-400 transition-colors"
-                                >
-                                    Нэвтрэх
-                                </Link>
-                                <Link
-                                    href="/auth/register"
-                                    onClick={close}
+                                <button
+                                    onClick={() => { openLogin(); close(); }}
                                     className="flex items-center justify-center w-full py-3 rounded-xl bg-gradient-to-r from-teal-500 to-blue-500 text-white font-bold hover:opacity-90 transition-opacity"
                                 >
-                                    Бүртгүүлэх
-                                </Link>
+                                    Нэвтрэх
+                                </button>
                             </div>
                         ) : (
                             <button

@@ -2,6 +2,8 @@ import { prisma } from "@/lib/prisma";
 import { OrderStatus } from "@/generated/prisma";
 import { NextRequest, NextResponse } from "next/server";
 import { sendPushToUser } from "@/lib/firebase/sendPush";
+import { sendSmsMessage } from "@/app/api/auth/utils/utils";
+import { getStoreName } from "@/lib/storeName";
 
 const STATUS_LABEL: Record<string, string> = {
     PENDING:   "Хүлээгдэж байна",
@@ -33,7 +35,11 @@ export async function PATCH(req: NextRequest) {
         // Fetch affected orders to build per-user notifications
         const orders = await prisma.order.findMany({
             where: { id: { in: ids } },
-            select: { id: true, userId: true, orderNumber: true, status: true },
+            select: {
+                id: true, userId: true, orderNumber: true, status: true,
+                user: { select: { phone: true } },
+                address: { select: { phone: true } },
+            },
         });
 
         // Only notify orders whose status actually changes
@@ -63,6 +69,17 @@ export async function PATCH(req: NextRequest) {
                     data:  { orderId: String(o.id), orderNumber: o.orderNumber, link: "/order" },
                 }).catch(console.error)
             );
+
+            // Хүргэлтэнд гарах үед хэрэглэгч рүү SMS — best effort
+            if (status === OrderStatus.SHIPPED) {
+                const storeName = await getStoreName();
+                changing.forEach(o => {
+                    const phone = o.address?.phone || o.user?.phone;
+                    if (phone) {
+                        sendSmsMessage(phone, `${storeName}: ${o.orderNumber} захиалга хүргэлтэнд гарлаа.`).catch(console.error);
+                    }
+                });
+            }
         }
 
         return NextResponse.json({

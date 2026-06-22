@@ -24,7 +24,7 @@ function Card({ title, desc, children }: { title: string; desc?: string; childre
 }
 
 function UserSettingsContent() {
-    const { user, checkUser } = useAuth();
+    const { user, checkUser, openLogin } = useAuth();
     const router = useRouter();
     const searchParams = useSearchParams();
     const [savingProfile, setSavingProfile] = useState(false);
@@ -35,7 +35,7 @@ function UserSettingsContent() {
     const [passwords, setPasswords] = useState({ current: "", next: "", confirm: "" });
     const [profile, setProfile] = useState({ name: "", email: "", phone: "" });
 
-    const hasPassword = !!user?.password;
+    const hasPassword = !!user?.hasPassword;
     const isGoogleConnected = !!user?.googleId;
 
     useEffect(() => {
@@ -104,7 +104,7 @@ function UserSettingsContent() {
     if (!user) {
         return (
             <div className="min-h-screen flex items-center justify-center bg-slate-50 dark:bg-slate-950">
-                <button onClick={() => router.push("/auth/login")}
+                <button onClick={openLogin}
                     className="bg-teal-500 text-white px-8 py-3 rounded-xl font-bold">
                     Нэвтрэх
                 </button>
@@ -277,7 +277,7 @@ function UserSettingsContent() {
                                 {disconnecting ? "Салгаж байна..." : "Салгах"}
                             </button>
                         ) : (
-                            <a href="/api/auth/google/connect"
+                            <a href="/api/auth/google/connect?from=/settings"
                                 className="px-4 py-2 text-sm font-semibold rounded-xl bg-teal-500 hover:bg-teal-400 text-white transition-colors">
                                 Холбох
                             </a>

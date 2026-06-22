@@ -12,7 +12,49 @@ export default function CartItemTile(item: CartItem) {
     const router = useRouter();
     if (!item.product) return null;
 
-    const stock = item.product.stock;
+    // Хувилбар сонгосон бол түүний үлдэгдэл/үнэ (variant → stock → бараа)
+    const ps = item.productStock;
+    const pv = item.productVariant;
+    const stock = pv ? pv.stock : ps ? ps.stock : item.product.stock;
+    const unit = pv?.price != null ? pv.price : ps?.price != null ? ps.price : item.product.price;
+
+    // Сонгосон хувилбарын шошго
+    const variantColorHex = pv?.values?.map(v => v.attributeValue?.hex).find(Boolean) ?? ps?.color?.hex ?? null;
+    const variantLabel = pv
+        ? (pv.values ?? []).map(v => v.attributeValue?.value).filter(Boolean).join(" / ")
+        : [ps?.color?.name, ps?.size?.sizeName].filter(Boolean).join(" / ");
+
+    // Хувилбарт тохирох зураг (холбоосоор). Тохирох зураг олдвол түүнийг, эс бөгөөс эхний зургийг харуулна.
+    const variantImageUrl = (() => {
+        const imgs = item.product.images ?? [];
+        if (!pv || imgs.length === 0) return null;
+        // Хувилбарын сонголт: attrId → сонгосон valueId
+        const selByAttr = new Map<number, number>();
+        (pv.values ?? []).forEach(v => {
+            const aId = v.attributeValue?.attributeId;
+            if (aId != null && v.attributeValueId != null) selByAttr.set(aId, v.attributeValueId);
+        });
+        if (selByAttr.size === 0) return null;
+        const match = imgs.find(im => {
+            const links = im.links ?? [];
+            if (links.length === 0) return false;
+            const byAttr = new Map<number, Set<number>>();
+            for (const l of links) {
+                const aId = l.attributeValue?.attributeId;
+                if (aId == null) continue;
+                if (!byAttr.has(aId)) byAttr.set(aId, new Set());
+                byAttr.get(aId)!.add(l.attributeValueId);
+            }
+            for (const [aId, set] of byAttr) {
+                const sel = selByAttr.get(aId);
+                if (sel == null || !set.has(sel)) return false;
+            }
+            return true;
+        });
+        return match?.url ?? null;
+    })();
+    const displayImageUrl = variantImageUrl ?? item.product.images?.[0]?.url;
+
     const [localQty, setLocalQty] = useState(String(item.quantity));
 
     useEffect(() => { setLocalQty(String(item.quantity)); }, [item.quantity]);
@@ -25,8 +67,8 @@ export default function CartItemTile(item: CartItem) {
         if (clamped !== item.quantity) updateQty(item.id, clamped);
     };
 
-    const total = (item.product.price * item.quantity).toLocaleString();
-    const unitPrice = item.product.price?.toLocaleString();
+    const total = (unit * item.quantity).toLocaleString();
+    const unitPrice = unit?.toLocaleString();
 
     return (
         <div
@@ -36,7 +78,7 @@ export default function CartItemTile(item: CartItem) {
             {/* Image */}
             <div className="relative w-20 h-20 sm:w-24 sm:h-24 rounded-2xl overflow-hidden bg-slate-100 dark:bg-zinc-800 flex-shrink-0">
                 <img
-                    src={imgUrl(item.product.images?.[0]?.url)}
+                    src={imgUrl(displayImageUrl)}
                     alt={item.product.name || "Product"}
                     className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
                 />
@@ -47,6 +89,14 @@ export default function CartItemTile(item: CartItem) {
                 <h3 className="text-sm sm:text-base font-bold text-slate-900 dark:text-white truncate leading-tight">
                     {item.product.name}
                 </h3>
+                {variantLabel && (
+                    <div className="flex items-center gap-1.5 mt-1">
+                        {variantColorHex && (
+                            <span className="w-3 h-3 rounded-full border border-slate-200 dark:border-zinc-700 flex-shrink-0" style={{ backgroundColor: variantColorHex }} />
+                        )}
+                        <span className="text-xs font-medium text-slate-500 dark:text-zinc-400">{variantLabel}</span>
+                    </div>
+                )}
                 <p className="text-xs text-slate-400 dark:text-zinc-500 mt-1">
                     ₮{unitPrice} × {item.quantity}ш
                 </p>

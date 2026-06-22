@@ -8,11 +8,13 @@ import Image from "next/image";
 import { useState } from "react";
 import { Heart, ShoppingCart } from "lucide-react";
 import { useWishlist } from "../context/wishlist_context";
+import { useSettings } from "../context/settings_context";
 import { imgUrl } from "@/utils/imgUrl";
 
 export default function ProductCard(product: Product) {
     const { cart, loading: cartLoading, add } = useCart();
-    const { isAuthenticated } = useAuth();
+    const { isAuthenticated, openLogin } = useAuth();
+    const { settings } = useSettings();
     const router = useRouter();
 
     const [currentIndex, setCurrentIndex] = useState(0);
@@ -27,7 +29,7 @@ export default function ProductCard(product: Product) {
 
     const handleWishClick = async (e: React.MouseEvent) => {
         e.stopPropagation();
-        if (!isAuthenticated) { router.push("/auth/login"); return; }
+        if (!isAuthenticated) { openLogin(); return; }
         await toggleWish(product.id);
     };
 
@@ -44,7 +46,7 @@ export default function ProductCard(product: Product) {
     const handleAdd = async (e: React.MouseEvent) => {
         e.stopPropagation();
         if (!isAuthenticated) {
-            router.push("/auth/login");
+            openLogin();
             return;
         }
         await add({ cartId: cart?.id ?? null, productId: product.id, productQty: 1 });
@@ -171,7 +173,7 @@ export default function ProductCard(product: Product) {
                     </div>
 
                     {/* Stock indicator */}
-                    {product.stock !== undefined && product.stock <= 5 && product.stock > 0 && (
+                    {settings.showStock && product.stock !== undefined && product.stock <= 5 && product.stock > 0 && (
                         <span className="text-[10px] font-bold text-amber-500 bg-amber-50 dark:bg-amber-900/20 px-2 py-0.5 rounded-full">
                             {product.stock}ш үлдсэн
                         </span>

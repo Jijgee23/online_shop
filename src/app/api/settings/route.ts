@@ -7,7 +7,9 @@ export async function GET() {
     try {
         const s = await prisma.storeSettings.findUnique({ where: { id: 1 } });
         return NextResponse.json({
-            storeName: s?.storeName ?? "IShop",
+            storeName: s?.storeName ?? "Дэлгүүр",
+            logo: s?.logo ?? "",
+            banners: s?.banners ?? [],
             storeDesc: s?.storeDesc ?? "",
             phone: s?.phone ?? "",
             email: s?.email ?? "",
@@ -18,6 +20,9 @@ export async function GET() {
             showStatDelivery: s?.showStatDelivery ?? true,
             payQpay: s?.payQpay ?? true,
             payOnDelivery: s?.payOnDelivery ?? false,
+            showBranches: s?.showBranches ?? true,
+            showStock: s?.showStock ?? true,
+            maxOrderValue: s?.maxOrderValue ?? 0,
             deliveryFee: s?.fee ?? 0,
             deliveryFeeThreshold: s?.feeThreshold ?? 0,
             facebookUrl: s?.facebookUrl ?? "",

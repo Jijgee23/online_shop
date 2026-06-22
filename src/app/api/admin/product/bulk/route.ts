@@ -81,19 +81,29 @@ export async function POST(req: NextRequest) {
         const validIds = new Set(existingCategories.map((c) => c.id));
 
         // Төрөлжүүлж бэлтгэх (Excel-ээс ирсэн датаг Prisma-д тааруулах)
-        const formattedProducts = products.map((p) => {
-            const cid = parseInt(p.categoryId);
-            return {
-                name: String(p.name),
-                price: parseFloat(p.price),
-                stock: parseInt(p.stock),
-                categoryId: validIds.has(cid) ? cid : busad.id,
-                slug: p.slug || String(p.name).toLowerCase().replace(/ /g, "-"),
-                isPublished: true,
-                description: p.description || "",
-                state: ProductState.ACTIVE,
-            };
-        });
+        const formattedProducts = products
+            .filter((p) => p?.name != null && String(p.name).trim() !== "")
+            .map((p) => {
+                const cid = parseInt(p.categoryId);
+                const discount = p.discountPrice != null && String(p.discountPrice).trim() !== ""
+                    ? parseFloat(p.discountPrice)
+                    : null;
+                return {
+                    name: String(p.name).trim(),
+                    price: parseFloat(p.price) || 0,
+                    discountPrice: discount != null && !isNaN(discount) ? discount : null,
+                    stock: parseInt(p.stock) || 0,
+                    categoryId: validIds.has(cid) ? cid : busad.id,
+                    slug: (p.slug ? String(p.slug) : String(p.name)).trim().toLowerCase().replace(/\s+/g, "-"),
+                    isPublished: true,
+                    description: p.description ? String(p.description) : "",
+                    state: ProductState.ACTIVE,
+                };
+            });
+
+        if (formattedProducts.length === 0) {
+            return NextResponse.json({ error: "Хүчинтэй мөр олдсонгүй (name багана хоосон байна)" }, { status: 400 });
+        }
 
         // Олноор нь үүсгэх
         const result = await prisma.product.createMany({

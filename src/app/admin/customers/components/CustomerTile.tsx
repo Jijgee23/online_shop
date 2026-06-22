@@ -1,7 +1,8 @@
 import { UserStatus } from "@/generated/prisma";
 import { Customer } from "@/interface/user";
 import { getStatusName } from "@/utils/utils";
-import { useRouter } from "next/navigation"; 
+import { useRouter } from "next/navigation";
+import { Badge } from "@/ui/Badge";
 
 export default function CustomerTile(user: Customer) {
   const router = useRouter();
@@ -46,13 +47,9 @@ export default function CustomerTile(user: Customer) {
       </td>
       
       <td className="px-8 py-5">
-        <span className={`px-3 py-1 text-[10px] font-bold rounded-full border transition-colors ${
-          user.status === UserStatus.ACTIVE ? "bg-teal-500/10 border-teal-500/20 text-teal-400" :
-          user.status === UserStatus.NEW ? "bg-blue-500/10 border-blue-500/20 text-blue-400" :
-          "bg-red-500/10 border-red-500/20 text-red-500"
-        }`}>
+        <Badge color={user.status === UserStatus.ACTIVE ? "teal" : user.status === UserStatus.NEW ? "blue" : "red"}>
           {getStatusName(user.status)}
-        </span>
+        </Badge>
       </td>
       
       <td className="px-8 py-5 text-right" onClick={handleActionClick}>

@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import { useCart } from "../context/cart_context";
 import CartItemTile from "./components/CartItemTile";
 import Header from "../components/Header";
@@ -18,7 +18,13 @@ export default function CartPage() {
     const { myAddresses, districts, fetchAddress } = useAddress();
     const [step, setStep] = useState<Step>("summary");
     const [selectedAddressId, setSelectedAddressId] = useState<number | null>(null);
+    const [selectedBranchId, setSelectedBranchId] = useState<number | null>(null);
+    const [branches, setBranches] = useState<CheckoutPanelProps["branches"]>([]);
     const [note, setNote] = useState("");
+
+    useEffect(() => {
+        fetch("/api/branches").then(r => r.json()).then(d => setBranches(d.data ?? [])).catch(() => {});
+    }, []);
     const [sheetOpen, setSheetOpen] = useState(false);
     const [orderNumber, setOrderNumber] = useState("");
     const [showAddressForm, setShowAddressForm] = useState(false);
@@ -84,6 +90,7 @@ export default function CartPage() {
     const sharedProps: CheckoutPanelProps = {
         cart, step, setStep,
         selectedAddressId, setSelectedAddressId, myAddresses,
+        selectedBranchId, setSelectedBranchId, branches,
         note, setNote,
         showAddressForm, setShowAddressForm,
         savingAddress, districts, newAddr, setNewAddr, handleSaveNewAddress,

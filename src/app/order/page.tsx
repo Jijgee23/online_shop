@@ -2,13 +2,13 @@
 
 import { useEffect, useState } from "react";
 import { useOrder } from "../context/order_context";
-import { useAuth } from "../context/auth_context";
 import { ShoppingBag, SlidersHorizontal, X, ChevronDown, ArrowUpDown } from "lucide-react";
 import Link from "next/link";
-import Header from "../components/Header";
+import AccountShell from "../components/AccountShell";
 import OrderTile from "./components/OrderTile";
 import { OrderStatus } from "@/interface/order";
 import Pagination from "../../ui/Pagination";
+import DatePicker from "../../ui/DatePicker";
 
 const STATUS_OPTIONS = [
     { value: "", label: "Бүх төлөв" },
@@ -30,7 +30,6 @@ const STATUS_DOT: Record<string, string> = {
 export default function OrderPage() {
 
     const { orders, fetchOrder, total, page, setPage, pageSize } = useOrder();
-    const { user } = useAuth();
     const totalPages = Math.ceil(total / pageSize);
 
     const [statusFilter, setStatusFilter] = useState("");
@@ -74,20 +73,13 @@ export default function OrderPage() {
     };
 
     return (
-        <div className="min-h-screen bg-slate-50 dark:bg-slate-950 pt-24 pb-24">
-            <Header />
-            <div className="max-w-2xl mx-auto px-4 sm:px-6">
+        <AccountShell title="Захиалгууд">
 
-                {/* Header */}
-                <div className="flex items-start justify-between mb-8">
-                    <div>
-                        <h1 className="text-2xl sm:text-3xl font-extrabold text-slate-900 dark:text-white mb-1">
-                            Миний <span className="bg-gradient-to-r from-teal-500 to-blue-500 bg-clip-text text-transparent">захиалгууд</span>
-                        </h1>
-                        <p className="text-sm text-slate-500 dark:text-slate-400">
-                            {user?.name} · Нийт {total} захиалга
-                        </p>
-                    </div>
+                {/* Filter row */}
+                <div className="flex items-center justify-between mb-6">
+                    <p className="text-sm text-slate-500 dark:text-slate-400">
+                        Нийт {total} захиалга
+                    </p>
 
                     {!isEmpty && (
                         <button
@@ -142,22 +134,11 @@ export default function OrderPage() {
                             <div className="grid grid-cols-2 gap-3">
                                 <div>
                                     <label className="text-[11px] text-slate-400 mb-1.5 block">Эхлэх</label>
-                                    <input
-                                        type="date"
-                                        value={dateFrom}
-                                        onChange={e => setDateFrom(e.target.value)}
-                                        className="w-full px-3 py-2.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-slate-800 dark:text-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500/40 focus:border-teal-500 transition-all"
-                                    />
+                                    <DatePicker value={dateFrom} max={dateTo || undefined} onChange={setDateFrom} placeholder="Эхлэх" />
                                 </div>
                                 <div>
                                     <label className="text-[11px] text-slate-400 mb-1.5 block">Дуусах</label>
-                                    <input
-                                        type="date"
-                                        value={dateTo}
-                                        min={dateFrom}
-                                        onChange={e => setDateTo(e.target.value)}
-                                        className="w-full px-3 py-2.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-slate-800 dark:text-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500/40 focus:border-teal-500 transition-all"
-                                    />
+                                    <DatePicker value={dateTo} min={dateFrom || undefined} onChange={setDateTo} placeholder="Дуусах" />
                                 </div>
                             </div>
                         </div>
@@ -258,8 +239,7 @@ export default function OrderPage() {
 
                 <Pagination currentPage={page} totalItems={total} pageSize={pageSize} onPageChange={setPage} />
 
-            </div>
-        </div>
+        </AccountShell>
     );
 }
 

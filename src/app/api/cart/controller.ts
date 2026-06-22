@@ -17,7 +17,9 @@ export async function recalculateCart(cartId: number) {
         include: {
             items: {
                 include: {
-                    product: true
+                    product: true,
+                    productStock: true,
+                    productVariant: true
                 }
             }
         }
@@ -31,7 +33,13 @@ export async function recalculateCart(cartId: number) {
     );
 
     const totalPrice = cart.items.reduce((sum, item) => {
-        return sum + item.quantity * Number(item.product?.price || 0);
+        // Хувилбарын үнэ (variant → stock → бараа) fallback дарааллаар
+        const unit = item.productVariant?.price != null
+            ? Number(item.productVariant.price)
+            : item.productStock?.price != null
+                ? Number(item.productStock.price)
+                : Number(item.product?.price || 0);
+        return sum + item.quantity * unit;
     }, 0);
 
     return await prisma.cart.update({

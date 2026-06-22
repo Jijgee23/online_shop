@@ -11,6 +11,7 @@ import toast from "react-hot-toast";
 
 export interface CreateOrderParams {
     addressId?: number | null;
+    branchId?: number | null;
     paymentMethod: string;
     note?: string;
     paymentConfirmed?: boolean;
@@ -43,13 +44,13 @@ export const OrderProvider = ({ children }: { children: ReactNode }) => {
     const router                = useRouter();
     const { fetchAddress }      = useAddress();
 
-    const createOrder = async ({ addressId, paymentMethod, note, paymentConfirmed }: CreateOrderParams): Promise<boolean> => {
+    const createOrder = async ({ addressId, branchId, paymentMethod, note, paymentConfirmed }: CreateOrderParams): Promise<boolean> => {
         const t = toast.loading('Захиалга үүсгэж байна...');
         try {
             const res = await fetch("/api/order", {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ cartId: cart?.id, addressId: addressId ?? null, paymentMethod, note, paymentConfirmed: paymentConfirmed ?? false }),
+                body: JSON.stringify({ cartId: cart?.id, addressId: addressId ?? null, branchId: branchId ?? null, paymentMethod, note, paymentConfirmed: paymentConfirmed ?? false }),
             });
             const data = await res.json();
             if (res.ok) {

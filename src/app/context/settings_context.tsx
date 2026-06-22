@@ -4,6 +4,8 @@ import { createContext, useContext, useState, useEffect, ReactNode } from "react
 
 export interface StoreSettings {
     storeName: string;
+    logo: string;
+    banners: string[];
     storeDesc: string;
     phone: string;
     email: string;
@@ -13,12 +15,17 @@ export interface StoreSettings {
     showStatSatisfaction: boolean;
     showStatDelivery: boolean;
     payQpay: boolean;
+    showBranches: boolean;
+    showStock: boolean;
+    maxOrderValue: number;
     facebookUrl: string;
     instagramUrl: string;
 }
 
 const DEFAULT: StoreSettings = {
-    storeName: "IShop",
+    storeName: "Дэлгүүр",
+    logo: "",
+    banners: [],
     storeDesc: "",
     phone: "",
     email: "",
@@ -28,6 +35,9 @@ const DEFAULT: StoreSettings = {
     showStatSatisfaction: true,
     showStatDelivery: true,
     payQpay: true,
+    showBranches: true,
+    showStock: true,
+    maxOrderValue: 0,
     facebookUrl: "",
     instagramUrl: "",
 };

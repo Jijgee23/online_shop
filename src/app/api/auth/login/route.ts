@@ -46,9 +46,12 @@ export async function POST(req: NextRequest) {
     const accessToken = generateAccessToken(user as any);
     const refreshToken = generateRefreshToken(user as any);
 
+    // Never expose the password hash to the client; surface a boolean flag instead
+    const { password: _hash, ...safeUser } = user;
+
     const result = NextResponse.json({
       message: "Login success",
-      user,
+      user: { ...safeUser, hasPassword: !!user.password },
       accessToken,
       refreshToken,
     }, { status: 200 });

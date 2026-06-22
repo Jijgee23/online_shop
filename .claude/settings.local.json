@@ -35,7 +35,13 @@
       "Read(//tmp/**)",
       "Bash(curl -s http://localhost:3000/api/admin/settings -H \"Cookie: accessToken=$\\(cat /tmp/admin_token || echo 'none'\\)\")",
       "Bash(git commit *)",
-      "WebFetch(domain:mongolz.shop)"
+      "WebFetch(domain:mongolz.shop)",
+      "Bash(Get-ChildItem -Path \"C:\\\\Users\\\\jijge\\\\online_shop\\\\src\" -Recurse -Directory)",
+      "Bash(Select-Object -ExpandProperty FullName)",
+      "Bash(npm ls *)",
+      "PowerShell(npm install *)",
+      "PowerShell(node -e \"console.log\\(require\\('@google/generative-ai/package.json'\\).version\\)\")",
+      "PowerShell(npx prisma generate 2>&1 | Select-Object -Last 5)"
     ]
   }
 }

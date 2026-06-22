@@ -12,6 +12,7 @@ export default function ProductsTab() {
     const [settings, setSettings] = useState({
         onlyInStock:          false,
         onlyPublished:        true,
+        showStock:            true,
         showStatProducts:     true,
         showStatOrders:       true,
         showStatSatisfaction: true,
@@ -26,6 +27,7 @@ export default function ProductsTab() {
                     ...p,
                     onlyInStock:   d.data.onlyInStock   ?? false,
                     onlyPublished: d.data.onlyPublished ?? true,
+                    showStock:     d.data.showStock     ?? true,
                 }));
             })
             .finally(() => setAdminLoading(false));
@@ -69,6 +71,7 @@ export default function ProductsTab() {
     const productRows: { key: keyof typeof settings; label: string; desc: string }[] = [
         { key: "onlyPublished", label: "Зөвхөн нийтлэгдсэн бараа харуулах",  desc: "Идэвхгүй болон ноорог бараануудыг харагдахгүй болгоно" },
         { key: "onlyInStock",   label: "Зөвхөн нөөцтэй бараа харуулах",       desc: "Нөөц дууссан (stock = 0) бараануудыг харагдахгүй болгоно" },
+        { key: "showStock",     label: "Үлдэгдлийн тоо харуулах",             desc: "Хэрэглэгчид үлдэгдлийн тоог харуулна. Унтраавал зөвхөн «Нөөцөд байна / Дууссан» гэж харагдана" },
     ];
 
     const statRows: { key: keyof typeof settings; icon: string; label: string; desc: string }[] = [

@@ -6,10 +6,10 @@ import { ACCESS_TOKEN_SECRET } from "../auth/jwt/jwt_controller";
 import { OrderService, OrderError } from "@/services/order.service";
 
 export async function POST(req: NextRequest) {
-    const { cartId, addressId, paymentMethod, note, paymentConfirmed } = await req.json();
+    const { cartId, addressId, branchId, paymentMethod, note, paymentConfirmed } = await req.json();
 
     try {
-        const order = await OrderService.createOrder({ cartId, addressId, paymentMethod, note, paymentConfirmed });
+        const order = await OrderService.createOrder({ cartId, addressId, branchId, paymentMethod, note, paymentConfirmed });
         return NextResponse.json({ success: true, order }, { status: 200 });
     } catch (e) {
         if (e instanceof OrderError) {

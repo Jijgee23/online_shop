@@ -15,17 +15,24 @@ export async function PATCH(req: NextRequest) {
 
         const cart = await prisma.cart.findUnique({ where: { id: cartId } });
 
-        if (!cart) NextResponse.json({ error: 'Сагсаны мэдээлэл олдсонгүй!' }, { status: 404 });
+        if (!cart) return NextResponse.json({ error: 'Сагсаны мэдээлэл олдсонгүй!' }, { status: 404 });
 
-        const cartItem = await prisma.cartItem.findUnique({ where: { id: itemId }, include: { product: true } });
+        const cartItem = await prisma.cartItem.findUnique({ where: { id: itemId }, include: { product: true, productStock: true, productVariant: true } });
 
-        if (!cartItem) NextResponse.json({ error: 'Барааны мэдээлэл олдсонгүй!' }, { status: 404 });
+        if (!cartItem) return NextResponse.json({ error: 'Барааны мэдээлэл олдсонгүй!' }, { status: 404 });
 
         const product = cartItem?.product;
 
         if (!product) return NextResponse.json({ error: 'Барааны мэдээлэл олдсонгүй!' }, { status: 404 })
 
-        if (product?.stock < Number(newQty)) return NextResponse.json({ error: 'Барааны үлдэгдэл хүрэлцэхгүй байна!' }, { status: 404 })
+        // Хувилбар сонгосон бол түүний үлдэгдэл (variant → stock → бараа)
+        const availableStock = cartItem.productVariant
+            ? cartItem.productVariant.stock
+            : cartItem.productStock
+                ? cartItem.productStock.stock
+                : product.stock;
+
+        if (availableStock < Number(newQty)) return NextResponse.json({ error: 'Барааны үлдэгдэл хүрэлцэхгүй байна!' }, { status: 404 })
 
         const newCartItem = await prisma.cartItem.update({ where: { id: itemId }, data: { quantity: newQty } })
         const cookieStore = await cookies();
@@ -36,7 +43,7 @@ export async function PATCH(req: NextRequest) {
         }
 
         const decoded = jwt.verify(token, ACCESS_TOKEN_SECRET) as any;
-        await recalculateCart(decoded.userId)
+        await recalculateCart(cartId)
 
         return NextResponse.json({ success: true, item: newCartItem }, { status: 200 })
 

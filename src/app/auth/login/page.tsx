@@ -1,172 +1,29 @@
 "use client"
 
-import { useEffect, useState } from "react"
+import { useEffect } from "react"
 import { useRouter } from "next/navigation"
-import Link from "next/link"
 import { useAuth } from "@/app/context/auth_context"
 import { UserRole } from "@/generated/prisma"
-import toast from "react-hot-toast"
-import { Input } from "@/ui/Input"
+import { AuthShell } from "../components/AuthShell"
+import { LoginForm } from "../components/LoginForm"
 
 export default function LoginPage() {
-  const { login, loading, user } = useAuth();
-  const [identifier, setIdentifier] = useState("")
-  const [password, setPassword] = useState("")
+  const { user } = useAuth()
   const router = useRouter()
-
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!identifier || !password) {
-      toast.error('Нэвтрэх мэдээллээ оруулна уу!')
-      return
-    }
-    await login(identifier, password);
-  };
 
   useEffect(() => {
     if (user) {
       if (user.role === UserRole.ADMIN) {
-        router.push("/admin");
+        router.push("/admin")
       } else {
-        router.push("/");
+        router.push("/")
       }
     }
-  }, [user, router]);
+  }, [user, router])
 
   return (
-    <div className="min-h-screen relative flex items-center justify-center bg-slate-50 dark:bg-slate-950 px-4 overflow-hidden font-sans">
-
-      {/* Background Animated Orbs */}
-      <div className="absolute top-0 -left-20 w-96 h-96 bg-teal-500 rounded-full mix-blend-multiply dark:mix-blend-screen filter blur-[128px] opacity-10 dark:opacity-20 animate-pulse"></div>
-      <div className="absolute bottom-0 -right-20 w-96 h-96 bg-blue-500 rounded-full mix-blend-multiply dark:mix-blend-screen filter blur-[128px] opacity-10 dark:opacity-20 animate-pulse delay-700"></div>
-
-      {/* Main Card */}
-      <div className="relative w-full max-w-md z-10">
-        <div className="bg-white dark:bg-slate-900/50 backdrop-blur-xl border border-slate-200 dark:border-slate-800 rounded-3xl shadow-2xl p-10">
-
-          {/* Header */}
-          <div className="text-center mb-8">
-            <Link href="/" className="inline-block mb-4">
-              <h1 className="text-3xl font-extrabold bg-gradient-to-r from-teal-500 to-blue-500 dark:from-teal-400 dark:to-blue-400 bg-clip-text text-transparent">
-                IShop
-              </h1>
-            </Link>
-            <h2 className="text-2xl font-bold text-slate-900 dark:text-white mb-2">Тавтай морилно уу</h2>
-            <p className="text-slate-500 dark:text-slate-400 text-sm">
-              Нэвтрэх мэдээллээ оруулна уу
-            </p>
-          </div>
-
-          {/* Form Fields */}
-          <form className="space-y-4" onSubmit={handleSubmit}>
-            {/* Identifier Input */}
-            <Input
-              label="Имэйл эсвэл утасны дугаар"
-              type="text"
-              value={identifier}
-              onChange={(e) => setIdentifier(e.target.value)}
-              placeholder="name@example.com / 99001234"
-              required
-              icon={
-                identifier.includes("@")
-                  ? <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
-                    </svg>
-                  : <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z" />
-                    </svg>
-              }
-            />
-
-            {/* Password Input */}
-            <div className="space-y-1">
-              <div className="flex justify-between items-center px-1">
-                <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">
-                  Нууц үг
-                </label>
-                <Link href="/auth/resetPassword" className="text-[10px] text-teal-500 dark:text-teal-400 hover:underline transition-colors font-bold uppercase">
-                  Мартсан уу?
-                </Link>
-              </div>
-              <Input
-                type="password"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                placeholder="••••••••"
-                required
-                icon={
-                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
-                  </svg>
-                }
-              />
-            </div>
-
-            <button
-              disabled={loading}
-              type="submit"
-              className="relative w-full bg-gradient-to-r from-teal-500 to-blue-500 text-white py-3.5 rounded-2xl font-bold text-sm shadow-lg shadow-teal-500/20 hover:shadow-teal-500/40 hover:-translate-y-0.5 active:scale-[0.98] transition-all disabled:opacity-50 disabled:cursor-not-allowed group"
-            >
-              <span className={`flex items-center justify-center gap-2 ${loading ? 'opacity-0' : 'opacity-100'}`}>
-                Нэвтрэх
-                <svg className="w-5 h-5 group-hover:translate-x-1 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13 7l5 5m0 0l-5 5m5-5H6" />
-                </svg>
-              </span>
-
-              {loading && (
-                <div className="absolute inset-0 flex items-center justify-center">
-                  <svg className="animate-spin h-6 w-6 text-white" fill="none" viewBox="0 0 24 24">
-                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                  </svg>
-                </div>
-              )}
-            </button>
-          </form>
-
-          <div className="mt-6 relative">
-            <div className="absolute inset-0 flex items-center px-2">
-              <div className="w-full border-t border-slate-200 dark:border-slate-700"></div>
-            </div>
-            <div className="relative flex justify-center text-xs uppercase">
-              <span className="bg-white dark:bg-slate-900 px-2 text-slate-400 dark:text-slate-500 font-medium">Эсвэл</span>
-            </div>
-          </div>
-
-          <a
-            href="/api/auth/google"
-            className="mt-6 flex w-full items-center justify-center gap-3 rounded-2xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800/50 px-4 py-3.5 text-sm font-semibold text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors"
-          >
-            <svg className="w-5 h-5 flex-shrink-0" viewBox="0 0 24 24">
-              <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
-              <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/>
-              <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l3.66-2.84z"/>
-              <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/>
-            </svg>
-            Google-ээр нэвтрэх
-          </a>
-
-          <div className="mt-6 text-center">
-            <p className="text-slate-500 dark:text-slate-400 text-sm">
-              Бүртгэлгүй юу?{" "}
-              <Link
-                href="/auth/register"
-                className="text-teal-500 dark:text-teal-400 font-bold hover:underline transition-colors"
-              >
-                Бүртгүүлэх
-              </Link>
-            </p>
-          </div>
-
-        </div>
-
-        {/* Footer info */}
-        <p className="mt-8 text-center text-slate-400 dark:text-slate-500 text-xs tracking-widest uppercase">
-          &copy; 2026 IShop Technology
-        </p>
-      </div>
-
-    </div>
+    <AuthShell title="Нэвтрэх">
+      <LoginForm />
+    </AuthShell>
   )
 }

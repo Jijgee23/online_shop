@@ -131,6 +131,14 @@ function TreeNode({ node, depth, onEdit, onDelete, onAddChild, onToggleFeatured 
                     {node.name}
                 </span>
 
+                {/* ID badge — Excel импортын categoryId-д ашиглана */}
+                <span
+                    title="Excel импортын categoryId багана"
+                    className="text-[10px] font-mono font-bold text-teal-600 dark:text-teal-400 bg-teal-500/10 px-2 py-0.5 rounded-full flex-shrink-0"
+                >
+                    ID {node.id}
+                </span>
+
                 {/* Product count badge */}
                 <span className="text-[10px] font-bold text-slate-400 dark:text-zinc-500 bg-slate-100 dark:bg-zinc-800 px-2 py-0.5 rounded-full flex-shrink-0">
                     {node._count?.products ?? 0} бараа

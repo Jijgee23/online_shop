@@ -14,7 +14,7 @@ interface User {
   phone: string;
   role: UserRole;
   googleId?: string | null;
-  password?: string | null;
+  hasPassword?: boolean;
 }
 
 interface AuthContextType {
@@ -22,9 +22,15 @@ interface AuthContextType {
   loading: boolean;
   isAdmin: boolean,
   isAuthenticated: boolean;
+  loginOpen: boolean;
+  openLogin: () => void;
+  closeLogin: () => void;
+  registerOpen: boolean;
+  openRegister: () => void;
+  closeRegister: () => void;
   login: (identifier: string, password: string) => Promise<void>;
   logout: () => Promise<void>;
-  register: (params: { name: string; email: string; phone: string; password: string; otpCode: string; otpVia: "email" | "phone" }) => Promise<void>;
+  register: (params: { name: string; email: string; phone: string; password: string; otpCode: string; otpVia: "email" | "phone" }) => Promise<boolean>;
   checkUser: () => Promise<void>;
 }
 
@@ -33,9 +39,15 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(false);
+  const [loginOpen, setLoginOpen] = useState(false);
+  const [registerOpen, setRegisterOpen] = useState(false);
 
   const router = useRouter()
   const isAdmin = user !== null && user.role === UserRole.ADMIN
+  const openLogin = useCallback(() => { setRegisterOpen(false); setLoginOpen(true); }, []);
+  const closeLogin = useCallback(() => setLoginOpen(false), []);
+  const openRegister = useCallback(() => { setLoginOpen(false); setRegisterOpen(true); }, []);
+  const closeRegister = useCallback(() => setRegisterOpen(false), []);
   const checkUser = useCallback(async () => {
     setLoading(true);
     const data = await AuthService.checkUser().catch(() => null);
@@ -116,14 +128,15 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     }
   };
 
-  const register = async (params: { name: string; email: string; phone: string; password: string; otpCode: string; otpVia: "email" | "phone" }) => {
+  const register = async (params: { name: string; email: string; phone: string; password: string; otpCode: string; otpVia: "email" | "phone" }): Promise<boolean> => {
     setLoading(true);
     try {
       await AuthService.register(params);
       toast.success("Бүртгэл амжилттай үүслээ, нэвтэрнэ үү");
-      router.push("/auth/login");
+      return true;
     } catch (err: any) {
       toast.error(err.message);
+      return false;
     } finally {
       setLoading(false);
     }
@@ -134,6 +147,12 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     loading,
     isAdmin,
     isAuthenticated: !!user,
+    loginOpen,
+    openLogin,
+    closeLogin,
+    registerOpen,
+    openRegister,
+    closeRegister,
     login,
     logout,
     register,

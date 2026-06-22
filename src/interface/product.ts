@@ -22,6 +22,7 @@ export interface Product {
   isPublished: boolean;
   discountPrice: number | null;
   sku: string | null;
+  barcode: string | null;
   createdAt: Date;
   updatedAt: Date | null;
   deletedAt: Date | null;
@@ -33,6 +34,55 @@ export interface Product {
   colors: ProductColor[]
   features: ProductFeature[],
   featured: boolean
+  hasVariants: boolean
+  productStocks: ProductStock[]
+  attributes?: ProductAttribute[]
+  variants?: ProductVariant[]
+}
+
+export type AttributeType = "COLOR" | "SIZE" | "MATERIAL" | "DESIGN";
+
+export interface ProductAttributeValue {
+  id: number
+  attributeId: number
+  value: string
+  hex: string | null
+  imageUrl: string | null
+}
+
+export interface ProductAttribute {
+  id: number
+  productId: number
+  type: AttributeType
+  values: ProductAttributeValue[]
+}
+
+export interface ProductVariantValue {
+  id: number
+  variantId: string
+  attributeValueId: number
+  attributeValue?: ProductAttributeValue
+}
+
+export interface ProductVariant {
+  id: string
+  productId: number
+  price: number | null
+  discountPrice: number | null
+  stock: number
+  sku: string | null
+  values: ProductVariantValue[]
+}
+
+export interface ProductStock {
+  id: string
+  productId: number
+  productColorId: number | null
+  productSizeId: number | null
+  price: number | null
+  discountPrice: number | null
+  stock: number
+  sku: string | null
 }
 
 
@@ -40,6 +90,9 @@ export interface ProductImage {
   id: number;
   url: string;
   productId: number;
+  // Зураг ↔ хувилбарын утга холбоос (өнгө/загвар/материал).
+  // attributeValue.attributeId-г төрлөөр бүлэглэхэд ашиглана (сагсны зураг сонгоход).
+  links?: { attributeValueId: number; attributeValue?: { attributeId: number } }[];
 }
 
 export interface Category {
@@ -58,6 +111,7 @@ export interface ProductColor {
   id: number
   hex: string
   name: string
+  imageUrl?: string | null
 }
 
 export interface ProductSize {

@@ -1,10 +1,12 @@
 import { prisma } from "@/lib/prisma";
-import { OrderStatus } from "@/generated/prisma";
+import { OrderStatus, Prisma } from "@/generated/prisma";
 import { NextRequest, NextResponse } from "next/server";
 import { sendPushToUser } from "@/lib/firebase/sendPush";
+import { sendSmsMessage } from "@/app/api/auth/utils/utils";
+import { getStoreName } from "@/lib/storeName";
 
 export async function GET(
-    req: NextRequest,
+    _req: NextRequest,
     context: { params: Promise<{ id: string }> },
 ) {
     try {
@@ -39,10 +41,13 @@ export async function PATCH(
         const body = await req.json();
         const { status, note, paymentStatus } = body;
 
-        const order = await prisma.order.findUnique({ where: { id: Number(id) }, include: { payment: true } });
+        const order = await prisma.order.findUnique({
+            where: { id: Number(id) },
+            include: { payment: true, user: true, address: true },
+        });
         if (!order) return NextResponse.json({ message: "Захиалга олдсонгүй" }, { status: 404 });
 
-        const data: any = {};
+        const data: Prisma.OrderUpdateInput = {};
         if (status) data.status = status as OrderStatus;
         if (note !== undefined) data.note = note;
 
@@ -58,21 +63,21 @@ export async function PATCH(
         // Send notification to the order owner when status changes
         if (status && status !== order.status) {
             const STATUS_LABEL: Record<string, string> = {
-                PENDING:   "Хүлээгдэж байна",
-                PAID:      "Төлбөр баталгаажлаа",
-                SHIPPED:   "Хүргэлтэнд гарлаа",
+                PENDING: "Хүлээгдэж байна",
+                PAID: "Төлбөр баталгаажлаа",
+                SHIPPED: "Хүргэлтэнд гарлаа",
                 DELIVERED: "Хүргэгдлээ",
                 CANCELLED: "Цуцлагдлаа",
             };
             const STATUS_BODY: Record<string, string> = {
-                PENDING:   "Таны захиалга хүлээн авлаа.",
-                PAID:      "Таны захиалгын төлбөр амжилттай баталгаажлаа.",
-                SHIPPED:   "Таны захиалга хүргэлтэнд гарсан байна.",
+                PENDING: "Таны захиалга хүлээн авлаа.",
+                PAID: "Таны захиалгын төлбөр амжилттай баталгаажлаа.",
+                SHIPPED: "Таны захиалга хүргэлтэнд гарсан байна.",
                 DELIVERED: "Таны захиалга амжилттай хүргэгдлээ. Баярлалаа!",
                 CANCELLED: "Таны захиалга цуцлагдлаа. Дэлгэрэнгүй мэдээлэл авахыг хүсвэл холбогдоно уу.",
             };
             const title = `Захиалга ${STATUS_LABEL[status] ?? status}`;
-            const body  = `${order.orderNumber} — ${STATUS_BODY[status] ?? "Захиалгын төлөв өөрчлөгдлөө."}`;
+            const body = `${order.orderNumber} — ${STATUS_BODY[status] ?? "Захиалгын төлөв өөрчлөгдлөө."}`;
 
             await prisma.notification.create({
                 data: {
@@ -90,6 +95,18 @@ export async function PATCH(
                 body,
                 data: { orderId: String(order.id), orderNumber: order.orderNumber, link: "/order" },
             }).catch(console.error);
+
+            // Хүргэлтэнд гарах үед хэрэглэгч рүү SMS илгээх
+            if (status === OrderStatus.SHIPPED) {
+                const phone = order.address?.phone || order.user?.phone;
+                if (phone) {
+                    const storeName = await getStoreName();
+                    sendSmsMessage(
+                        phone,
+                        `${storeName}: ${order.orderNumber} захиалга хүргэлтэнд гарлаа.`,
+                    ).catch(console.error);
+                }
+            }
         }
 
         return NextResponse.json({ order: updated }, { status: 200 });

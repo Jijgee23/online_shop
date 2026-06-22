@@ -122,8 +122,8 @@ export default function ProfileTab() {
                     {user?.googleId ? (
                         <button
                             onClick={disconnectGoogle}
-                            disabled={googleLoading || !user.password}
-                            title={!user.password ? "Нууц үг тохируулаагүй тул салгах боломжгүй" : undefined}
+                            disabled={googleLoading || !user.hasPassword}
+                            title={!user.hasPassword ? "Нууц үг тохируулаагүй тул салгах боломжгүй" : undefined}
                             className="flex items-center gap-2 px-4 py-2 rounded-xl border border-red-200 dark:border-red-800 text-red-500 text-sm font-semibold hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
                         >
                             {googleLoading
@@ -134,7 +134,7 @@ export default function ProfileTab() {
                         </button>
                     ) : (
                         <a
-                            href="/api/auth/google/connect"
+                            href="/api/auth/google/connect?from=/admin/settings"
                             className="flex items-center gap-2 px-4 py-2 rounded-xl bg-teal-600 hover:bg-teal-500 text-white text-sm font-semibold transition-colors"
                         >
                             <Link2 className="w-4 h-4" />
@@ -142,7 +142,7 @@ export default function ProfileTab() {
                         </a>
                     )}
                 </div>
-                {user?.googleId && !user.password && (
+                {user?.googleId && !user.hasPassword && (
                     <p className="mt-3 text-xs text-amber-500 bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-xl px-3 py-2">
                         Нууц үг тохируулаагүй тул Google холболтыг салгах боломжгүй. Эхлээд нууц үг тохируулна уу.
                     </p>

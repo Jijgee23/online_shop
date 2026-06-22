@@ -5,7 +5,7 @@ import { NextRequest, NextResponse } from "next/server";
 
 export async function POST(req: NextRequest) {
 
-    const { amount, cartId, addressId } = await req.json();
+    const { amount, cartId, addressId, branchId } = await req.json();
 
     if (!amount || !cartId) {
         return NextResponse.json(
@@ -15,6 +15,16 @@ export async function POST(req: NextRequest) {
     }
 
     try {
+        // Захиалгын дээд үнийн хязгаар (0 = хязгааргүй)
+        const storeSettings = await prisma.storeSettings.findUnique({ where: { id: 1 } });
+        const maxOrderValue = storeSettings?.maxOrderValue ? Number(storeSettings.maxOrderValue) : 0;
+        if (maxOrderValue > 0 && Number(amount) > maxOrderValue) {
+            return NextResponse.json(
+                { error: `Захиалгын дээд хязгаар ₮${maxOrderValue.toLocaleString()}. Сагсаа багасгана уу.` },
+                { status: 400 }
+            );
+        }
+
         const tokenResult = await QPayService.getAccessToken() as any;
         if (tokenResult.error) {
             return NextResponse.json({ error: tokenResult.error }, { status: 500 });
@@ -70,6 +80,7 @@ export async function POST(req: NextRequest) {
                 amount,
                 cartId,
                 addressId: addressId ?? null,
+                branchId: branchId ?? null,
                 expiryDate: new Date(Date.now() + 30 * 60 * 1000),
             },
         });

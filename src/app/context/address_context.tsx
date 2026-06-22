@@ -47,7 +47,10 @@ export const AddressProvider = ({ children }: { children: ReactNode }) => {
     });
 
     const [showMap, setShowMap] = useState(false);
+    const [editingId, setEditingId] = useState<number | null>(null);
     const [resolvePromise, setResolvePromise] = useState<(value: AddressInput | null) => void>();
+
+    const emptyAddress: AddressInput = { city: "Улаанбаатар", districtId: 0, khoroo: "", detail: "", phone: "" };
 
     const fetchAddress = async () => {
         try {
@@ -70,6 +73,8 @@ export const AddressProvider = ({ children }: { children: ReactNode }) => {
     };
 
     const getDeliveryAddress = (isNew: boolean) => {
+        setEditingId(null);
+        setAddress(emptyAddress);
         setIsOpen(true);
         setShowForm(false); // Эхлээд жагсаалтыг харуулна
         return new Promise<AddressInput | null>((resolve) => {
@@ -85,12 +90,18 @@ export const AddressProvider = ({ children }: { children: ReactNode }) => {
     const handleSubmitNew = async (e: React.FormEvent) => {
         e.preventDefault();
         setIsOpen(false);
+        if (editingId != null) {
+            await updateAddress(editingId, address);
+            setEditingId(null);
+            return;
+        }
         await saveAddress(address);
         if (resolvePromise) resolvePromise(address);
     };
 
     const handleCancel = () => {
         setIsOpen(false);
+        setEditingId(null);
         if (resolvePromise) resolvePromise(null);
     };
 
@@ -101,9 +112,10 @@ export const AddressProvider = ({ children }: { children: ReactNode }) => {
         if (!isOK) return
 
         try {
-            const r = await fetch('api/address', { method: "DELETE", body: JSON.stringify({ id: id }) })
+            const r = await fetch('/api/address', { method: "DELETE", body: JSON.stringify({ id: id }) })
             if (r.ok) {
                 toast('Амжилттай устгагдлаа')
+                await fetchAddress()
                 return
             }
             const d = await r.json()
@@ -112,22 +124,40 @@ export const AddressProvider = ({ children }: { children: ReactNode }) => {
             toast.error('Амжилтгүй')
         }
     }
-    const editAddress = async (id: number) => {
+    const editAddress = (id: number) => {
+        const a = myAddresses.find(x => x.id === id);
+        if (!a) return;
+        setAddress({
+            city: a.city,
+            districtId: a.districtId,
+            khoroo: a.khoroo,
+            detail: a.detail,
+            phone: a.phone,
+            ...(a.latitude != null && a.longitude != null
+                ? { latitude: Number(a.latitude), longitude: Number(a.longitude) }
+                : {}),
+        });
+        setEditingId(id);
+        setShowForm(true);
+        setIsOpen(true);
+    }
 
-        const isOK = await confirm("Хаягын мэдээллийг устгах уу?")
-
-        if (!isOK) return
-
+    const updateAddress = async (id: number, data: AddressInput) => {
         try {
-            const r = await fetch('api/address', { method: "PATCH", body: JSON.stringify({ id: id }) })
-            if (r.ok) {
-                toast('Амжилттай устгагдлаа')
-                return
+            const res = await fetch('/api/address', {
+                method: 'PATCH',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ id, address: data }),
+            });
+            const json = await res.json();
+            if (res.ok) {
+                toast.success('Хаяг шинэчлэгдлээ');
+                await fetchAddress();
+                return;
             }
-            const d = await r.json()
-            toast.error(d.message ?? 'Амжилтгүй')
-        } catch (e) {
-            toast.error('Амжилтгүй')
+            toast.error(json.error ?? json.message ?? 'Амжилтгүй');
+        } catch {
+            toast.error('Амжилтгүй');
         }
     }
 
@@ -172,7 +202,7 @@ export const AddressProvider = ({ children }: { children: ReactNode }) => {
                         <div className="p-8 pb-4 flex justify-between items-center">
                             <div>
                                 <h3 className="text-2xl font-bold text-slate-900 dark:text-white tracking-tight">
-                                    {showForm ? "Шинэ хаяг нэмэх" : "Хүргэлтийн хаяг сонгох"}
+                                    {showForm ? (editingId != null ? "Хаяг засах" : "Шинэ хаяг нэмэх") : "Хүргэлтийн хаяг сонгох"}
                                 </h3>
                                 <p className="text-slate-500 dark:text-zinc-500 text-sm mt-1">
                                     {showForm ? "Дэлгэрэнгүй мэдээллээ оруулна уу." : "Хадгалсан хаягуудаас сонгоно уу."}

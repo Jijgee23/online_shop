@@ -401,7 +401,7 @@ export default function AdminNotificationsPage() {
                                     </span>
                                     {!n.isRead && <span className="w-2 h-2 rounded-full bg-teal-500 flex-shrink-0" />}
                                     <span className="ml-auto text-xs text-slate-400 dark:text-zinc-600 whitespace-nowrap">
-                                        {new Date(n.createdAt).toLocaleString("mn-MN", { month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" })}
+                                        {new Date(n.createdAt).toLocaleString("mn-MN", { month: "short", day: "numeric", hour: "2-digit", minute: "2-digit", hour12: false })}
                                     </span>
                                 </div>
                                 <p className="text-sm text-slate-500 dark:text-zinc-400 mt-0.5 leading-relaxed">{n.body}</p>

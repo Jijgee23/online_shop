@@ -9,8 +9,13 @@ import { ActivityAction } from "@/generated/prisma";
 
 export async function GET(req: NextRequest) {
     const code  = req.nextUrl.searchParams.get("code");
-    const state = req.nextUrl.searchParams.get("state"); // "connect" | null
+    const state = req.nextUrl.searchParams.get("state"); // "connect" | "connect:<returnPath>" | null
     const appUrl = process.env.NEXT_PUBLIC_APP_URL!;
+
+    const isConnect = state?.startsWith("connect") ?? false;
+    // Extract the relative return path the user came from, if any
+    const rawReturn = isConnect && state!.includes(":") ? state!.slice(state!.indexOf(":") + 1) : null;
+    const returnPath = rawReturn && rawReturn.startsWith("/") && !rawReturn.startsWith("//") ? rawReturn : null;
 
     if (!code) {
         return NextResponse.redirect(`${appUrl}/auth/login?error=google_cancelled`);
@@ -45,7 +50,7 @@ export async function GET(req: NextRequest) {
         }
 
         // ── CONNECT mode: link Google to the currently logged-in user ─────────
-        if (state === "connect") {
+        if (isConnect) {
             const cookieStore = await cookies();
             const token = cookieStore.get("accessToken")?.value;
             if (!token) {
@@ -59,8 +64,8 @@ export async function GET(req: NextRequest) {
             // Make sure this Google account isn't already used by someone else
             const existing = await prisma.user.findUnique({ where: { googleId: googleUser.id } });
             if (existing && existing.id !== Number(decoded.userId)) {
-                const errBase = decoded.role === "ADMIN" ? `${appUrl}/admin/settings` : `${appUrl}/settings`;
-                return NextResponse.redirect(`${errBase}?error=google_already_used`);
+                const errBase = returnPath ?? (decoded.role === "ADMIN" ? "/admin/settings" : "/settings");
+                return NextResponse.redirect(`${appUrl}${errBase}?error=google_already_used`);
             }
 
             const updated = await prisma.user.update({
@@ -68,8 +73,8 @@ export async function GET(req: NextRequest) {
                 data:  { googleId: googleUser.id },
             });
 
-            const settingsBase = updated.role === "ADMIN" ? `${appUrl}/admin/settings` : `${appUrl}/settings`;
-            return NextResponse.redirect(`${settingsBase}?success=google_connected`);
+            const settingsBase = returnPath ?? (updated.role === "ADMIN" ? "/admin/settings" : "/settings");
+            return NextResponse.redirect(`${appUrl}${settingsBase}?success=google_connected`);
         }
 
         // ── LOGIN / SIGNUP mode ───────────────────────────────────────────────

@@ -13,6 +13,7 @@ export default function CheckoutPanel(props: CheckoutPanelProps) {
     const {
         cart, step, setStep,
         selectedAddressId, setSelectedAddressId, myAddresses,
+        selectedBranchId, setSelectedBranchId, branches,
         note, setNote,
         showAddressForm, setShowAddressForm, savingAddress,
         districts, newAddr, setNewAddr, handleSaveNewAddress,
@@ -22,7 +23,7 @@ export default function CheckoutPanel(props: CheckoutPanelProps) {
     const { fetchAddress } = useAddress()
     const visibleSteps = STEPS.filter(s => s !== "done");
     useEffect(() => {
-        fetchAddress
+        fetchAddress();
     }, [])
     return (
         <>
@@ -51,12 +52,16 @@ export default function CheckoutPanel(props: CheckoutPanelProps) {
                         myAddresses={myAddresses}
                         selectedAddressId={selectedAddressId}
                         setSelectedAddressId={setSelectedAddressId}
+                        branches={branches}
+                        selectedBranchId={selectedBranchId}
+                        setSelectedBranchId={setSelectedBranchId}
                         note={note} setNote={setNote}
                         showAddressForm={showAddressForm} setShowAddressForm={setShowAddressForm}
                         savingAddress={savingAddress}
                         districts={districts}
                         newAddr={newAddr} setNewAddr={setNewAddr}
                         handleSaveNewAddress={handleSaveNewAddress}
+                        onRefetch={fetchAddress}
                         onBack={() => { setStep("summary"); setShowAddressForm(false); }}
                         onNext={() => setStep("pay")}
                     />
@@ -67,6 +72,8 @@ export default function CheckoutPanel(props: CheckoutPanelProps) {
                         cart={cart}
                         myAddresses={myAddresses}
                         selectedAddressId={selectedAddressId}
+                        branches={branches}
+                        selectedBranchId={selectedBranchId}
                         note={note}
                         onBack={() => setStep("address")}
                         onDone={onQPayDone}

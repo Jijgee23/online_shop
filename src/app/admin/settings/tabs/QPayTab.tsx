@@ -87,7 +87,7 @@ export default function QPayTab() {
                                 <input value={form.username} onChange={set("username")} placeholder="qpay_username" className={inputCls} />
                             </Field>
                             <Field label="Invoice Code">
-                                <input value={form.invoiceCode} onChange={set("invoiceCode")} placeholder="ISHOP_INVOICE" className={inputCls} />
+                                <input value={form.invoiceCode} onChange={set("invoiceCode")} placeholder="INVOICE_CODE" className={inputCls} />
                             </Field>
                         </div>
                         <Field label="Password">

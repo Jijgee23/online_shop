@@ -1,5 +1,6 @@
-import { ActivityAction, OtpType } from '@/generated/prisma';
+import { ActivityAction, OtpType, Prisma } from '@/generated/prisma';
 import { prisma } from '@/lib/prisma';
+import { getStoreName } from '@/lib/storeName';
 import crypto from 'crypto';
 import nodemailer from 'nodemailer';
 
@@ -30,19 +31,20 @@ export const validateOtp = async (
 export const sendEmailOTP = async (email: string, otp: number, type: OtpType) => {
     const subject = type === OtpType.SIGNUP ? "Бүртгэл баталгаажуулах" : "Нууц үг сэргээх";
     const title = type === OtpType.SIGNUP ? "Тавтай морилно уу!" : "Нууц үг солих хүсэлт";
+    const storeName = await getStoreName();
     const transporter = nodemailer.createTransport({
         service: 'gmail',
         auth: { user: process.env.MAIL_SENDER_EMAIL, pass: process.env.MAIL_SENDER_PASS }
     });
 
     await transporter.sendMail({
-        from: '"Ishop Store" <no-reply@ishop.mn>',
+        from: `"${storeName}" <no-reply@ishop.mn>`,
         to: email,
         subject: subject,
         text: `Таны баталгаажуулах код: ${otp}. Энэ код 5 минутын дараа хүчингүй болно.`,
         html: `
       <div style="font-family: sans-serif; padding: 20px; background-color: #f4f4f4;">
-        <h2 style="color: #14b8a6;">Ishop Баталгаажуулалт</h2>
+        <h2 style="color: #14b8a6;">${storeName} Баталгаажуулалт</h2>
         <p>${title}:</p>
         <h1 style="letter-spacing: 5px; color: #18181b;">${otp}</h1>
         <p style="font-size: 12px; color: #71717a;">Энэ код 5 минутын дараа хүчингүй болно.</p>
@@ -82,7 +84,7 @@ export const createFCM = async (userId: number, token: string) => {
 export const logActivity = async (
     userId: number,
     action: ActivityAction,
-    opts?: { description?: string; ip?: string; userAgent?: string; metadata?: Record<string, any> }
+    opts?: { description?: string; ip?: string; userAgent?: string; metadata?: Prisma.InputJsonValue }
 ) => {
     try {
         await prisma.activityLog.create({
@@ -90,9 +92,9 @@ export const logActivity = async (
                 userId,
                 action,
                 description: opts?.description,
-                ip:          opts?.ip,
-                userAgent:   opts?.userAgent,
-                metadata:    opts?.metadata,
+                ip: opts?.ip,
+                userAgent: opts?.userAgent,
+                metadata: opts?.metadata,
             },
         });
     } catch (err) {
@@ -127,8 +129,8 @@ export const registerDevice = async (
     try {
         const { ip, userAgent, fcmToken } = opts;
 
-        const platform   = userAgent ? detectPlatform(userAgent)   : "web";
-        const deviceName = userAgent ? detectDeviceName(userAgent)  : "Тодорхойгүй";
+        const platform = userAgent ? detectPlatform(userAgent) : "web";
+        const deviceName = userAgent ? detectDeviceName(userAgent) : "Тодорхойгүй";
 
         // If this FCM token already belongs to a device, reuse that device
         let deviceId: number | null = null;
@@ -185,16 +187,41 @@ export const registerDevice = async (
     }
 };
 
+// CallPro-гийн шинэ API (api-text.callpro.mn/v1/sms/send) рүү SMS илгээх дотоод helper.
+// GET query + x-api-key header (carcare.mn-ийн хэрэгжүүлэлттэй ижил). Хуучин messagepro API хаагдсан.
+const callProSend = async (phone: string, text: string): Promise<boolean> => {
+    const apiUrl = process.env.CALL_PRO_URL ?? 'https://api-text.callpro.mn/v1/sms/send';
+    const xApiKey = process.env.CALL_PRO_API_KEY ?? '10c2f933f9a9af1936b31c6ddcf59847';
+    const from = process.env.CALL_PRO_SPECIAL_KEY ?? '72776399';
+    const to = (phone ?? "").replace(/\D+/g, ""); // зөвхөн цифр үлдээнэ
+    if (!to) return false;
+    try {
+        // from/to/text — заавал; brand — заавал биш (env-д байвал нэмнэ)
+        const params: Record<string, string> = { from, to, text };
+        const brand = process.env.CALL_PRO_BRAND;
+        if (brand) params.brand = brand;
+        const qs = new URLSearchParams(params).toString();
+        const response = await fetch(`${apiUrl}?${qs}`, {
+            method: "GET",
+            headers: { "x-api-key": xApiKey },
+        });
+        if (!response.ok) {
+            console.error("callProSend failed", response.status, await response.text().catch(() => ""));
+        }
+        return response.ok;
+    } catch (e) {
+        console.error("callProSend error", e);
+        return false;
+    }
+};
+
+// Дурын текст мессеж илгээх — OTP биш ерөнхий мэдэгдэлд
+export const sendSmsMessage = async (phone: string, text: string): Promise<boolean> => {
+    return callProSend(phone, text);
+};
+
 export const sendSMS = async (otp: number, optType: OtpType, phone: string) => {
     const subject = optType === OtpType.SIGNUP ? "Бүртгэл баталгаажуулах" : "Нууц үг сэргээх";
-    // const title = optType === OtpType.SIGNUP ? "Тавтай морилно уу!" : "Нууц үг солих хүсэлт";
-    const apiUrl = process.env.CALL_PRO_URL ?? 'https://api.messagepro.mn/send';
-    const xApiKey = process.env.CALL_PRO_API_KEY ?? '10c2f933f9a9af1936b31c6ddcf59847';
-    const callProScecialKey = process.env.CALL_PRO_SPECIAL_KEY ?? '72776399';
-    const text = `Ishop, ${subject} код ${otp}`;
-    const response = await fetch(`${apiUrl}?from=${callProScecialKey}&to=${phone}&text=${text}`, {
-        method: "GET",
-        headers: { "Content-Type": "application/json", "x-api-key": xApiKey },
-    });
-    return response.ok;
+    const storeName = await getStoreName();
+    return callProSend(phone, `${storeName}, ${subject} код ${otp}`);
 };

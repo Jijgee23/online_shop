@@ -40,7 +40,7 @@ function CategoryChip(cat: Category) {
     return (
         <Link
             href={`/product?category=${cat.id}`}
-            className="group flex-shrink-0 flex items-center gap-5 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl px-3.5 py-2 hover:border-teal-400 hover:bg-teal-50 dark:hover:bg-teal-900/20 dark:hover:border-teal-700 transition-all duration-200"
+            className="group flex-shrink-0 flex items-center gap-3 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl px-3.5 py-2 hover:border-teal-400 hover:bg-teal-50 dark:hover:bg-teal-900/20 dark:hover:border-teal-700 transition-all duration-200"
         >
             <div className="relative w-14 h-14 rounded-lg overflow-hidden bg-slate-200 dark:bg-slate-700 flex-shrink-0">
                 {cat.image ? (

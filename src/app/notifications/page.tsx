@@ -30,7 +30,7 @@ const TYPE_COLOR: Record<string, string> = {
 };
 
 export default function NotificationsPage() {
-    const { isAuthenticated, loading } = useAuth();
+    const { isAuthenticated, loading, openLogin } = useAuth();
     const router = useRouter();
     const [notifications, setNotifications] = useState<Notification[]>([]);
     const [fetching, setFetching] = useState(true);
@@ -50,7 +50,7 @@ export default function NotificationsPage() {
     };
 
     useEffect(() => {
-        if (!loading && !isAuthenticated) { router.push("/auth/login"); return; }
+        if (!loading && !isAuthenticated) { router.push("/"); openLogin(); return; }
         if (isAuthenticated) fetchNotifications();
     }, [isAuthenticated, loading]);
 

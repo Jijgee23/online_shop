@@ -1,6 +1,7 @@
 "use client";
 import { useState, useRef, useCallback } from "react";
 import ReactCrop, { Crop, PixelCrop, centerCrop, makeAspectCrop } from "react-image-crop";
+import { Modal } from "@/ui/Modal";
 
 export default function CropModal({ src, onConfirm, onCancel }: {
     src: string;
@@ -39,36 +40,14 @@ export default function CropModal({ src, onConfirm, onCancel }: {
     };
 
     return (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm p-4">
-            <div className="bg-white dark:bg-zinc-900 rounded-3xl shadow-2xl w-full max-w-lg overflow-hidden">
-                <div className="flex items-center justify-between px-6 py-4 border-b border-slate-100 dark:border-zinc-800">
-                    <div>
-                        <h3 className="font-bold text-slate-900 dark:text-white">Зураг тайрах</h3>
-                        <p className="text-xs text-slate-400 dark:text-zinc-500 mt-0.5">Хүссэн хэсгийг чирж тохируулна уу (3:4)</p>
-                    </div>
-                    <button onClick={onCancel} className="text-slate-400 hover:text-slate-700 dark:hover:text-white transition-colors">
-                        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12" />
-                        </svg>
-                    </button>
-                </div>
-
-                <div className="p-4 flex items-center justify-center bg-slate-50 dark:bg-zinc-950 max-h-[60vh] overflow-auto">
-                    <ReactCrop
-                        crop={crop}
-                        onChange={c => setCrop(c)}
-                        onComplete={c => setCompletedCrop(c)}
-                        aspect={3 / 4}
-                        minWidth={60}
-                        keepSelection
-                    >
-                        {/* eslint-disable-next-line @next/next/no-img-element */}
-                        <img ref={imgRef} src={src} alt="crop" onLoad={onImageLoad}
-                            className="max-w-full max-h-[55vh] object-contain" />
-                    </ReactCrop>
-                </div>
-
-                <div className="flex justify-end gap-3 px-6 py-4 border-t border-slate-100 dark:border-zinc-800">
+        <Modal
+            open={true}
+            onClose={onCancel}
+            title="Зураг тайрах"
+            subtitle="Хүссэн хэсгийг чирж тохируулна уу (3:4)"
+            maxWidth="max-w-lg"
+            footer={
+                <>
                     <button onClick={onCancel}
                         className="px-5 py-2.5 rounded-xl text-slate-500 dark:text-zinc-400 font-semibold hover:bg-slate-100 dark:hover:bg-zinc-800 transition-colors text-sm">
                         Цуцлах
@@ -77,8 +56,23 @@ export default function CropModal({ src, onConfirm, onCancel }: {
                         className="px-6 py-2.5 bg-teal-500 hover:bg-teal-400 disabled:opacity-50 text-white rounded-xl font-bold transition-colors text-sm">
                         Батлах
                     </button>
-                </div>
+                </>
+            }
+        >
+            <div className="-mx-6 -mt-6 flex items-center justify-center bg-slate-50 dark:bg-zinc-950 max-h-[60vh] overflow-auto">
+                <ReactCrop
+                    crop={crop}
+                    onChange={c => setCrop(c)}
+                    onComplete={c => setCompletedCrop(c)}
+                    aspect={3 / 4}
+                    minWidth={60}
+                    keepSelection
+                >
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img ref={imgRef} src={src} alt="crop" onLoad={onImageLoad}
+                        className="max-w-full max-h-[55vh] object-contain" />
+                </ReactCrop>
             </div>
-        </div>
+        </Modal>
     );
 }

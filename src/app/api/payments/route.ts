@@ -41,6 +41,7 @@ export async function GET(req: NextRequest) {
         const order = await OrderService.createOrder({
             cartId,
             addressId: invoice.addressId ?? null,
+            branchId: invoice.branchId ?? null,
             paymentMethod: "QPAY",
             paymentConfirmed: true,
         });

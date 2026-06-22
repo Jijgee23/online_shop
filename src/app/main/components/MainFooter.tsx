@@ -5,7 +5,7 @@ import Link from "next/link";
 import Image from "next/image";
 
 export function MainFooter() {
-    const user = useAuth().user;
+    const { user, openLogin, openRegister } = useAuth();
     const loggedIn = user !== null;
     const { settings } = useSettings();
 
@@ -17,7 +17,7 @@ export function MainFooter() {
                     {/* Brand */}
                     <div className="md:col-span-1">
                         <h2 className="text-2xl font-extrabold bg-gradient-to-r from-teal-400 to-blue-400 bg-clip-text text-transparent mb-3">
-                            {settings.storeName || "IShop"}
+                            {settings.storeName || "Дэлгүүр"}
                         </h2>
                         <p className="text-sm leading-relaxed max-w-xs mb-5">
                             {settings.storeDesc || "Чанартай бүтээгдэхүүнийг хямд, хурдан, найдвартайгаар хүргэж байна."}
@@ -44,6 +44,7 @@ export function MainFooter() {
                         <h3 className="text-white font-semibold mb-4">Холбоосууд</h3>
                         <ul className="space-y-2 text-sm">
                             <li><Link href="/product" className="hover:text-teal-400 transition-colors">Бүтээгдэхүүн</Link></li>
+                            {settings.showBranches && <li><Link href="/branches" className="hover:text-teal-400 transition-colors">Салбарууд</Link></li>}
                             {loggedIn && <>
                                 <li><Link href="/cart" className="hover:text-teal-400 transition-colors">Сагс</Link></li>
                                 <li><Link href="/order" className="hover:text-teal-400 transition-colors">Захиалга</Link></li>
@@ -57,8 +58,8 @@ export function MainFooter() {
                         <h3 className="text-white font-semibold mb-4">Бүртгэл</h3>
                         <ul className="space-y-2 text-sm">
                             {!loggedIn && <>
-                                <li><Link href="/auth/login" className="hover:text-teal-400 transition-colors">Нэвтрэх</Link></li>
-                                <li><Link href="/auth/register" className="hover:text-teal-400 transition-colors">Бүртгүүлэх</Link></li>
+                                <li><button onClick={openLogin} className="hover:text-teal-400 transition-colors">Нэвтрэх</button></li>
+                                <li><button onClick={openRegister} className="hover:text-teal-400 transition-colors">Бүртгүүлэх</button></li>
                             </>}
                             {loggedIn && <li><Link href="/profile" className="hover:text-teal-400 transition-colors">Профайл</Link></li>}
                         </ul>
@@ -107,7 +108,7 @@ export function MainFooter() {
                 </div>
 
                 <div className="border-t border-slate-800 pt-6 text-center text-xs text-slate-600">
-                    &copy; {new Date().getFullYear()} {settings.storeName || "IShop"}. Бүх эрх хуулиар хамгаалагдсан.
+                    &copy; {new Date().getFullYear()} {settings.storeName || "Дэлгүүр"}. Бүх эрх хуулиар хамгаалагдсан.
                 </div>
             </div>
         </footer>

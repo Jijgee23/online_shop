@@ -28,7 +28,9 @@ export type PageKey =
     | "Төлбөрүүд"
     | "Invoices"
     | "Тайлан"
+    | "Салбарууд"
     | "Тохиргоо"
+    | "Профайл"
     | "Мэдэгдэл";
 
 export const AdminProvider = ({ children }: { children: ReactNode }) => {
@@ -38,14 +40,31 @@ export const AdminProvider = ({ children }: { children: ReactNode }) => {
     const [isMobileSidebarOpen, setIsMobileSidebarOpen] = useState(false);
     const [dashboardData, setData] = useState<DashboardResponse | null>(null);
 
+    // Reload-д идэвхтэй хуудас + засаж буй барааны id-г сэргээх.
+    // Transient (id шаардсан) хуудсыг id-гүйгээр сэргээхгүй — жагсаалт руу буцаана.
     useEffect(() => {
+        const savedId = localStorage.getItem("adminEditingProductId");
+        const restoredId = savedId ? Number(savedId) : null;
+        if (restoredId) setEditingProductId(restoredId);
+
         const saved = localStorage.getItem("adminActivePage") as PageKey | null;
-        if (saved) setActivePage(saved);
+        if (saved) {
+            if (saved === "Бүтээгдэхүүн засах" && !restoredId) {
+                setActivePage("Бүтээгдэхүүнүүд");
+            } else {
+                setActivePage(saved);
+            }
+        }
     }, []);
 
     useEffect(() => {
         localStorage.setItem("adminActivePage", activePage);
     }, [activePage]);
+
+    useEffect(() => {
+        if (editingProductId == null) localStorage.removeItem("adminEditingProductId");
+        else localStorage.setItem("adminEditingProductId", String(editingProductId));
+    }, [editingProductId]);
 
     useEffect(() => { fetchDashboardData(); }, []);
 

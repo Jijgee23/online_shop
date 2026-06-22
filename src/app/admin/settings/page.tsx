@@ -1,41 +1,45 @@
 "use client";
 
 import { useState, Suspense } from "react";
-import { Truck, Globe, Palette, User, CreditCard, Package, ShoppingCart } from "lucide-react";
+import { Truck, Globe, Palette, CreditCard, Package, ShoppingCart, Plug, Images } from "lucide-react";
 import GeneralTab  from "./tabs/GeneralTab";
+import BannerTab   from "./tabs/BannerTab";
 import ProductsTab from "./tabs/ProductsTab";
 import DeliveryTab from "./tabs/DeliveryTab";
 import StyleTab    from "./tabs/StyleTab";
-import ProfileTab  from "./tabs/ProfileTab";
 import QPayTab     from "./tabs/QPayTab";
 import OrderTab    from "./tabs/OrderTab";
+import MacsTab     from "./tabs/MacsTab";
 
-type Tab = "general" | "products" | "delivery" | "order" | "style" | "profile" | "qpay";
+type Tab = "general" | "banner" | "products" | "delivery" | "order" | "style" | "qpay" | "macs";
 
 const TABS: { id: Tab; label: string; icon: React.ReactNode }[] = [
     { id: "general",  label: "Ерөнхий",      icon: <Globe className="w-4 h-4" /> },
+    { id: "banner",   label: "Баннер",        icon: <Images className="w-4 h-4" /> },
     { id: "products", label: "Бүтээгдэхүүн", icon: <Package className="w-4 h-4" /> },
     { id: "delivery", label: "Хүргэлт",       icon: <Truck className="w-4 h-4" /> },
     { id: "order",    label: "Захиалга",       icon: <ShoppingCart className="w-4 h-4" /> },
     { id: "style",    label: "Загвар",         icon: <Palette className="w-4 h-4" /> },
-    { id: "profile",  label: "Профайл",        icon: <User className="w-4 h-4" /> },
     { id: "qpay",     label: "QPay холболт",   icon: <CreditCard className="w-4 h-4" /> },
+    { id: "macs",     label: "MACS холболт",   icon: <Plug className="w-4 h-4" /> },
 ];
 
 const CONTENT: Record<Tab, React.ReactNode> = {
     general:  <GeneralTab />,
+    banner:   <BannerTab />,
     products: <ProductsTab />,
     delivery: <DeliveryTab />,
     order:    <OrderTab />,
     style:    <StyleTab />,
-    profile:  <ProfileTab />,
     qpay:     <QPayTab />,
+    macs:     <MacsTab />,
 };
 
 export default function AdminSettingsPage() {
     const [activeTab, setActiveTab] = useState<Tab>(() => {
         if (typeof window === "undefined") return "general";
-        return (localStorage.getItem("adminSettingsTab") as Tab) || "general";
+        const saved = localStorage.getItem("adminSettingsTab") as Tab;
+        return TABS.some(t => t.id === saved) ? saved : "general";
     });
 
     const handleTabChange = (tab: Tab) => {
@@ -85,7 +89,7 @@ export default function AdminSettingsPage() {
                     </nav>
                 </aside>
 
-                <div className="flex-1 min-w-0">
+                <div className="flex-1 min-w-0 space-y-5">
                     <Suspense fallback={null}>
                         {CONTENT[activeTab]}
                     </Suspense>

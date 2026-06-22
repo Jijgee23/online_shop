@@ -4,6 +4,8 @@ export interface CartAction {
     cartId: number | null;
     productId: number;
     productQty: number;
+    productStockId?: string | null;
+    productVariantId?: string | null;
 }
 
 export const CartService = {

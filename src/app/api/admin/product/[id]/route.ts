@@ -44,7 +44,7 @@ export async function DELETE(
     try {
         const { id } = await context.params;
         const deactivedProduct = await ProductService.deactive(Number(id))
-        if (deactivedProduct?.message) return NextResponse.json({ message: deactivedProduct.message }, { status: 400 })
+        if (deactivedProduct && 'message' in deactivedProduct) return NextResponse.json({ message: deactivedProduct.message }, { status: 400 })
         return NextResponse.json({ procuct: deactivedProduct }, { status: 200 })
     } catch (err) {
         console.log(err)

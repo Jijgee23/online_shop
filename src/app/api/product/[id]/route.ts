@@ -12,7 +12,7 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
         const product = await prisma.product.findUnique({
             where: { id: producdId },
             include: {
-                images: true,
+                images: { include: { links: { select: { attributeValueId: true } } } },
                 category: true,
                 _count: true,
                 reviews: {
@@ -22,7 +22,10 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
                 },
                 productSizes: true,
                 colors: true,
-                features: true
+                features: true,
+                productStocks: true,
+                attributes: { include: { values: true } },
+                variants: { include: { values: { include: { attributeValue: true } } } }
             }
         })
 

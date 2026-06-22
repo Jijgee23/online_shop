@@ -6,7 +6,7 @@ import DropdownSelect from "@/ui/DropdownSelect";
 import { Btn, StepHeader, RadioCard, AddrInput, EMPTY_ADDR } from "../shared";
 import toast from "react-hot-toast";
 import dynamic from "next/dynamic";
-import { Map } from "lucide-react";
+import { Map, RefreshCw } from "lucide-react";
 
 const MapPicker = dynamic(() => import("@/app/components/MapPicker"), { ssr: false });
 
@@ -14,6 +14,9 @@ interface AddressStepProps {
     myAddresses: any[];
     selectedAddressId: number | null;
     setSelectedAddressId: (id: number | null) => void;
+    branches: { id: number; name: string; city: string; district: string | null; khoroo: string | null; address: string | null }[];
+    selectedBranchId: number | null;
+    setSelectedBranchId: (id: number | null) => void;
     note: string;
     setNote: (n: string) => void;
     showAddressForm: boolean;
@@ -23,25 +26,45 @@ interface AddressStepProps {
     newAddr: AddressInput;
     setNewAddr: React.Dispatch<React.SetStateAction<AddressInput>>;
     handleSaveNewAddress: (e: React.FormEvent) => void;
+    onRefetch: () => Promise<void>;
     onBack: () => void;
     onNext: () => void;
 }
 
 export default function AddressStep({
     myAddresses, selectedAddressId, setSelectedAddressId,
+    branches, selectedBranchId, setSelectedBranchId,
     note, setNote, showAddressForm, setShowAddressForm, savingAddress,
-    districts, newAddr, setNewAddr, handleSaveNewAddress, onBack, onNext
+    districts, newAddr, setNewAddr, handleSaveNewAddress, onRefetch, onBack, onNext
 }: AddressStepProps) {
     const [showMap, setShowMap] = useState(false);
+    const [refetching, setRefetching] = useState(false);
+
+    const handleRefetch = async () => {
+        setRefetching(true);
+        await onRefetch();
+        setRefetching(false);
+    };
 
     return (
         <>
             <StepHeader title="Хүргэлтийн хаяг" onBack={onBack} />
             {!showAddressForm ? (
                 <>
+                    <div className="flex items-center justify-between mb-2">
+                        <p className="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Хадгалсан хаягууд</p>
+                        <button
+                            onClick={handleRefetch}
+                            disabled={refetching}
+                            title="Шинэчлэх"
+                            className="p-1.5 rounded-lg text-slate-400 hover:text-teal-500 hover:bg-teal-50 dark:hover:bg-teal-900/20 transition-all disabled:opacity-40"
+                        >
+                            <RefreshCw className={`w-3.5 h-3.5 ${refetching ? "animate-spin" : ""}`} />
+                        </button>
+                    </div>
                     <div className="space-y-2 mb-3 max-h-52 overflow-y-auto pr-1">
                         {myAddresses.map(addr => (
-                            <RadioCard key={addr.id} selected={selectedAddressId === addr.id} onClick={() => setSelectedAddressId(addr.id)}>
+                            <RadioCard key={addr.id} selected={selectedAddressId === addr.id} onClick={() => { setSelectedAddressId(addr.id); setSelectedBranchId(null); }}>
                                 <p className="text-sm font-semibold text-slate-800 dark:text-slate-100">{addr.district?.name}, {addr.khoroo}-р хороо</p>
                                 <p className="text-xs text-slate-500 mt-0.5">{addr.detail}</p>
                                 <p className="text-xs text-slate-400 mt-0.5">📞 {addr.phone}</p>
@@ -49,17 +72,33 @@ export default function AddressStep({
                         ))}
                     </div>
                     <button onClick={() => setShowAddressForm(true)}
-                        className="w-full flex items-center justify-center gap-2 py-3 mb-3 rounded-2xl border-2 border-dashed border-slate-200 dark:border-slate-700 text-slate-400 hover:text-teal-500 hover:border-teal-400 transition-all text-sm font-semibold">
+                        className="w-full flex items-center justify-center gap-2 py-3 mb-4 rounded-2xl border-2 border-dashed border-slate-200 dark:border-slate-700 text-slate-400 hover:text-teal-500 hover:border-teal-400 transition-all text-sm font-semibold">
                         <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M12 4v16m8-8H4" />
                         </svg>
                         Шинэ хаяг нэмэх
                     </button>
+
+                    {/* Очиж авах салбар */}
+                    {branches.length > 0 && (
+                        <>
+                            <p className="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-2">Эсвэл салбараас очиж авах</p>
+                            <div className="space-y-2 mb-4 max-h-44 overflow-y-auto pr-1">
+                                {branches.map(b => (
+                                    <RadioCard key={b.id} selected={selectedBranchId === b.id} onClick={() => { setSelectedBranchId(b.id); setSelectedAddressId(null); }}>
+                                        <p className="text-sm font-semibold text-slate-800 dark:text-slate-100">{b.name}</p>
+                                        <p className="text-xs text-slate-500 mt-0.5">{[b.city, b.district, b.khoroo].filter(Boolean).join(", ")}{b.address ? ` · ${b.address}` : ""}</p>
+                                    </RadioCard>
+                                ))}
+                            </div>
+                        </>
+                    )}
+
                     <textarea value={note} onChange={e => setNote(e.target.value)} placeholder="Тэмдэглэл (заавал биш)..." rows={2}
                         className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-2xl px-4 py-3 text-sm outline-none focus:ring-2 focus:ring-teal-500/30 resize-none mb-4 placeholder:text-slate-400 text-slate-800 dark:text-white" />
                     <Btn onClick={() => {
-                        if (!selectedAddressId) {
-                            toast.error("Хүргэлтийн хаяг сонгоно уу");
+                        if (!selectedAddressId && !selectedBranchId) {
+                            toast.error("Хүргэлтийн хаяг эсвэл очиж авах салбараа сонгоно уу");
                             return;
                         }
                         onNext();

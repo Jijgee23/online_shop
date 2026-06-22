@@ -298,6 +298,23 @@ export default function OrderDetailPage() {
                                     </div>
                                     <div className="flex-1 min-w-0">
                                         <p className="font-semibold text-slate-900 dark:text-white text-sm truncate">{item.product?.name ?? "Бараа"}</p>
+                                        {(() => {
+                                            const pv = item.productVariant;
+                                            const variantLabel = pv
+                                                ? (pv.values ?? []).map(v => v.attributeValue?.value).filter(Boolean).join(" / ")
+                                                : [item.productStock?.color?.name, item.productStock?.size?.sizeName].filter(Boolean).join(" / ");
+                                            const hex = pv
+                                                ? (pv.values ?? []).map(v => v.attributeValue?.hex).find(Boolean) ?? null
+                                                : item.productStock?.color?.hex ?? null;
+                                            return variantLabel ? (
+                                                <span className="inline-flex items-center gap-1.5 mt-0.5">
+                                                    {hex && (
+                                                        <span className="w-2.5 h-2.5 rounded-full border border-slate-200 dark:border-slate-700 flex-shrink-0" style={{ backgroundColor: hex }} />
+                                                    )}
+                                                    <span className="text-xs font-medium text-slate-500 dark:text-slate-400">{variantLabel}</span>
+                                                </span>
+                                            ) : null;
+                                        })()}
                                         <p className="text-xs text-slate-400 mt-0.5">{item.quantity} ширхэг  ×  ₮{Number(item.price).toLocaleString()}</p>
                                     </div>
                                     <p className="font-extrabold text-slate-900 dark:text-white text-sm flex-shrink-0">
@@ -332,6 +349,27 @@ export default function OrderDetailPage() {
                                     <span className="text-sm font-semibold text-slate-700 dark:text-slate-300">{order.address.phone}</span>
                                     <CopyBtn value={order.address.phone} />
                                 </div>
+                            </div>
+                        </div>
+                    ) : order.branch ? (
+                        <div className="bg-white dark:bg-slate-900 rounded-3xl border border-slate-200 dark:border-slate-800 p-6 shadow-sm">
+                            <div className="flex items-center gap-2 mb-4">
+                                <MapPin className="w-4 h-4 text-teal-500" />
+                                <h3 className="font-bold text-slate-900 dark:text-white">Очиж авах салбар</h3>
+                            </div>
+                            <div className="space-y-2">
+                                <p className="text-sm font-semibold text-slate-800 dark:text-white">{order.branch.name}</p>
+                                <p className="text-sm text-slate-600 dark:text-slate-300 leading-relaxed">
+                                    {[order.branch.city, order.branch.district, order.branch.khoroo].filter(Boolean).join(", ")}
+                                    {order.branch.address ? ` · ${order.branch.address}` : ""}
+                                </p>
+                                {order.branch.phone && (
+                                    <div className="flex items-center gap-2 mt-3 pt-3 border-t border-slate-100 dark:border-slate-800">
+                                        <PhoneCall className="w-3.5 h-3.5 text-teal-500" />
+                                        <span className="text-sm font-semibold text-slate-700 dark:text-slate-300">{order.branch.phone}</span>
+                                        <CopyBtn value={order.branch.phone} />
+                                    </div>
+                                )}
                             </div>
                         </div>
                     ) : (
