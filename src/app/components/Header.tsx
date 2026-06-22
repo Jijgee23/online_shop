@@ -10,6 +10,7 @@ import CartIcon from "./CartIcon";
 import NotificationBell from "./NotificationBell";
 import ProfileSection from "./ProfileSection";
 import Image from "next/image";
+import { imgUrl } from "@/utils/imgUrl";
 import { useTheme } from "next-themes";
 
 export default function Header() {
@@ -52,7 +53,7 @@ export default function Header() {
                     >
                         {settings.logo && (
                             <Image
-                                src={settings.logo}
+                                src={imgUrl(settings.logo)}
                                 alt={settings.storeName || "Дэлгүүр"}
                                 width={40}
                                 height={40}

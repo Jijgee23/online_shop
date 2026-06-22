@@ -5,6 +5,7 @@ import { Dispatch, SetStateAction, useState, useEffect } from "react";
 import Image from "next/image";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import { useSettings } from "@/app/context/settings_context";
+import { imgUrl } from "@/utils/imgUrl";
 
 const BANNER_DELAY = 5000;
 
@@ -29,7 +30,7 @@ function BannerCarousel({ banners, alt }: { banners: string[]; alt: string }) {
             {banners.map((url, idx) => (
                 <Image
                     key={url + idx}
-                    src={url}
+                    src={imgUrl(url)}
                     alt={alt}
                     fill
                     priority={idx === 0}
