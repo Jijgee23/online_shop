@@ -4,12 +4,11 @@ const nextConfig: NextConfig = {
   /* config options here */
   reactCompiler: true,
   images: {
-    // Upload-ууд nginx-ээр /uploads/-аас түгээгддэг тул optimizer-т гадаад host зөвшөөрнө.
-    // src нь imgUrl()-ээр NEXT_PUBLIC_IMAGE_URL-тэй absolute болсон байх ёстой.
-    remotePatterns: [
-      { protocol: "https", hostname: "ishop.macs.mn", pathname: "/uploads/**" },
-      { protocol: "https", hostname: "www.ishop.macs.mn", pathname: "/uploads/**" },
-    ],
+    // Upload-ууд nginx-ээр /uploads/-аас (гадна /var/www) түгээгддэг тул Next-ийн
+    // серверийн optimizer диск дээрх public/-ээс уншиж чадахгүй. Мөн preview (blob:)
+    // зургийг optimize хийх боломжгүй. Тиймээс optimizer-ийг унтрааж, браузер зургийг
+    // шууд (nginx cache-тэй) ачаална.
+    unoptimized: true,
   },
 };
 
