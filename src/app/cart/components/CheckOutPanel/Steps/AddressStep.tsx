@@ -52,7 +52,9 @@ export default function AddressStep({
             {!showAddressForm ? (
                 <>
                     <div className="flex items-center justify-between mb-2">
-                        <p className="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Хадгалсан хаягууд</p>
+                        <p className="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">
+                            {myAddresses.length > 0 ? "Хадгалсан хаягууд" : "Хүргэлтийн хаяг"}
+                        </p>
                         <button
                             onClick={handleRefetch}
                             disabled={refetching}
@@ -62,15 +64,23 @@ export default function AddressStep({
                             <RefreshCw className={`w-3.5 h-3.5 ${refetching ? "animate-spin" : ""}`} />
                         </button>
                     </div>
-                    <div className="space-y-2 mb-3 max-h-52 overflow-y-auto pr-1">
-                        {myAddresses.map(addr => (
-                            <RadioCard key={addr.id} selected={selectedAddressId === addr.id} onClick={() => { setSelectedAddressId(addr.id); setSelectedBranchId(null); }}>
-                                <p className="text-sm font-semibold text-slate-800 dark:text-slate-100">{addr.district?.name}, {addr.khoroo}-р хороо</p>
-                                <p className="text-xs text-slate-500 mt-0.5">{addr.detail}</p>
-                                <p className="text-xs text-slate-400 mt-0.5">📞 {addr.phone}</p>
-                            </RadioCard>
-                        ))}
-                    </div>
+                    {myAddresses.length > 0 ? (
+                        <div className="space-y-2 mb-3 max-h-52 overflow-y-auto pr-1">
+                            {myAddresses.map(addr => (
+                                <RadioCard key={addr.id} selected={selectedAddressId === addr.id} onClick={() => { setSelectedAddressId(addr.id); setSelectedBranchId(null); }}>
+                                    <p className="text-sm font-semibold text-slate-800 dark:text-slate-100">{addr.district?.name}, {addr.khoroo}-р хороо</p>
+                                    <p className="text-xs text-slate-500 mt-0.5">{addr.detail}</p>
+                                    <p className="text-xs text-slate-400 mt-0.5">📞 {addr.phone}</p>
+                                </RadioCard>
+                            ))}
+                        </div>
+                    ) : (
+                        <div className="mb-3 rounded-2xl border border-dashed border-slate-200 dark:border-slate-700 px-4 py-6 text-center">
+                            <div className="text-2xl mb-1">📍</div>
+                            <p className="text-sm font-semibold text-slate-600 dark:text-slate-300">Хүргэлтийн хаяг бүртгэлгүй байна</p>
+                            <p className="text-xs text-slate-400 mt-1">Доорх товчоор хүргэлтийн хаягаа оруулна уу</p>
+                        </div>
+                    )}
                     <button onClick={() => setShowAddressForm(true)}
                         className="w-full flex items-center justify-center gap-2 py-3 mb-4 rounded-2xl border-2 border-dashed border-slate-200 dark:border-slate-700 text-slate-400 hover:text-teal-500 hover:border-teal-400 transition-all text-sm font-semibold">
                         <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">

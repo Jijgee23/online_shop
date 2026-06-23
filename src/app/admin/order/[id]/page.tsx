@@ -10,6 +10,8 @@ import toast from "react-hot-toast";
 import dynamic from "next/dynamic";
 import { MapPin } from "lucide-react";
 import DropdownSelect from "@/ui/DropdownSelect";
+import { imgUrl } from "@/utils/imgUrl";
+import { variantInfo, orderItemImageUrl } from "@/utils/variantLabel";
 
 const MapPicker = dynamic(() => import("@/app/components/MapPicker"), { ssr: false });
 
@@ -213,17 +215,26 @@ export default function AdminOrderDetailPage() {
                         </div>
                         <div className="divide-y divide-slate-200 dark:divide-zinc-800">
                             {order.items?.map(item => {
-                                const img = item.product?.images?.[0]?.url;
+                                const img = orderItemImageUrl(item);
+                                const variant = variantInfo(item);
                                 return (
                                     <div key={item.id} className="flex items-center gap-4 px-6 py-4">
                                         <div className="w-14 h-14 rounded-xl bg-slate-100 dark:bg-zinc-800 border border-slate-300 dark:border-zinc-700 overflow-hidden flex-shrink-0">
                                             {img
-                                                ? <img src={img} alt={item.product?.name} className="w-full h-full object-cover" />
+                                                ? <img src={imgUrl(img)} alt={item.product?.name} className="w-full h-full object-cover" />
                                                 : <div className="w-full h-full flex items-center justify-center text-slate-400 dark:text-zinc-600 text-xs">—</div>
                                             }
                                         </div>
                                         <div className="flex-1 min-w-0">
                                             <p className="font-semibold text-slate-900 dark:text-white text-sm truncate">{item.product?.name ?? "—"}</p>
+                                            {variant.label && (
+                                                <span className="inline-flex items-center gap-1.5 mt-0.5">
+                                                    {variant.hex && (
+                                                        <span className="w-2.5 h-2.5 rounded-full border border-slate-200 dark:border-zinc-700 flex-shrink-0" style={{ backgroundColor: variant.hex }} />
+                                                    )}
+                                                    <span className="text-xs font-medium text-slate-500 dark:text-zinc-400">{variant.label}</span>
+                                                </span>
+                                            )}
                                             <p className="text-slate-400 dark:text-zinc-500 text-xs">₮{item.price.toLocaleString()} × {item.quantity}</p>
                                         </div>
                                         <p className="font-bold text-slate-900 dark:text-white text-sm whitespace-nowrap">
@@ -274,6 +285,24 @@ export default function AdminOrderDetailPage() {
                                 <Row label="Хороо"       value={order.address.khoroo} />
                                 <Row label="Дэлгэрэнгүй" value={order.address.detail} />
                                 <Row label="Утас"        value={order.address.phone} />
+                            </div>
+                        </div>
+                    )}
+
+                    {/* Очиж авах салбар */}
+                    {!order.address && order.branch && (
+                        <div className="bg-white dark:bg-zinc-900 border border-slate-200 dark:border-zinc-800 rounded-[2rem] p-6">
+                            <div className="flex items-center gap-2 mb-4">
+                                <MapPin className="w-4 h-4 text-teal-500" />
+                                <h3 className="font-bold text-slate-900 dark:text-white">Очиж авах салбар</h3>
+                            </div>
+                            <div className="space-y-1.5 text-sm">
+                                <Row label="Салбар"      value={order.branch.name} />
+                                <Row label="Хот/Аймаг"   value={order.branch.city} />
+                                <Row label="Дүүрэг"      value={order.branch.district} />
+                                <Row label="Хороо"       value={order.branch.khoroo} />
+                                <Row label="Дэлгэрэнгүй" value={order.branch.address} />
+                                <Row label="Утас"        value={order.branch.phone} />
                             </div>
                         </div>
                     )}

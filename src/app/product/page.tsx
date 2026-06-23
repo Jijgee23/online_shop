@@ -303,7 +303,7 @@ function ProductListContent() {
                     {/* ── Desktop sidebar ── */}
                     <aside className="hidden lg:block w-60 flex-shrink-0">
                         <div className="sticky top-24">
-                            <SidebarContent />
+                            {SidebarContent()}
                         </div>
                     </aside>
 
@@ -397,7 +397,7 @@ function ProductListContent() {
                                 </svg>
                             </button>
                         </div>
-                        <SidebarContent />
+                        {SidebarContent()}
                     </div>
                 </>
             )}

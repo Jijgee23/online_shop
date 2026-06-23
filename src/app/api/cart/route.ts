@@ -74,6 +74,15 @@ export async function PATCH(req: NextRequest) {
         // Сонгосон хувилбар: шинэ ProductVariant эсвэл хуучин ProductStock-оор үлдэгдэл шалгана
         const stockId:   string | null = productStockId ?? null;
         const variantId: string | null = productVariantId ?? null;
+
+        // Хувилбартай бараа — заавал хувилбар сонгосон байх ёстой
+        if (!variantId) {
+            const variantCount = await prisma.productVariant.count({ where: { productId } });
+            if (variantCount > 0) {
+                return NextResponse.json({ error: "Хувилбараа сонгоно уу" }, { status: 400 });
+            }
+        }
+
         let availableStock = product.stock;
         if (variantId) {
             const pv = await prisma.productVariant.findUnique({ where: { id: variantId } });

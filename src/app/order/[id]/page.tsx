@@ -11,6 +11,7 @@ import Header from "@/app/components/Header";
 import { Order, OrderStatus } from "@/interface/order";
 import { useState } from "react";
 import { imgUrl } from "@/utils/imgUrl";
+import { variantInfo, orderItemImageUrl } from "@/utils/variantLabel";
 import toast from "react-hot-toast";
 
 // ─── Pipeline config ──────────────────────────────────────────────────────────
@@ -292,26 +293,20 @@ export default function OrderDetailPage() {
                             {order.items?.map(item => (
                                 <div key={item.id} className="flex items-center gap-4 px-6 py-4 hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors">
                                     <div className="w-14 h-14 rounded-2xl bg-slate-100 dark:bg-slate-800 overflow-hidden flex-shrink-0 ring-1 ring-slate-200 dark:ring-slate-700">
-                                        {item.product?.images?.[0]?.url
-                                            ? <img src={imgUrl(item.product.images[0].url)} alt={item.product.name} className="w-full h-full object-cover" />
-                                            : <div className="w-full h-full flex items-center justify-center text-2xl">📦</div>}
+                                        {(() => { const img = orderItemImageUrl(item); return img
+                                            ? <img src={imgUrl(img)} alt={item.product?.name} className="w-full h-full object-cover" />
+                                            : <div className="w-full h-full flex items-center justify-center text-2xl">📦</div>; })()}
                                     </div>
                                     <div className="flex-1 min-w-0">
                                         <p className="font-semibold text-slate-900 dark:text-white text-sm truncate">{item.product?.name ?? "Бараа"}</p>
                                         {(() => {
-                                            const pv = item.productVariant;
-                                            const variantLabel = pv
-                                                ? (pv.values ?? []).map(v => v.attributeValue?.value).filter(Boolean).join(" / ")
-                                                : [item.productStock?.color?.name, item.productStock?.size?.sizeName].filter(Boolean).join(" / ");
-                                            const hex = pv
-                                                ? (pv.values ?? []).map(v => v.attributeValue?.hex).find(Boolean) ?? null
-                                                : item.productStock?.color?.hex ?? null;
-                                            return variantLabel ? (
+                                            const variant = variantInfo(item);
+                                            return variant.label ? (
                                                 <span className="inline-flex items-center gap-1.5 mt-0.5">
-                                                    {hex && (
-                                                        <span className="w-2.5 h-2.5 rounded-full border border-slate-200 dark:border-slate-700 flex-shrink-0" style={{ backgroundColor: hex }} />
+                                                    {variant.hex && (
+                                                        <span className="w-2.5 h-2.5 rounded-full border border-slate-200 dark:border-slate-700 flex-shrink-0" style={{ backgroundColor: variant.hex }} />
                                                     )}
-                                                    <span className="text-xs font-medium text-slate-500 dark:text-slate-400">{variantLabel}</span>
+                                                    <span className="text-xs font-medium text-slate-500 dark:text-slate-400">{variant.label}</span>
                                                 </span>
                                             ) : null;
                                         })()}

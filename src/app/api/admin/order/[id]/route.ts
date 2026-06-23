@@ -16,10 +16,13 @@ export async function GET(
             include: {
                 user: true,
                 address: { include: { district: true } },
+                branch: true,
                 payment: true,
                 items: {
                     include: {
-                        product: { include: { images: true } },
+                        product: { include: { images: { include: { links: { include: { attributeValue: { select: { attributeId: true } } } } } } } },
+                        productStock: { include: { color: true, size: true } },
+                        productVariant: { include: { values: { include: { attributeValue: { include: { attribute: true } } } } } },
                     },
                 },
             },

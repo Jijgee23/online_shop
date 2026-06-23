@@ -7,6 +7,30 @@ import { useAuth } from "@/app/context/auth_context"
 import { AuthService } from "@/services/auth.service"
 
 const OTP_SECONDS = 5 * 60
+const OTP_KEY = "signupOtpSession"
+
+type OtpSession = {
+  otpVia: "email" | "phone"
+  identifier: string
+  sentAt: number
+  name?: string
+  email?: string
+  phone?: string
+  otpCode?: string
+}
+
+const loadOtpSession = (): OtpSession | null => {
+  try {
+    const raw = sessionStorage.getItem(OTP_KEY)
+    return raw ? (JSON.parse(raw) as OtpSession) : null
+  } catch { return null }
+}
+const saveOtpSession = (s: OtpSession) => {
+  try { sessionStorage.setItem(OTP_KEY, JSON.stringify(s)) } catch { /* ignore */ }
+}
+const clearOtpSession = () => {
+  try { sessionStorage.removeItem(OTP_KEY) } catch { /* ignore */ }
+}
 
 interface RegisterFormProps {
   /** Called when an internal navigation link is clicked (e.g. to close a modal). */
@@ -34,9 +58,9 @@ export function RegisterForm({ onNavigate, onSuccess, onLoginLink }: RegisterFor
   const [secondsLeft, setSecondsLeft] = useState(OTP_SECONDS)
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null)
 
-  const startTimer = () => {
+  const startTimer = (from: number = OTP_SECONDS) => {
     if (timerRef.current) clearInterval(timerRef.current)
-    setSecondsLeft(OTP_SECONDS)
+    setSecondsLeft(from)
     timerRef.current = setInterval(() => {
       setSecondsLeft(s => {
         if (s <= 1) { clearInterval(timerRef.current!); return 0 }
@@ -46,6 +70,36 @@ export function RegisterForm({ onNavigate, onSuccess, onLoginLink }: RegisterFor
   }
 
   useEffect(() => () => { if (timerRef.current) clearInterval(timerRef.current) }, [])
+
+  // Dialog дахин нээгдэхэд: өмнө илгээсэн OTP хүчинтэй бол 2-р алхмыг сэргээнэ
+  useEffect(() => {
+    const s = loadOtpSession()
+    if (!s) return
+    const remaining = OTP_SECONDS - Math.floor((Date.now() - s.sentAt) / 1000)
+    if (remaining <= 0) { clearOtpSession(); return }
+    setOtpVia(s.otpVia)
+    setIdentifier(s.identifier)
+    if (s.otpVia === "phone") { setPhone(s.identifier); setEmail(s.email ?? "") }
+    else { setEmail(s.identifier); setPhone(s.phone ?? "") }
+    setName(s.name ?? "")
+    setOtpCode(s.otpCode ?? "")
+    setStep(2)
+    startTimer(remaining)
+  }, [])
+
+  // 2-р алхамд байх үед бөглөсөн талбаруудыг (нууц үгээс бусад) session-д хадгална
+  useEffect(() => {
+    if (step !== 2) return
+    const s = loadOtpSession()
+    if (!s) return
+    saveOtpSession({
+      ...s,
+      name,
+      otpCode,
+      email: otpVia === "phone" ? email : s.email,
+      phone: otpVia === "email" ? phone : s.phone,
+    })
+  }, [step, name, otpCode, email, phone, otpVia])
 
   const formatTime = (s: number) =>
     `${String(Math.floor(s / 60)).padStart(2, "0")}:${String(s % 60).padStart(2, "0")}`
@@ -59,6 +113,7 @@ export function RegisterForm({ onNavigate, onSuccess, onLoginLink }: RegisterFor
       // pre-fill the field we collected
       if (otpVia === "phone") setPhone(identifier)
       else setEmail(identifier)
+      saveOtpSession({ otpVia, identifier, sentAt: Date.now() })
       setStep(2)
       startTimer()
     } catch (err: any) {
@@ -74,6 +129,7 @@ export function RegisterForm({ onNavigate, onSuccess, onLoginLink }: RegisterFor
     setOtpCode("")
     try {
       await AuthService.sendSignupOtp(identifier, otpVia)
+      saveOtpSession({ otpVia, identifier, sentAt: Date.now(), name })
       startTimer()
     } catch (err: any) {
       setError(err.message)
@@ -89,13 +145,14 @@ export function RegisterForm({ onNavigate, onSuccess, onLoginLink }: RegisterFor
     const finalPhone = otpVia === "phone" ? identifier : phone
     setError("")
     const ok = await register({ name, email: finalEmail, phone: finalPhone, password, otpCode, otpVia })
-    if (ok) onSuccess?.()
+    if (ok) { clearOtpSession(); onSuccess?.() }
   }
 
   const handleBack = () => {
     setStep(1)
     setOtpCode("")
     setError("")
+    clearOtpSession()
     if (timerRef.current) clearInterval(timerRef.current)
   }
 
@@ -103,6 +160,7 @@ export function RegisterForm({ onNavigate, onSuccess, onLoginLink }: RegisterFor
     setOtpVia(v)
     setIdentifier("")
     setError("")
+    clearOtpSession()
   }
 
   return (

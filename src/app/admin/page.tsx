@@ -4,7 +4,7 @@ import { useAdmin, PageKey } from "../context/admin_context";
 import { useAuth } from "../context/auth_context";
 import { useSettings } from "../context/settings_context";
 import { useEffect, useState, Suspense } from "react";
-import { ChevronDown, LayoutDashboard, ShoppingCart, Package, Users, Settings, Bell, CreditCard, Receipt, BarChart3, LogOut, User, Store } from "lucide-react";
+import { ChevronDown, LayoutDashboard, ShoppingCart, Package, Users, Settings, Bell, CreditCard, Receipt, BarChart3, LogOut, User, Store, ShieldCheck } from "lucide-react";
 import AdminNotificationBell from "../components/AdminNotificationBell";
 import AdminDashboardPage from "./dashboard/page";
 import AdminOrdersPage from "./order/page";
@@ -13,6 +13,7 @@ import NewProductPage from "./products/newProduct/page";
 import FeaturedProductsPage from "./products/featured/page";
 import AdminCategoryPage from "./category/page";
 import AdminCustomersPage from "./customers/page";
+import AdminAdminsPage from "./admins/page";
 import AdminPaymentsPage from "./payments/page";
 import AdminInvoicesPage from "./invoices/page";
 import AdminSettingsPage from "./settings/page";
@@ -33,6 +34,7 @@ function ActivePage({ page }: { page: PageKey }) {
     case "Бүтээгдэхүүн засах": return <EditProductPage key={editingProductId} />;
     case "Ангилал": return <AdminCategoryPage />;
     case "Харилцагчид": return <AdminCustomersPage />;
+    case "Админууд": return <AdminAdminsPage />;
     case "Төлбөрүүд": return <AdminPaymentsPage />;
     case "Invoices": return <AdminInvoicesPage />;
     case "Тайлан": return <AdminReportPage />;
@@ -73,6 +75,7 @@ const NAV: NavItem[] = [
     ],
   },
   { type: "link", label: "Харилцагчид", page: "Харилцагчид", icon: <Users className="w-4 h-4" /> },
+  { type: "link", label: "Админууд", page: "Админууд", icon: <ShieldCheck className="w-4 h-4" /> },
   {
     type: "group", label: "Санхүү", icon: <CreditCard className="w-4 h-4" />,
     children: [

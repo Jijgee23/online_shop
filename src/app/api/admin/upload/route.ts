@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { mkdir, writeFile } from "fs/promises";
 import path from "path";
-import { getUploadDir } from "@/utils/uploadDir";
+import { getUploadDir, uniqueFileName } from "@/utils/uploadDir";
 
 export const dynamic = "force-dynamic";
 
@@ -21,8 +21,7 @@ export async function POST(req: NextRequest) {
         try { await mkdir(uploadDir, { recursive: true }); } catch { /* хавтас байвал алгасна */ }
 
         const buffer = Buffer.from(await file.arrayBuffer());
-        const safeName = file.name.replace(/[^a-zA-Z0-9._-]/g, "_");
-        const fileName = `${Date.now()}-${safeName}`;
+        const fileName = uniqueFileName(file.name);
         await writeFile(path.join(uploadDir, fileName), buffer);
 
         return NextResponse.json({ url: `/uploads/${fileName}` }, { status: 200 });

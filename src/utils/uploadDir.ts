@@ -11,3 +11,14 @@ export function getUploadDir(): string {
     const dir = process.env.UPLOAD_DIR?.trim().replace(/^["']|["']$/g, "");
     return dir || path.join(process.cwd(), "public/uploads");
 }
+
+/**
+ * Давтагдашгүй файлын нэр үүсгэнэ.
+ * Олон файлыг Promise.all-аар зэрэг бичихэд Date.now() ижил утга буцааж,
+ * ижил нэртэй файлууд мөргөлдөж нэг url дээр 2 мөр (duplicate) үүсэхээс сэргийлнэ.
+ */
+export function uniqueFileName(originalName: string): string {
+    const safe = (originalName || "file").replace(/[^a-zA-Z0-9._-]/g, "_");
+    const rand = Math.random().toString(36).slice(2, 8);
+    return `${Date.now()}-${rand}-${safe}`;
+}

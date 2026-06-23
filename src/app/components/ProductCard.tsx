@@ -10,6 +10,7 @@ import { Heart, ShoppingCart } from "lucide-react";
 import { useWishlist } from "../context/wishlist_context";
 import { useSettings } from "../context/settings_context";
 import { imgUrl } from "@/utils/imgUrl";
+import VariantPickerModal from "./VariantPickerModal";
 
 export default function ProductCard(product: Product) {
     const { cart, loading: cartLoading, add } = useCart();
@@ -19,6 +20,7 @@ export default function ProductCard(product: Product) {
 
     const [currentIndex, setCurrentIndex] = useState(0);
     const [addedFlash, setAddedFlash] = useState(false);
+    const [pickerOpen, setPickerOpen] = useState(false);
 
     const images = product.images || [];
     const hasMultipleImages = images.length > 1;
@@ -47,6 +49,11 @@ export default function ProductCard(product: Product) {
         e.stopPropagation();
         if (!isAuthenticated) {
             openLogin();
+            return;
+        }
+        // Хувилбартай бараа — dialog-аар хувилбараа сонгуулна (detail руу орохгүй)
+        if (product.hasVariants) {
+            setPickerOpen(true);
             return;
         }
         await add({ cartId: cart?.id ?? null, productId: product.id, productQty: 1 });
@@ -185,6 +192,10 @@ export default function ProductCard(product: Product) {
                     )}
                 </div>
             </div>
+
+            {pickerOpen && (
+                <VariantPickerModal productId={product.id} onClose={() => setPickerOpen(false)} />
+            )}
         </div>
     );
 }

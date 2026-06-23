@@ -21,9 +21,9 @@ export const OrderService = {
                 include: {
                     items: {
                         include: {
-                            product: { include: { images: true } },
+                            product: { include: { images: { include: { links: { include: { attributeValue: { select: { attributeId: true } } } } } } } },
                             productStock: { include: { color: true, size: true } },
-                            productVariant: { include: { values: { include: { attributeValue: true } } } },
+                            productVariant: { include: { values: { include: { attributeValue: { include: { attribute: true } } } } } },
                         },
                     },
                     address: true,

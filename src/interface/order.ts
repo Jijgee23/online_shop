@@ -32,7 +32,10 @@ export interface OrderItem {
     // Relation: сонгосон хувилбар (шинэ загвар)
     productVariant?: {
         id: string;
-        values?: { attributeValue?: { value: string; hex: string | null } | null }[];
+        values?: {
+            attributeValueId?: number;
+            attributeValue?: { value: string; hex: string | null; attributeId?: number; attribute?: { type: string } | null } | null;
+        }[];
     } | null;
 }
 

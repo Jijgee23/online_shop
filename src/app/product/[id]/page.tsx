@@ -149,6 +149,14 @@ export default function ProductDetail() {
         if (!product) return false;
         if (!isAuthenticated) { openLogin(); return false; }
         const useNewModel = (product.attributes?.length ?? 0) > 0;
+        // Хувилбартай бараа — бүх төрөлд утга сонгож, тохирох хувилбар олдсон байх ёстой
+        if (useNewModel && (product.variants?.length ?? 0) > 0) {
+            const allSelected = (product.attributes ?? []).every(a => selectedValues[a.id] != null);
+            if (!allSelected || !activeVariant) {
+                toast.error("Хувилбараа бүрэн сонгоно уу");
+                return false;
+            }
+        }
         await add({
             productId: Number(id),
             productQty: quantity,

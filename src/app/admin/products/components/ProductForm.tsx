@@ -22,7 +22,13 @@ type Feature = { title: string; description: string };
 type VariantRow = {
     values: Partial<Record<AttrType, string>>;
     stock: string; price: string; discountPrice: string; sku: string;
+    auto?: boolean; // зургийн холболтоос автоматаар үүссэн эсэх
 };
+
+// Хувилбарын утгуудыг харьцуулах тогтвортой гарын үсэг (signature)
+const variantSig = (vals: Partial<Record<AttrType, string>>) =>
+    (["COLOR", "SIZE", "MATERIAL", "DESIGN"] as AttrType[])
+        .map(t => `${t}=${(vals[t] ?? "").trim()}`).join("|");
 
 // API-аас ачаалсан барааны attribute/variant бүтэц (edit горимд)
 type LoadedAttrValue = { id: number; value: string; hex?: string | null; imageUrl?: string | null };
@@ -42,6 +48,29 @@ const ATTR_TYPES: { type: AttrType; label: string; icon: string }[] = [
     { type: "DESIGN", label: "Загвар", icon: "✨" },
 ];
 const ATTR_LABEL: Record<AttrType, string> = { COLOR: "Өнгө", SIZE: "Хэмжээ", MATERIAL: "Материал", DESIGN: "Загвар" };
+
+// Өнгө сонгоход эхэлж харагдах түгээмэл суурь өнгөнүүд
+const BASE_COLORS: { name: string; hex: string }[] = [
+    { name: "Хар", hex: "#000000" },
+    { name: "Цагаан", hex: "#FFFFFF" },
+    { name: "Саарал", hex: "#9CA3AF" },
+    { name: "Улаан", hex: "#EF4444" },
+    { name: "Ягаан", hex: "#EC4899" },
+    { name: "Улбар шар", hex: "#F97316" },
+    { name: "Шар", hex: "#FACC15" },
+    { name: "Ногоон", hex: "#22C55E" },
+    { name: "Цэнхэр", hex: "#3B82F6" },
+    { name: "Хөх", hex: "#1E3A8A" },
+    { name: "Нил ягаан", hex: "#8B5CF6" },
+    { name: "Бор", hex: "#92400E" },
+    { name: "Бэж", hex: "#E7D8B1" },
+    { name: "Алт", hex: "#D4AF37" },
+    { name: "Мөнгө", hex: "#C0C0C0" },
+];
+
+// Хэмжээ нэмэхэд default харагдах размерууд
+const CLOTHING_SIZES = ["XS", "S", "M", "L", "XL", "XXL", "XXXL"];
+const SHOE_SIZES = ["35", "36", "37", "38", "39", "40", "41", "42", "43", "44", "45", "46"];
 
 interface Props {
     mode: "create" | "edit";
@@ -111,7 +140,7 @@ export default function ProductForm({ mode, productId }: Props) {
             const fv = a.values.find(v => v.value.trim());
             if (fv) def[a.type] = fv.value;
         });
-        setVariants(p => [...p, { values: def, stock: "", price: "", discountPrice: "", sku: "" }]);
+        setVariants(p => [...p, { values: def, stock: "", price: formData.price || "", discountPrice: "", sku: "" }]);
     };
     const updateVariant = (i: number, field: "stock" | "price" | "discountPrice" | "sku", val: string) =>
         setVariants(p => p.map((v, idx) => idx === i ? { ...v, [field]: val } : v));
@@ -221,6 +250,25 @@ export default function ProductForm({ mode, productId }: Props) {
         setAttributes(p => p.map((a, i) => i === ai
             ? { ...a, values: a.values.map((v, j) => j === vi ? { ...v, [field]: val } : v) }
             : a));
+    // Суурь өнгийг хурдан нэмэх (давхардуулахгүй)
+    const addColorPreset = (ai: number, name: string, hex: string) =>
+        setAttributes(p => p.map((a, i) => {
+            if (i !== ai) return a;
+            if (a.values.some(v => (v.hex ?? "").toLowerCase() === hex.toLowerCase())) return a;
+            return { ...a, values: [...a.values, { value: name, hex }] };
+        }));
+    // Размерын бүлгийг toggle хийх: бүгд нэмэгдсэн бол бүгдийг хасна, эс бөгөөс бүгдийг нэмнэ
+    const toggleSizeGroup = (ai: number, values: string[]) =>
+        setAttributes(p => p.map((a, i) => {
+            if (i !== ai) return a;
+            const allAdded = values.every(s => a.values.some(v => v.value.trim() === s));
+            if (allAdded) {
+                return { ...a, values: a.values.filter(v => !values.includes(v.value.trim())) };
+            }
+            const existing = new Set(a.values.map(v => v.value.trim()));
+            const toAdd = values.filter(v => !existing.has(v)).map(value => ({ value }));
+            return { ...a, values: [...a.values, ...toAdd] };
+        }));
     const removeValue = (ai: number, vi: number) =>
         setAttributes(p => p.map((a, i) => i === ai
             ? { ...a, values: a.values.filter((_, j) => j !== vi) }
@@ -233,6 +281,52 @@ export default function ProductForm({ mode, productId }: Props) {
             .filter(v => v.value.trim())
             .map(v => ({ type: a.type, value: v.value, hex: a.type === "COLOR" ? v.hex : undefined }))
     );
+
+    // Зургийн холболтоос хувилбаруудыг автоматаар үүсгэнэ (холбосон утгуудын cartesian).
+    // Жишээ: нэг зургийг 3 хэмжээтэй холбоход 3 хувилбар үүснэ.
+    // Гараар нэмсэн хувилбарууд (auto биш) хэвээр үлдэнэ, авто-мөрийн засвар хадгалагдана.
+    useEffect(() => {
+        if (!formData.hasVariants) return;
+        const linkedByType = new Map<AttrType, string[]>();
+        for (const keys of Object.values(imageLinks)) {
+            for (const k of keys) {
+                const [type, value] = k.split(":::") as [AttrType, string];
+                if (!value) continue;
+                const attr = attributes.find(a => a.type === type);
+                if (!attr || !attr.values.some(v => v.value.trim() === value)) continue;
+                const arr = linkedByType.get(type) ?? [];
+                if (!arr.includes(value)) { arr.push(value); linkedByType.set(type, arr); }
+            }
+        }
+        const types = [...linkedByType.keys()];
+        let combos: Partial<Record<AttrType, string>>[] = [{}];
+        for (const t of types) {
+            const vals = linkedByType.get(t)!;
+            combos = combos.flatMap(c => vals.map(v => ({ ...c, [t]: v })));
+        }
+        const autoCombos = types.length ? combos : [];
+
+        setVariants(prev => {
+            const manual = prev.filter(v => !v.auto);
+            const manualSigs = new Set(manual.map(v => variantSig(v.values)));
+            const prevAuto = new Map(prev.filter(v => v.auto).map(v => [variantSig(v.values), v]));
+            const autoRows: VariantRow[] = autoCombos
+                .filter(c => !manualSigs.has(variantSig(c)))
+                .map(c => {
+                    const existing = prevAuto.get(variantSig(c));
+                    return existing
+                        ? { ...existing, values: c }
+                        : { values: c, stock: "", price: formData.price || "", discountPrice: "", sku: "", auto: true };
+                });
+            const next = [...autoRows, ...manual];
+            // Агуулга өөрчлөгдөөгүй бол хуучин reference-ийг буцааж илүүц re-render-ээс сэргийлнэ
+            if (next.length === prev.length &&
+                next.every((v, i) => prev[i] && variantSig(v.values) === variantSig(prev[i].values) && !!v.auto === !!prev[i].auto)) {
+                return prev;
+            }
+            return next;
+        });
+    }, [imageLinks, attributes, formData.hasVariants, formData.price]);
 
     const addFeature = () => setFeatures(p => [...p, { title: "", description: "" }]);
     const updateFeature = (i: number, field: keyof Feature, val: string) =>
@@ -571,6 +665,7 @@ export default function ProductForm({ mode, productId }: Props) {
                                     <div className="space-y-5">
                                         {attributes.map((attr, ai) => {
                                             const isColor = attr.type === "COLOR";
+                                            const isSize = attr.type === "SIZE";
                                             return (
                                                 <div key={ai} className="border border-slate-200 dark:border-zinc-800 rounded-2xl p-4">
                                                     <div className="flex items-center justify-between mb-3">
@@ -586,11 +681,30 @@ export default function ProductForm({ mode, productId }: Props) {
                                                         </div>
                                                     </div>
 
-                                                    {attr.values.length === 0 ? (
-                                                        <p className="text-slate-400 dark:text-zinc-600 text-xs text-center py-4">Утга нэмэгдээгүй байна</p>
-                                                    ) : isColor ? (
+                                                    {isColor ? (
                                                         <div className="space-y-3">
-                                                            {attr.values.map((v, vi) => (
+                                                            {/* Суурь өнгөнүүд + нэмэлт сонголт */}
+                                                            <div className="flex flex-wrap gap-2">
+                                                                {BASE_COLORS.map(c => {
+                                                                    const added = attr.values.some(v => (v.hex ?? "").toLowerCase() === c.hex.toLowerCase());
+                                                                    return (
+                                                                        <button type="button" key={c.hex} onClick={() => addColorPreset(ai, c.name, c.hex)} disabled={added}
+                                                                            className={`flex items-center gap-1.5 text-xs font-semibold px-2.5 py-1.5 rounded-xl border transition-all ${added ? "border-teal-500 bg-teal-500/10 text-teal-600 dark:text-teal-300 opacity-60 cursor-not-allowed" : "border-slate-200 dark:border-zinc-700 text-slate-600 dark:text-zinc-300 hover:border-teal-400"}`}>
+                                                                            <span className="w-4 h-4 rounded-full border border-black/10 flex-shrink-0" style={{ backgroundColor: c.hex }} />
+                                                                            {c.name}
+                                                                        </button>
+                                                                    );
+                                                                })}
+                                                                <button type="button" onClick={() => addValue(ai)}
+                                                                    className="flex items-center gap-1.5 text-xs font-semibold px-2.5 py-1.5 rounded-xl border border-dashed border-slate-300 dark:border-zinc-600 text-slate-500 dark:text-zinc-400 hover:border-teal-400 hover:text-teal-500 transition-all">
+                                                                    <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M12 4v16m8-8H4" /></svg>
+                                                                    Нэмэлт сонголт
+                                                                </button>
+                                                            </div>
+                                                            {/* Сонгосон өнгөнүүд (нэр/өнгө засах) */}
+                                                            {attr.values.length === 0 ? (
+                                                                <p className="text-slate-400 dark:text-zinc-600 text-xs text-center py-3">Дээрээс өнгө сонгоно уу</p>
+                                                            ) : attr.values.map((v, vi) => (
                                                                 <div key={vi} className="flex items-center gap-3 bg-slate-50 dark:bg-zinc-800/40 p-3 rounded-2xl">
                                                                     <input type="color" value={v.hex ?? "#000000"} onChange={e => updateValue(ai, vi, "hex", e.target.value)}
                                                                         className="w-11 h-11 rounded-xl cursor-pointer border-2 border-slate-200 dark:border-zinc-700 p-0.5 bg-transparent flex-shrink-0" />
@@ -602,6 +716,55 @@ export default function ProductForm({ mode, productId }: Props) {
                                                                 </div>
                                                             ))}
                                                         </div>
+                                                    ) : isSize ? (
+                                                        <div className="space-y-3">
+                                                            <div>
+                                                                <p className="text-[10px] font-bold text-slate-400 dark:text-zinc-500 uppercase tracking-wider mb-1.5">Размерын бүлэг сонгох</p>
+                                                                <div className="flex flex-wrap gap-2">
+                                                                    {[
+                                                                        { label: "Хувцасны хэмжээ", sizes: CLOTHING_SIZES },
+                                                                        { label: "Гутлын размер", sizes: SHOE_SIZES },
+                                                                    ].map(g => {
+                                                                        const allAdded = g.sizes.every(s => attr.values.some(v => v.value.trim() === s));
+                                                                        return (
+                                                                            <button type="button" key={g.label} onClick={() => toggleSizeGroup(ai, g.sizes)}
+                                                                                title={allAdded ? "Бүлгийг хасах" : "Бүлгийг нэмэх"}
+                                                                                className={`flex items-center gap-1.5 text-xs font-bold px-3 py-1.5 rounded-xl border transition-all ${allAdded ? "border-teal-500 bg-teal-500 text-white" : "border-slate-200 dark:border-zinc-700 text-slate-600 dark:text-zinc-300 hover:border-teal-400"}`}>
+                                                                                <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d={allAdded ? "M5 12h14" : "M12 4v16m8-8H4"} />
+                                                                                </svg>
+                                                                                {g.label}
+                                                                                <span className="text-[10px] font-medium opacity-70">({g.sizes.length})</span>
+                                                                            </button>
+                                                                        );
+                                                                    })}
+                                                                    <button type="button" onClick={() => addValue(ai)}
+                                                                        className="flex items-center gap-1.5 text-xs font-semibold px-2.5 py-1.5 rounded-xl border border-dashed border-slate-300 dark:border-zinc-600 text-slate-500 dark:text-zinc-400 hover:border-teal-400 hover:text-teal-500 transition-all">
+                                                                        <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M12 4v16m8-8H4" /></svg>
+                                                                        Нэмэлт
+                                                                    </button>
+                                                                </div>
+                                                            </div>
+                                                            {attr.values.length === 0 ? (
+                                                                <p className="text-slate-400 dark:text-zinc-600 text-xs text-center py-3">Дээрээс размер сонгоно уу</p>
+                                                            ) : (
+                                                                <div className="flex flex-wrap gap-2">
+                                                                    {attr.values.map((v, vi) => (
+                                                                        <div key={vi} className="flex items-center gap-1.5 bg-slate-50 dark:bg-zinc-800/40 border border-slate-200 dark:border-zinc-700 rounded-xl pl-3 pr-1.5 py-1.5">
+                                                                            <input type="text" value={v.value} onChange={e => updateValue(ai, vi, "value", e.target.value)}
+                                                                                placeholder="XL"
+                                                                                className="w-20 bg-transparent text-sm font-semibold text-slate-900 dark:text-white outline-none placeholder:text-slate-400 dark:placeholder:text-zinc-600" />
+                                                                            <button type="button" onClick={() => removeValue(ai, vi)}
+                                                                                className="p-1 rounded-lg text-slate-400 hover:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 transition-all flex-shrink-0">
+                                                                                <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12" /></svg>
+                                                                            </button>
+                                                                        </div>
+                                                                    ))}
+                                                                </div>
+                                                            )}
+                                                        </div>
+                                                    ) : attr.values.length === 0 ? (
+                                                        <p className="text-slate-400 dark:text-zinc-600 text-xs text-center py-4">Утга нэмэгдээгүй байна</p>
                                                     ) : (
                                                         <div className="flex flex-wrap gap-2">
                                                             {attr.values.map((v, vi) => (
@@ -624,10 +787,49 @@ export default function ProductForm({ mode, productId }: Props) {
                                 )}
                             </div>
 
-                            {/* Section 5 — Хувилбарууд (нөөц & үнэ) */}
+                            {/* Section 5 — Зураг ↔ хувилбар холболт */}
+                            {linkableValues.length > 0 && (existingImages.length > 0 || imagePreviews.length > 0) && (
+                                <div className="p-8 border-b border-slate-200 dark:border-zinc-800">
+                                    <SectionTitle number={5} title="Зургийн холболт" />
+                                    <p className="text-slate-400 dark:text-zinc-500 text-xs mt-2 ml-10">
+                                        Зураг бүрийн доороос холбогдох өнгө/загвар/материалыг сонгоно. Холбосон утгуудаас доорх хувилбарууд автоматаар үүснэ. Хэрэглэгч тухайн хувилбарыг сонгоход зөвхөн холбосон зургууд эхэлж харагдана. Холбоогүй зураг бүх хувилбарт хамаарна.
+                                    </p>
+                                    <div className="mt-6 grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4">
+                                        {[
+                                            ...existingImages.map(img => ({ key: `ex:${img.id}`, src: imgUrl(img.url), isNew: false })),
+                                            ...imagePreviews.map(src => ({ key: `nw:${src}`, src, isNew: true })),
+                                        ].map(card => {
+                                            const sel = imageLinks[card.key] ?? [];
+                                            return (
+                                                <div key={card.key} className="border border-slate-200 dark:border-zinc-800 rounded-2xl overflow-hidden bg-slate-50 dark:bg-zinc-800/30">
+                                                    <div className="aspect-square relative">
+                                                        <img src={card.src} className="w-full h-full object-cover" />
+                                                        {card.isNew && <div className="absolute top-1 left-1 bg-teal-500 text-[8px] px-1 rounded text-white uppercase font-bold">New</div>}
+                                                    </div>
+                                                    <div className="p-2.5 flex flex-wrap gap-1.5">
+                                                        {linkableValues.map(lv => {
+                                                            const k = `${lv.type}:::${lv.value}`;
+                                                            const active = sel.includes(k);
+                                                            return (
+                                                                <button key={k} type="button" onClick={() => toggleImageLink(card.key, k)}
+                                                                    className={`flex items-center gap-1 text-[11px] font-semibold px-2 py-1 rounded-lg border transition-all ${active ? "border-teal-500 bg-teal-500/15 text-teal-600 dark:text-teal-300" : "border-slate-200 dark:border-zinc-700 text-slate-500 dark:text-zinc-400 hover:border-teal-400/50"}`}>
+                                                                    {lv.hex && <span className="w-2.5 h-2.5 rounded-full border border-black/10" style={{ backgroundColor: lv.hex }} />}
+                                                                    {lv.value}
+                                                                </button>
+                                                            );
+                                                        })}
+                                                    </div>
+                                                </div>
+                                            );
+                                        })}
+                                    </div>
+                                </div>
+                            )}
+
+                            {/* Section 6 — Хувилбарууд (нөөц & үнэ) */}
                             <div className="p-8 border-b border-slate-200 dark:border-zinc-800">
                                 <div className="flex items-center justify-between flex-wrap gap-3">
-                                    <SectionTitle number={5} title="Хувилбарууд (нөөц & үнэ)" />
+                                    <SectionTitle number={6} title="Хувилбарууд (нөөц & үнэ)" />
                                     <button type="button" onClick={addVariant}
                                         disabled={!attributes.some(a => a.values.some(v => v.value.trim()))}
                                         className={addBtnCls + " disabled:opacity-40 disabled:cursor-not-allowed"}>
@@ -636,7 +838,7 @@ export default function ProductForm({ mode, productId }: Props) {
                                     </button>
                                 </div>
                                 <p className="text-slate-400 dark:text-zinc-500 text-xs mt-2 ml-10">
-                                    Зөвхөн худалдах хослолоо өөрөө сонгож нэмнэ (ж: Цагаан / XL). Үнэ хоосон бол дээрх нийт үнэ хэрэглэгдэнэ.
+                                    Зургийн холболтоос автоматаар үүснэ. Шаардвал гараар нэмж/засаж болно. Үнэ хоосон бол дээрх нийт үнэ хэрэглэгдэнэ.
                                 </p>
                                 <div className="mt-6">
                                     {variants.length === 0 ? (
@@ -686,45 +888,6 @@ export default function ProductForm({ mode, productId }: Props) {
                                     )}
                                 </div>
                             </div>
-
-                            {/* Section 6 — Зураг ↔ хувилбар холболт */}
-                            {linkableValues.length > 0 && (existingImages.length > 0 || imagePreviews.length > 0) && (
-                                <div className="p-8 border-b border-slate-200 dark:border-zinc-800">
-                                    <SectionTitle number={6} title="Зургийн холболт" />
-                                    <p className="text-slate-400 dark:text-zinc-500 text-xs mt-2 ml-10">
-                                        Зураг бүрийн доороос холбогдох өнгө/загвар/материалыг сонгоно. Хэрэглэгч тухайн хувилбарыг сонгоход зөвхөн холбосон зургууд эхэлж харагдана. Холбоогүй зураг бүх хувилбарт хамаарна.
-                                    </p>
-                                    <div className="mt-6 grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4">
-                                        {[
-                                            ...existingImages.map(img => ({ key: `ex:${img.id}`, src: imgUrl(img.url), isNew: false })),
-                                            ...imagePreviews.map(src => ({ key: `nw:${src}`, src, isNew: true })),
-                                        ].map(card => {
-                                            const sel = imageLinks[card.key] ?? [];
-                                            return (
-                                                <div key={card.key} className="border border-slate-200 dark:border-zinc-800 rounded-2xl overflow-hidden bg-slate-50 dark:bg-zinc-800/30">
-                                                    <div className="aspect-square relative">
-                                                        <img src={card.src} className="w-full h-full object-cover" />
-                                                        {card.isNew && <div className="absolute top-1 left-1 bg-teal-500 text-[8px] px-1 rounded text-white uppercase font-bold">New</div>}
-                                                    </div>
-                                                    <div className="p-2.5 flex flex-wrap gap-1.5">
-                                                        {linkableValues.map(lv => {
-                                                            const k = `${lv.type}:::${lv.value}`;
-                                                            const active = sel.includes(k);
-                                                            return (
-                                                                <button key={k} type="button" onClick={() => toggleImageLink(card.key, k)}
-                                                                    className={`flex items-center gap-1 text-[11px] font-semibold px-2 py-1 rounded-lg border transition-all ${active ? "border-teal-500 bg-teal-500/15 text-teal-600 dark:text-teal-300" : "border-slate-200 dark:border-zinc-700 text-slate-500 dark:text-zinc-400 hover:border-teal-400/50"}`}>
-                                                                    {lv.hex && <span className="w-2.5 h-2.5 rounded-full border border-black/10" style={{ backgroundColor: lv.hex }} />}
-                                                                    {lv.value}
-                                                                </button>
-                                                            );
-                                                        })}
-                                                    </div>
-                                                </div>
-                                            );
-                                        })}
-                                    </div>
-                                </div>
-                            )}
                         </>
                     )}
 

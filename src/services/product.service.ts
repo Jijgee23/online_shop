@@ -1,7 +1,7 @@
 import { ProductState, AttributeType } from "@/generated/prisma";
 import { prisma } from "@/lib/prisma";
 import { generateSlug } from "@/utils/utils";
-import { getUploadDir } from "@/utils/uploadDir";
+import { getUploadDir, uniqueFileName } from "@/utils/uploadDir";
 import { mkdir, writeFile } from "fs/promises";
 import path from "path";
 
@@ -132,7 +132,7 @@ async function saveUpload(file: File): Promise<string> {
     const uploadDir = getUploadDir();
     try { await mkdir(uploadDir, { recursive: true }); } catch { /* хавтас байвал алгасна */ }
     const buffer = Buffer.from(await file.arrayBuffer());
-    const fileName = `${Date.now()}-${file.name}`;
+    const fileName = uniqueFileName(file.name);
     await writeFile(path.join(uploadDir, fileName), buffer);
     return `/uploads/${fileName}`;
 }
@@ -214,7 +214,7 @@ export const ProductService = {
             imageFiles.map(async (file) => {
                 const bytes = await file.arrayBuffer();
                 const buffer = Buffer.from(bytes);
-                const fileName = `${Date.now()}-${file.name}`;
+                const fileName = uniqueFileName(file.name);
                 const filePath = path.join(uploadDir, fileName);
                 await writeFile(filePath, buffer);
                 return `/uploads/${fileName}`;
@@ -335,15 +335,19 @@ export const ProductService = {
             data.productSizes = { deleteMany: {}, create: sizesData.map((s: any) => ({ sizeName: s.sizeName, value: s.value })) };
         }
 
-        // Images — sync existing (delete removed) + upload new
+        // Images — sync existing (delete removed) + upload new.
+        // id-аар устгана (url-аар БИШ) — ингэснээр ижил url-тай давхардсан мөрүүдийг
+        // тус тусад нь зөв устгана.
         const existingImagesRaw = formData.get("existingImages");
-        const keptUrls: string[] = existingImagesRaw
-            ? (JSON.parse(existingImagesRaw as string) as { url: string }[]).map(i => i.url)
+        const keptIds: number[] = existingImagesRaw
+            ? (JSON.parse(existingImagesRaw as string) as { id?: number }[])
+                .map(i => i.id)
+                .filter((x): x is number => typeof x === "number")
             : [];
 
         // Delete images that the user removed in the UI
         await prisma.productImage.deleteMany({
-            where: { productId: id, url: { notIn: keptUrls } },
+            where: { productId: id, id: { notIn: keptIds } },
         });
 
         // Upload and create new images
@@ -359,7 +363,7 @@ export const ProductService = {
             newImageUrls = await Promise.all(
                 imageFiles.map(async (file) => {
                     const buffer = Buffer.from(await file.arrayBuffer());
-                    const fileName = `${Date.now()}-${file.name}`;
+                    const fileName = uniqueFileName(file.name);
                     await writeFile(path.join(uploadDir, fileName), buffer);
                     return `/uploads/${fileName}`;
                 })
