@@ -120,3 +120,76 @@ export function exportReportToExcel(result: ReportResult, customerName?: string 
 
     XLSX.writeFile(wb, fileName);
 }
+
+// ─── Үлдэгдлийн тайлан ────────────────────────────────────────────────────────
+
+const INV_TYPE_LABEL: Record<string, string> = {
+    simple:  "Энгийн",
+    variant: "Хувилбартай",
+    stock:   "Өнгө/хэмжээ",
+};
+
+interface InventoryExportItem {
+    productId: number;
+    name: string;
+    sku: string | null;
+    categoryName: string | null;
+    type: string;
+    totalStock: number;
+    variantCount: number;
+    breakdown: { label: string; sku: string | null; stock: number }[];
+}
+
+interface InventoryExportData {
+    threshold: number;
+    summary: { totalProducts: number; totalUnits: number; lowStockCount: number; outOfStockCount: number };
+    items: InventoryExportItem[];
+}
+
+export function exportInventoryToExcel(data: InventoryExportData) {
+    const { summary, threshold, items } = data;
+
+    const summaryRows: (string | number)[][] = [
+        ["Тайлан",                "Барааны үлдэгдэл"],
+        ["Бага үлдэгдлийн босго", threshold],
+        [],
+        ["Нийт бараа",            summary.totalProducts],
+        ["Нийт үлдэгдэл (ширхэг)", summary.totalUnits],
+        ["Бага үлдэгдэлтэй",      summary.lowStockCount],
+        ["Дууссан",               summary.outOfStockCount],
+    ];
+    const summarySheet = XLSX.utils.aoa_to_sheet(summaryRows);
+    summarySheet["!cols"] = [{ wch: 24 }, { wch: 20 }];
+
+    // Бараагаар
+    const itemHeaders = ["#", "Бараа", "SKU", "Ангилал", "Төрөл", "Нийт үлдэгдэл", "Хувилбарын тоо"];
+    const itemRows = items.map((i, idx) => [
+        idx + 1,
+        i.name,
+        i.sku ?? "",
+        i.categoryName ?? "",
+        INV_TYPE_LABEL[i.type] ?? i.type,
+        i.totalStock,
+        i.variantCount,
+    ]);
+    const itemSheet = XLSX.utils.aoa_to_sheet([itemHeaders, ...itemRows]);
+    itemSheet["!cols"] = [5, 40, 20, 24, 16, 16, 16].map(wch => ({ wch }));
+
+    // Хувилбараар (задаргаа)
+    const varHeaders = ["Бараа", "Хувилбар", "SKU", "Үлдэгдэл"];
+    const varRows: (string | number)[][] = [];
+    for (const i of items) {
+        for (const b of i.breakdown) {
+            varRows.push([i.name, b.label, b.sku ?? "", b.stock]);
+        }
+    }
+    const varSheet = XLSX.utils.aoa_to_sheet([varHeaders, ...varRows]);
+    varSheet["!cols"] = [40, 28, 20, 14].map(wch => ({ wch }));
+
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, summarySheet, "Хураангуй");
+    XLSX.utils.book_append_sheet(wb, itemSheet,    "Бараагаар");
+    if (varRows.length > 0) XLSX.utils.book_append_sheet(wb, varSheet, "Хувилбараар");
+
+    XLSX.writeFile(wb, `inventory_report_${new Date().toISOString().split("T")[0]}.xlsx`);
+}

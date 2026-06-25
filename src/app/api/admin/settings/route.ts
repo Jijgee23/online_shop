@@ -22,7 +22,8 @@ export async function PATCH(req: NextRequest) {
     try {
         const body = await req.json();
         const { storeName, logo, banners, storeDesc, phone, email, address, onlyInStock, onlyPublished,
-                payQpay, payOnDelivery, showBranches, showStock, maxOrderValue,
+                payQpay, payOnDelivery, showBranches, showStock, maxOrderValue, lowStockThreshold,
+                monthlyRevenueGoal,
                 showStatProducts, showStatOrders, showStatSatisfaction, showStatDelivery,
                 fee, feeThreshold, facebookUrl, instagramUrl } = body;
 
@@ -41,6 +42,8 @@ export async function PATCH(req: NextRequest) {
         if (showBranches         !== undefined) data.showBranches         = showBranches;
         if (showStock            !== undefined) data.showStock            = showStock;
         if (maxOrderValue        !== undefined) data.maxOrderValue        = maxOrderValue;
+        if (lowStockThreshold    !== undefined) data.lowStockThreshold    = Math.max(0, Number(lowStockThreshold) || 0);
+        if (monthlyRevenueGoal   !== undefined) data.monthlyRevenueGoal   = Math.max(0, Number(monthlyRevenueGoal) || 0);
         if (showStatProducts     !== undefined) data.showStatProducts     = showStatProducts;
         if (showStatOrders       !== undefined) data.showStatOrders       = showStatOrders;
         if (showStatSatisfaction !== undefined) data.showStatSatisfaction = showStatSatisfaction;

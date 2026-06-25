@@ -1,9 +1,12 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { BarChart3, Package, MapPin, CreditCard, Tag, TrendingUp, ShoppingCart, Coins, Download } from "lucide-react";
+import { BarChart3, Package, MapPin, CreditCard, Tag, TrendingUp, ShoppingCart, Coins, Download, Boxes } from "lucide-react";
 import { exportReportToExcel } from "@/utils/exportExcel";
 import DatePicker from "@/ui/DatePicker";
+import InventoryReport from "./components/InventoryReport";
+
+type ReportView = "sales" | "inventory";
 
 type ReportType = "products" | "districts" | "payment_method" | "category";
 
@@ -290,6 +293,7 @@ export default function AdminReportPage() {
     const today        = new Date().toISOString().split("T")[0];
     const firstOfMonth = new Date(new Date().getFullYear(), new Date().getMonth(), 1).toISOString().split("T")[0];
 
+    const [view,        setView]        = useState<ReportView>("sales");
     const [dateFrom,    setDateFrom]    = useState(firstOfMonth);
     const [dateTo,      setDateTo]      = useState(today);
     const [user,        setUser]        = useState<{ id: number; name: string } | null>(null);
@@ -317,10 +321,34 @@ export default function AdminReportPage() {
             <header className="mb-6">
                 <h2 className="text-3xl font-bold text-slate-900 dark:text-white tracking-tight">Тайлан</h2>
                 <p className="text-slate-400 dark:text-zinc-500 text-sm">
-                    Захиалга, орлого, борлуулалтын нэгтгэсэн тайлан
+                    Захиалга, орлого, борлуулалт болон барааны үлдэгдлийн нэгтгэсэн тайлан
                 </p>
             </header>
 
+            {/* ── View switch ── */}
+            <div className="flex gap-2 mb-6">
+                {([
+                    { v: "sales",     label: "Борлуулалт", icon: <BarChart3 className="w-4 h-4" /> },
+                    { v: "inventory", label: "Үлдэгдэл",    icon: <Boxes className="w-4 h-4" /> },
+                ] as { v: ReportView; label: string; icon: React.ReactNode }[]).map(t => (
+                    <button
+                        key={t.v}
+                        onClick={() => setView(t.v)}
+                        className={`flex items-center gap-2 px-5 py-2.5 rounded-2xl text-sm font-bold transition-all ${
+                            view === t.v
+                                ? "bg-teal-500 text-white shadow-lg shadow-teal-500/20"
+                                : "bg-slate-100 dark:bg-zinc-800 text-slate-500 dark:text-zinc-400 hover:bg-slate-200 dark:hover:bg-zinc-700"
+                        }`}
+                    >
+                        {t.icon}
+                        {t.label}
+                    </button>
+                ))}
+            </div>
+
+            {view === "inventory" && <InventoryReport />}
+
+            {view === "sales" && (<>
             {/* ── Form ── */}
             <div className="bg-white dark:bg-zinc-900 border border-slate-200 dark:border-zinc-800 rounded-3xl p-6 mb-6 flex flex-col gap-6">
 
@@ -470,6 +498,7 @@ export default function AdminReportPage() {
                     </div>
                 </>
             )}
+            </>)}
         </>
     );
 }

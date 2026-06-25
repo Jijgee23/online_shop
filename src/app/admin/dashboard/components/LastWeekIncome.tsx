@@ -3,7 +3,7 @@ export default function LastWeekIncome({
 }: {
     chart: { date: string; revenue: number }[];
     dateFrom?: string;
-    dateTo?:   string;
+    dateTo?: string;
 }) {
     const title = (() => {
         if (!dateFrom && !dateTo) return "Сүүлийн 7 хоногийн орлого";

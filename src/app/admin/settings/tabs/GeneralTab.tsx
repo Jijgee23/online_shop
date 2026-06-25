@@ -11,7 +11,7 @@ export default function GeneralTab() {
     const [loading, setLoading] = useState(true);
     const [uploading, setUploading] = useState(false);
     const fileRef = useRef<HTMLInputElement>(null);
-    const [form, setForm] = useState({ storeName: "", logo: "", storeDesc: "", phone: "", email: "", address: "", facebookUrl: "", instagramUrl: "" });
+    const [form, setForm] = useState({ storeName: "", logo: "", storeDesc: "", phone: "", email: "", address: "", facebookUrl: "", instagramUrl: "", monthlyRevenueGoal: "" });
 
     useEffect(() => {
         fetch("/api/admin/settings")
@@ -26,6 +26,7 @@ export default function GeneralTab() {
                     address:      d.data.address,
                     facebookUrl:  d.data.facebookUrl  ?? "",
                     instagramUrl: d.data.instagramUrl ?? "",
+                    monthlyRevenueGoal: d.data.monthlyRevenueGoal ? String(Number(d.data.monthlyRevenueGoal)) : "",
                 });
             })
             .finally(() => setLoading(false));
@@ -133,6 +134,23 @@ export default function GeneralTab() {
                         </Field>
                     </div>
                 </div>
+            </CardSection>
+
+            <CardSection title="Орлогын зорилт" desc="Сар бүрийн орлогын зорилт. Хянах самбарт явц харагдана">
+                <Field label="Сарын орлогын зорилт (₮)">
+                    <input
+                        type="number"
+                        min={0}
+                        step={1000}
+                        value={form.monthlyRevenueGoal}
+                        onChange={set("monthlyRevenueGoal")}
+                        placeholder="Жишээ нь: 5000000"
+                        className={inputCls}
+                    />
+                    <p className="text-xs text-slate-400 dark:text-zinc-500 mt-1.5">
+                        0 эсвэл хоосон бол зорилт тооцохгүй. Зорилт нь сар бүр давтагдана.
+                    </p>
+                </Field>
             </CardSection>
 
             <CardSection title="Сошиал холбоос" desc="Header дээр харагдах сошиал хаягууд">

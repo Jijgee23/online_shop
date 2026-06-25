@@ -1,4 +1,4 @@
-import { OrderStatus, PaymentType, UserRole } from "@/generated/prisma";
+import { OrderStatus, PaymentType, Prisma, UserRole } from "@/generated/prisma";
 import { prisma } from "@/lib/prisma";
 import { sendPushToUsers } from "@/lib/firebase/sendPush";
 
@@ -222,5 +222,44 @@ export const OrderService = {
         }
 
         return order;
+    },
+
+    // Захиалга цуцлагдахад барааны үлдэгдлийг буцаан нэмэх (createOrder дахь хасалтын урвуу).
+    // Заавал transaction (tx) дотор дуудаж, статус шинэчлэлттэй атомик байлгана.
+    // Давхар сэргээхээс сэргийлэхийн тулд дуудагч тал зөвхөн цуцлагдаагүй→цуцлагдсан
+    // шилжилтийн үед л дуудна.
+    async restoreStock(
+        tx: Prisma.TransactionClient,
+        items: { productId: number; productStockId: string | null; productVariantId: string | null; quantity: number }[],
+    ) {
+        for (const item of items) {
+            if (item.productVariantId) {
+                // Шинэ хувилбар: ProductVariant эх сурвалж + барааны агрегат
+                await tx.productVariant.update({
+                    where: { id: item.productVariantId },
+                    data: { stock: { increment: item.quantity } },
+                });
+                await tx.product.update({
+                    where: { id: item.productId },
+                    data: { stock: { increment: item.quantity } },
+                });
+            } else if (item.productStockId) {
+                // Хуучин хослол: ProductStock эх сурвалж + барааны агрегат
+                await tx.productStock.update({
+                    where: { id: item.productStockId },
+                    data: { stock: { increment: item.quantity } },
+                });
+                await tx.product.update({
+                    where: { id: item.productId },
+                    data: { stock: { increment: item.quantity } },
+                });
+            } else {
+                // Энгийн бараа
+                await tx.product.update({
+                    where: { id: item.productId },
+                    data: { stock: { increment: item.quantity } },
+                });
+            }
+        }
     },
 }

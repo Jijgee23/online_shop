@@ -4,6 +4,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { sendPushToUser } from "@/lib/firebase/sendPush";
 import { sendSmsMessage } from "@/app/api/auth/utils/utils";
 import { getStoreName } from "@/lib/storeName";
+import { OrderService } from "@/services/order.service";
 
 const STATUS_LABEL: Record<string, string> = {
     PENDING:   "Хүлээгдэж байна",
@@ -45,9 +46,23 @@ export async function PATCH(req: NextRequest) {
         // Only notify orders whose status actually changes
         const changing = orders.filter(o => o.status !== status);
 
-        await prisma.order.updateMany({
-            where: { id: { in: ids } },
-            data: { status: status as OrderStatus },
+        // Цуцлагдаагүй→цуцлагдсан болж буй захиалгуудын үлдэгдлийг буцаан сэргээнэ
+        const toRestoreIds = status === OrderStatus.CANCELLED ? changing.map(o => o.id) : [];
+
+        await prisma.$transaction(async (tx) => {
+            await tx.order.updateMany({
+                where: { id: { in: ids } },
+                data: { status: status as OrderStatus },
+            });
+            if (toRestoreIds.length > 0) {
+                const withItems = await tx.order.findMany({
+                    where: { id: { in: toRestoreIds } },
+                    select: { items: { select: { productId: true, productStockId: true, productVariantId: true, quantity: true } } },
+                });
+                for (const o of withItems) {
+                    await OrderService.restoreStock(tx, o.items);
+                }
+            }
         });
 
         if (changing.length > 0) {

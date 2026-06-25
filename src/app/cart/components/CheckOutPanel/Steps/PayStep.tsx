@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import QRCode from "react-qr-code";
 import { Btn, RadioCard, Row, StepHeader } from "../shared";
+import { Modal } from "@/ui/Modal";
 import toast from "react-hot-toast";
 
 interface QRData {
@@ -116,7 +117,7 @@ export default function PayStep({ cart, myAddresses, selectedAddressId, branches
 
             {mode === "qpay" && (
                 <>
-                    <QPayScreen cart={cart} addressId={selectedAddressId} branchId={selectedBranchId} onDone={onDone} />
+                    <QPayScreen cart={cart} addressId={selectedAddressId} branchId={selectedBranchId} onDone={onDone} onCancel={handleBack} />
                     {summaryRow}
                 </>
             )}
@@ -137,15 +138,18 @@ export default function PayStep({ cart, myAddresses, selectedAddressId, branches
 
 // ─── QPay QR screen ───────────────────────────────────────────────────────────
 
-function QPayScreen({ cart, addressId, branchId, onDone }: { cart: any; addressId: number | null; branchId: number | null; onDone: (orderNumber: string) => void }) {
+function QPayScreen({ cart, addressId, branchId, onDone, onCancel }: { cart: any; addressId: number | null; branchId: number | null; onDone: (orderNumber: string) => void; onCancel: () => void }) {
     const [phase, setPhase] = useState<"loading" | "ready" | "error">("loading");
     const [qrData, setQrData] = useState<QRData | null>(null);
     const [errMsg, setErrMsg] = useState<string | null>(null);
     const [retry, setRetry] = useState(0);
     const [checking, setChecking] = useState(false);
+    // Төлбөр төлсний дараа захиалгыг цуцлах боломжгүй тул хэрэглэгчээр баталгаажуулна
+    const [confirmed, setConfirmed] = useState(false);
     const doneRef = useRef(false);
 
     useEffect(() => {
+        if (!confirmed) return;
         setPhase("loading");
         setErrMsg(null);
         let cancelled = false;
@@ -171,7 +175,7 @@ function QPayScreen({ cart, addressId, branchId, onDone }: { cart: any; addressI
         };
         create();
         return () => { cancelled = true; };
-    }, [retry]);
+    }, [retry, confirmed]);
 
     useEffect(() => {
         const handleFcm = (e: Event) => {
@@ -213,6 +217,37 @@ function QPayScreen({ cart, addressId, branchId, onDone }: { cart: any; addressI
 
     return (
         <div className="space-y-4 mb-2">
+            <Modal
+                open={!confirmed}
+                onClose={onCancel}
+                title="⚠️ Анхааруулга"
+                subtitle="Захиалгаа баталгаажуулахын өмнө уншина уу"
+                footer={
+                    <>
+                        <button
+                            onClick={onCancel}
+                            className="px-4 py-2.5 rounded-2xl text-sm font-semibold text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
+                        >
+                            Болих
+                        </button>
+                        <button
+                            onClick={() => setConfirmed(true)}
+                            className="px-4 py-2.5 rounded-2xl text-sm font-bold text-white bg-teal-500 hover:bg-teal-400 transition-colors shadow-lg shadow-teal-500/20"
+                        >
+                            Зөвшөөрч төлөх
+                        </button>
+                    </>
+                }
+            >
+                <div className="bg-amber-50 dark:bg-amber-900/10 border border-amber-200 dark:border-amber-800/40 rounded-2xl p-4">
+                    <p className="text-sm font-semibold text-amber-800 dark:text-amber-400">
+                        Төлбөр төлсний дараа захиалгыг цуцлах боломжгүй
+                    </p>
+                    <p className="text-xs text-amber-600 dark:text-amber-500 mt-1.5 leading-relaxed">
+                        QPay-р төлбөрөө амжилттай төлсний дараа таны захиалга баталгаажиж, цуцлах боломжгүй болохыг анхаарна уу. Захиалгын мэдээллээ нягтлан шалгаад үргэлжлүүлнэ үү.
+                    </p>
+                </div>
+            </Modal>
             <p className="text-xs text-slate-500 dark:text-slate-400 text-center">
                 QPay апп-аар доорх QR кодыг уншуулна уу
             </p>

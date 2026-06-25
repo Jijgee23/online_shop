@@ -122,6 +122,7 @@ export default function CartItemTile(item: CartItem) {
                         onChange={e => setLocalQty(e.target.value)}
                         onBlur={e => commit(e.target.value)}
                         onKeyDown={e => { if (e.key === "Enter") e.currentTarget.blur(); }}
+                        onWheel={e => e.currentTarget.blur()}
                         className="w-9 text-center text-sm font-bold text-slate-900 dark:text-white bg-transparent outline-none [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
                     />
                     <button

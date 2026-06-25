@@ -35,10 +35,44 @@ export interface RecentOrder {
     };
 }
 
-// 5. API-аас ирэх үндсэн хариуны бүтэц (Main Response)
+// 5. Бага үлдэгдэлтэй бараа
+export interface LowStockProduct {
+    id: number;
+    name: string;
+    sku: string | null;
+    type: "simple" | "variant" | "stock";
+    totalStock: number;
+    variantCount: number;
+}
+
+export interface LowStockSummary {
+    threshold: number;
+    total: number;          // нийт бага үлдэгдэлтэй барааны тоо
+    items: LowStockProduct[]; // эхний хэдийг (limit) л буцаана
+}
+
+// 6. Сарын орлогын зорилт ба явц
+export interface RevenueGoal {
+    goal: number;      // тохируулсан сарын зорилт (0 = тохируулаагүй)
+    current: number;   // тухайн сард хүрсэн бодит орлого
+    month: string;     // жишээ нь: "6-р сар"
+    daysLeft: number;  // сар дуустал үлдсэн өдөр
+}
+
+// 7. Ангиллын статистик (хүргэгдсэн захиалгуудаар)
+export interface CategoryStat {
+    name: string;     // ангиллын нэр ("Бусад" — үлдсэн жижиг ангиллуудын нийлбэр)
+    revenue: number;  // тухайн ангиллын борлуулалтын дүн
+    count: number;    // зарагдсан нийт тоо ширхэг
+}
+
+// 8. API-аас ирэх үндсэн хариуны бүтэц (Main Response)
 export interface DashboardResponse {
     summary: DashboardSummary;
     chartData: ChartDataPoint[];
     topProducts: TopProduct[];
     recentOrders: RecentOrder[];
+    lowStock: LowStockSummary;
+    revenueGoal: RevenueGoal;
+    categoryStats: CategoryStat[];
 }

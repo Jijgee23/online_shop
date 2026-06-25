@@ -234,6 +234,13 @@ export default function ProductForm({ mode, productId }: Props) {
         setFormData(prev => ({ ...prev, [name]: value }));
     };
 
+    // Сөрөг утга оруулахаас сэргийлэх (үлдэгдэл, нөөц)
+    const nonNeg = (v: string) => (v !== "" && Number(v) < 0 ? "0" : v);
+    // Хулганы дугуйгаар тоон утга гүйхээс сэргийлэх
+    const blockWheel = (e: React.WheelEvent<HTMLInputElement>) => e.currentTarget.blur();
+    // Зөвхөн бутархай тоо зөвшөөрөх (сөрөг ба үсэг хориглоно). Буруу бол null буцаана.
+    const decimalOnly = (v: string) => (/^\d*\.?\d*$/.test(v) ? v : null);
+
     // Attribute (хувилбарын төрөл) удирдлага
     const usedTypes = attributes.map(a => a.type);
     const availableTypes = ATTR_TYPES.filter(t => !usedTypes.includes(t.type));
@@ -552,15 +559,15 @@ export default function ProductForm({ mode, productId }: Props) {
                         <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4 mt-6">
                             <div>
                                 <label className={labelCls}>Үнэ (₮) *</label>
-                                <input type="number" name="price" value={formData.price} onChange={handleInput} required placeholder="0" className={inputCls} />
+                                <input type="text" inputMode="decimal" name="price" value={formData.price} onChange={e => { const nv = decimalOnly(e.target.value); if (nv !== null) setFormData(prev => ({ ...prev, price: nv })); }} required placeholder="0" className={inputCls} />
                             </div>
                             <div>
                                 <label className={labelCls}>Хөнгөлөлтийн үнэ (₮)</label>
-                                <input type="number" name="discountPrice" value={formData.discountPrice} onChange={handleInput} placeholder="0" className={inputCls} />
+                                <input type="text" inputMode="decimal" name="discountPrice" value={formData.discountPrice} onChange={e => { const nv = decimalOnly(e.target.value); if (nv !== null) setFormData(prev => ({ ...prev, discountPrice: nv })); }} placeholder="0" className={inputCls} />
                             </div>
                             <div>
                                 <label className={labelCls}>Үлдэгдэл *</label>
-                                <input type="number" name="stock" value={formData.stock} onChange={handleInput} required placeholder="0" className={inputCls} />
+                                <input type="number" name="stock" min="0" value={formData.stock} onChange={e => setFormData(prev => ({ ...prev, stock: nonNeg(e.target.value) }))} onWheel={blockWheel} required placeholder="0" className={inputCls} />
                             </div>
                         </div>
                     </div>s
@@ -864,15 +871,15 @@ export default function ProductForm({ mode, productId }: Props) {
                                                         ))}
                                                         <div className="w-20">
                                                             <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1 block">Нөөц *</label>
-                                                            <input type="number" value={v.stock} onChange={e => updateVariant(i, "stock", e.target.value)} placeholder="0" className={inputCls} />
+                                                            <input type="number" min="0" value={v.stock} onChange={e => updateVariant(i, "stock", nonNeg(e.target.value))} onWheel={blockWheel} placeholder="0" className={inputCls} />
                                                         </div>
                                                         <div className="w-24">
                                                             <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1 block">Үнэ</label>
-                                                            <input type="number" value={v.price} onChange={e => updateVariant(i, "price", e.target.value)} placeholder={formData.price || "0"} className={inputCls} />
+                                                            <input type="text" inputMode="decimal" value={v.price} onChange={e => { const nv = decimalOnly(e.target.value); if (nv !== null) updateVariant(i, "price", nv); }} placeholder={formData.price || "0"} className={inputCls} />
                                                         </div>
                                                         <div className="w-24">
                                                             <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1 block">Хямдрал</label>
-                                                            <input type="number" value={v.discountPrice} onChange={e => updateVariant(i, "discountPrice", e.target.value)} placeholder="—" className={inputCls} />
+                                                            <input type="text" inputMode="decimal" value={v.discountPrice} onChange={e => { const nv = decimalOnly(e.target.value); if (nv !== null) updateVariant(i, "discountPrice", nv); }} placeholder="—" className={inputCls} />
                                                         </div>
                                                         <div className="w-28">
                                                             <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1 block">SKU</label>

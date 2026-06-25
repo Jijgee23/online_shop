@@ -18,6 +18,7 @@ export interface StoreSettings {
     showBranches: boolean;
     showStock: boolean;
     maxOrderValue: number;
+    lowStockThreshold: number;
     facebookUrl: string;
     instagramUrl: string;
 }
@@ -38,6 +39,7 @@ const DEFAULT: StoreSettings = {
     showBranches: true,
     showStock: true,
     maxOrderValue: 0,
+    lowStockThreshold: 5,
     facebookUrl: "",
     instagramUrl: "",
 };

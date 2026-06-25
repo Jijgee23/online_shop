@@ -4,6 +4,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { sendPushToUser } from "@/lib/firebase/sendPush";
 import { sendSmsMessage } from "@/app/api/auth/utils/utils";
 import { getStoreName } from "@/lib/storeName";
+import { OrderService } from "@/services/order.service";
 
 export async function GET(
     _req: NextRequest,
@@ -46,7 +47,7 @@ export async function PATCH(
 
         const order = await prisma.order.findUnique({
             where: { id: Number(id) },
-            include: { payment: true, user: true, address: true },
+            include: { payment: true, user: true, address: true, items: true },
         });
         if (!order) return NextResponse.json({ message: "Захиалга олдсонгүй" }, { status: 404 });
 
@@ -54,7 +55,15 @@ export async function PATCH(
         if (status) data.status = status as OrderStatus;
         if (note !== undefined) data.note = note;
 
-        const updated = await prisma.order.update({ where: { id: Number(id) }, data });
+        // Цуцлагдаагүй→цуцлагдсан шилжилтэд барааны үлдэгдлийг буцаан сэргээнэ (давхар сэргээхгүй)
+        const willRestoreStock = status === OrderStatus.CANCELLED && order.status !== OrderStatus.CANCELLED;
+        const updated = await prisma.$transaction(async (tx) => {
+            const u = await tx.order.update({ where: { id: Number(id) }, data });
+            if (willRestoreStock) {
+                await OrderService.restoreStock(tx, order.items);
+            }
+            return u;
+        });
 
         if (paymentStatus !== undefined && order.payment) {
             await prisma.payment.update({
@@ -101,7 +110,7 @@ export async function PATCH(
 
             // Хүргэлтэнд гарах үед хэрэглэгч рүү SMS илгээх
             if (status === OrderStatus.SHIPPED) {
-                const phone = order.address?.phone || order.user?.phone;
+                const phone = order.user?.phone || order.address?.phone;
                 if (phone) {
                     const storeName = await getStoreName();
                     sendSmsMessage(

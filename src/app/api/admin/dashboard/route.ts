@@ -1,6 +1,7 @@
 import { prisma } from "@/lib/prisma";
 import { NextRequest, NextResponse } from "next/server";
-import { startOfDay, subDays, eachDayOfInterval, endOfDay } from "date-fns";
+import { startOfDay, subDays, eachDayOfInterval, endOfDay, startOfMonth, endOfMonth, differenceInCalendarDays } from "date-fns";
+import { getLowStockProducts } from "@/services/inventory.service";
 
 export async function GET(req: NextRequest) {
   try {
@@ -77,11 +78,69 @@ export async function GET(req: NextRequest) {
       include: { user: { select: { name: true, email: true } } }
     });
 
+    // 5. Бага үлдэгдэлтэй бараа (тохиргооны босгоор)
+    const lowStock = await getLowStockProducts();
+
+    // 5b. Ангиллын статистик — ЗӨВХӨН хүргэгдсэн (DELIVERED) захиалгуудаар
+    const deliveredItems = await prisma.orderItem.findMany({
+      where: {
+        deletedAt: null,
+        order: { status: "DELIVERED", deletedAt: null, createdAt: dateFilter },
+      },
+      select: {
+        price: true,
+        quantity: true,
+        product: { select: { category: { select: { id: true, name: true } } } },
+      },
+    });
+
+    const catMap = new Map<number, { name: string; revenue: number; count: number }>();
+    for (const it of deliveredItems) {
+      const cat = it.product?.category;
+      if (!cat) continue;
+      const cur = catMap.get(cat.id) ?? { name: cat.name, revenue: 0, count: 0 };
+      cur.revenue += Number(it.price) * it.quantity;
+      cur.count   += it.quantity;
+      catMap.set(cat.id, cur);
+    }
+
+    let categoryStats = Array.from(catMap.values()).sort((a, b) => b.revenue - a.revenue);
+    // 6-аас олон ангилал бол эхний 5 + үлдсэнийг "Бусад" болгож нэгтгэнэ
+    if (categoryStats.length > 6) {
+      const rest = categoryStats.slice(5);
+      categoryStats = [
+        ...categoryStats.slice(0, 5),
+        rest.reduce((a, c) => ({ name: "Бусад", revenue: a.revenue + c.revenue, count: a.count + c.count }), { name: "Бусад", revenue: 0, count: 0 }),
+      ];
+    }
+
+    // 6. Сарын орлогын зорилт ба явц (date filter-ээс үл хамааран ЭНЭ САР)
+    const now         = new Date();
+    const monthStart  = startOfMonth(now);
+    const monthEnd    = endOfMonth(now);
+    const [monthRevenue, storeSettings] = await Promise.all([
+      prisma.order.aggregate({
+        _sum: { totalPrice: true },
+        where: { status: { in: ["PAID", "SHIPPED", "DELIVERED"] }, deletedAt: null, createdAt: { gte: monthStart, lte: monthEnd } },
+      }),
+      prisma.storeSettings.findUnique({ where: { id: 1 }, select: { monthlyRevenueGoal: true } }),
+    ]);
+
+    const revenueGoal = {
+      goal:     Number(storeSettings?.monthlyRevenueGoal) || 0,
+      current:  Number(monthRevenue._sum.totalPrice) || 0,
+      month:    now.toLocaleDateString("mn-MN", { month: "long" }),
+      daysLeft: Math.max(0, differenceInCalendarDays(monthEnd, now)),
+    };
+
     return NextResponse.json({
       summary: { totalRevenue: Number(revenueData._sum.totalPrice) || 0, totalOrders, totalUsers, totalProducts, pendingOrders },
       chartData,
       topProducts,
       recentOrders,
+      lowStock,
+      revenueGoal,
+      categoryStats,
     });
 
   } catch (error) {

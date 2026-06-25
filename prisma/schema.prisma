@@ -426,6 +426,8 @@ model StoreSettings {
   fee                  Decimal       @default(0) @db.Decimal(12, 2)
   feeThreshold         Decimal       @default(0) @db.Decimal(12, 2)
   maxOrderValue        Decimal       @default(0) @db.Decimal(12, 2) // 0 = хязгааргүй
+  monthlyRevenueGoal   Decimal       @default(0) @db.Decimal(12, 2) // сарын орлогын зорилт (0 = тохируулаагүй)
+  lowStockThreshold    Int           @default(5) // үлдэгдэл энэ тооноос бага бол "бага үлдэгдэл" гэж тооцно
   onlyInStock          Boolean       @default(false)
   onlyPublished        Boolean       @default(true)
   showStock            Boolean       @default(true) // үлдэгдлийн тоог хэрэглэгчид харуулах эсэх

@@ -3,6 +3,7 @@ import { cookies } from "next/headers";
 import { NextRequest, NextResponse } from "next/server";
 import jwt from "jsonwebtoken";
 import { ACCESS_TOKEN_SECRET } from "../../auth/jwt/jwt_controller";
+import { OrderService } from "@/services/order.service";
 
 async function getUser(_req: NextRequest) {
     const cookieStore = await cookies();
@@ -28,7 +29,10 @@ export async function PATCH(req: NextRequest, context: any) {
     }
 
     try {
-        const order = await prisma.order.findUnique({ where: { id: Number(id) } });
+        const order = await prisma.order.findUnique({
+            where: { id: Number(id) },
+            include: { items: true },
+        });
         if (!order) return NextResponse.json({ message: "Захиалга олдсонгүй" }, { status: 404 });
         if (order.userId !== Number(decoded.userId)) {
             return NextResponse.json({ message: "Зөвшөөрөл байхгүй" }, { status: 403 });
@@ -37,9 +41,14 @@ export async function PATCH(req: NextRequest, context: any) {
             return NextResponse.json({ message: "Зөвхөн хүлээгдэж буй захиалгыг цуцлах боломжтой" }, { status: 400 });
         }
 
-        const updated = await prisma.order.update({
-            where: { id: Number(id) },
-            data: { status: "CANCELLED" },
+        // Статус өөрчлөлт + үлдэгдэл сэргээхийг атомик гүйцэтгэнэ
+        const updated = await prisma.$transaction(async (tx) => {
+            const u = await tx.order.update({
+                where: { id: Number(id) },
+                data: { status: "CANCELLED" },
+            });
+            await OrderService.restoreStock(tx, order.items);
+            return u;
         });
 
         return NextResponse.json({ order: updated }, { status: 200 });
